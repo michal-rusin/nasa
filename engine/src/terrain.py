@@ -10,7 +10,7 @@ SLOPE_TIF = ROOT / "data/dem/LDSM_80S_20MPP_ADJ.TIF"
 PSR_TIF = ROOT / "data/dem/PSR_DIST_80S.TIF"  # docelową nazwę poda zespół danych
 
 SLOPE_BASIS = "LDSM_80S_20MPP_ADJ"
-PSR_SOURCE = "TODO data team"
+PSR_SOURCE = "PGDA product 90, LPSR_80S_20MPP_ADJ; distance via gdal_proximity.py -distunits GEO on an 80 m grid, metres -> km"
 PSR_METERS_TO_KM = 1e-3  # gdal_proximity.py -distunits GEO zapisuje w metrach -> / 1000 = km
 
 
@@ -80,6 +80,10 @@ def sample_raster(
         if reference_crs is not None:
             verify_crs_match(reference_crs, CRS.from_user_input(ds.crs), label or path.name)
         vals = np.array([v[0] for v in ds.sample(zip(xs, ys))], dtype=np.float64)
+        # rasterio returns 0 outside the raster when there is no nodata value (PSR file)
+        b = ds.bounds
+        outside = (xs < b.left) | (xs > b.right) | (ys < b.bottom) | (ys > b.top)
+        vals[outside] = np.nan
         if ds.nodata is not None:
             vals[vals == ds.nodata] = np.nan
     return (vals * scale).astype(np.float32)

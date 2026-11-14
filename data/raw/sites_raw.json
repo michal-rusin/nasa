@@ -190,16 +190,6 @@
     "nearest_candidate_dist_km": null
   },
   {
-    "id": "artemis-leibnitz-beta-plateau",
-    "name": "Leibnitz Beta Plateau",
-    "category": "artemis",
-    "lat": -85.4266,
-    "lon": 31.74276,
-    "note": "Region kandydacki NASA z listy 2022. Punkt reprezentatywny z tabeli NASA, nie zatwierdzone miejsce lądowania. Nieobecny na liście z 2024 r. Źródło: NASA Lunar Surface Data Book (2025), tabela A2.1-1, s. 75, https://ntrs.nasa.gov/citations/20250002845; lista: https://www.nasa.gov/news-release/nasa-identifies-candidate-regions-for-landing-next-americans-on-moon/",
-    "nearest_candidate_id": null,
-    "nearest_candidate_dist_km": null
-  },
-  {
     "id": "artemis-amundsen-rim",
     "name": "Amundsen Rim",
     "category": "artemis",
@@ -260,16 +250,6 @@
     "nearest_candidate_dist_km": null
   },
   {
-    "id": "artemis-peak-near-cabeus-b",
-    "name": "Peak near Cabeus B",
-    "category": "artemis",
-    "lat": -83.6,
-    "lon": -68.7,
-    "note": "Region kandydacki NASA z listy 2024. Przybliżony punkt reprezentatywny z Lunar Planner; nie zatwierdzone miejsce lądowania. Źródło: Ohio University Lunar Planner, https://www.its.ohio.edu/foundations/lunar/ ; lista NASA: https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/",
-    "nearest_candidate_id": null,
-    "nearest_candidate_dist_km": null
-  },
-  {
     "id": "artemis-mons-mouton-plateau",
     "name": "Mons Mouton Plateau",
     "category": "artemis",
@@ -285,7 +265,7 @@
     "category": "artemis",
     "lat": -85.4,
     "lon": 31.7,
-    "note": "Region kandydacki NASA z listy 2024. Przybliżony punkt reprezentatywny z Lunar Planner; nie zatwierdzone miejsce lądowania. Źródło: Ohio University Lunar Planner, https://www.its.ohio.edu/foundations/lunar/ ; lista NASA: https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/",
+    "note": "Region kandydacki NASA z listy 2024. Przybliżony punkt reprezentatywny z Lunar Planner; nie zatwierdzone miejsce lądowania. Źródło: Ohio University Lunar Planner, https://www.its.ohio.edu/foundations/lunar/ ; lista NASA: https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/ Dawniej Leibnitz Beta (nazwa zmieniona przez NASA w 2022).",
     "nearest_candidate_id": null,
     "nearest_candidate_dist_km": null
   },

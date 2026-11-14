@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 import numpy as np
 from dem import Dem, DEM_NEAR, DEM_FAR, make_transformers, ROOT
-from grid import build_grid, subsample
+from grid import build_grid, subsample, refine_grid, merge_grids
 from masks import compute_masks
 from metrics import compute_metrics
 from validation import pick_validation_points, build_validation, write_validation
@@ -21,6 +21,7 @@ CACHE = ROOT / "data/cache"
 ap = argparse.ArgumentParser()
 ap.add_argument("--n", type=int, default=0, help="random subsample of N points (0 = full grid)")
 ap.add_argument("--fake-ephem", action="store_true", help="TEST ONLY, never delivered")
+ap.add_argument("--refine", type=int, default=0, help="250 m level-1 grid around the N sunniest points (0 = off)")
 args = ap.parse_args()
 
 t0 = time.time()
@@ -56,6 +57,18 @@ if args.fake_ephem:
 
 m = compute_metrics(grid["lat"], grid["lon"], grid["elev_m"], masks, ephem, h_obs=H_OBS)
 print(f"metrics: done ({time.time() - t0:.0f}s), median sun {np.nanmedian(m[:, 0]):.1f}%")
+
+if args.refine > 0:
+    # Level-1 masks are not cached: the parent set depends on the metrics of this run
+    parents = np.argsort(-m[:, 0])[:args.refine]
+    fine = refine_grid(grid, parents, near, far, inv)
+    fine_masks, _ = compute_masks(fine["lat"], fine["lon"], near, far, fwd, H_OBS)
+    fine_m = compute_metrics(fine["lat"], fine["lon"], fine["elev_m"], fine_masks, ephem, h_obs=H_OBS)
+    print(f"refine: {len(fine['id'])} level-1 points, best sun {fine_m[:, 0].max():.1f}% "
+          f"(level 0 best {m[:, 0].max():.1f}%)")
+    grid = merge_grids(grid, fine)
+    masks = np.vstack([masks, fine_masks])
+    m = np.vstack([m, fine_m])
 
 order = np.argsort(-m[:, 0])[:5]
 for i in order:

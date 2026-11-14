@@ -46,7 +46,7 @@ Python 3.11+, numpy, rasterio, pyproj, numba, requests (Horizons API).
 | 10 | Sample slope_deg (LDSM file) and dist_psr_km (data team's raster) at grid points | friend | P1 | todo |
 | 11 | Full 2 km grid (~26k points); fallback 87–90°S first if slow | Jacob | P1 | todo |
 | 12 | sites.json: fill x_m, y_m (dem.make_transformers, same as candidates), nearest_candidate_id, nearest_candidate_dist_km; all four null for sites outside layers.bounds_m | friend | P1 | todo |
-| 13 | Refinement to 250 m (level=1) | Jacob | P2 | todo |
+| 13 | Refinement to 250 m (level=1) | Jacob | P2 | done, fake-ephem test only; real delivery waits for Michał's OK |
 
 ## Rules
 - Contract wins. If the code and the contract disagree, ask, don't guess.
@@ -57,3 +57,4 @@ Python 3.11+, numpy, rasterio, pyproj, numba, requests (Horizons API).
 ## Status log
 - (one line per milestone, newest last)
 - 2026-11-14: grid extended to 84°S (confirmed by Michał): 26044 points, layers.bounds_m ±185000, IM-2 0.93 km from nearest point; full run 123 s
+- 2026-11-14: 250 m refinement (run.py --refine N, ids 100000 + parent*64 + k): fake-ephem test with N=50 -> 3200 level-1 points, all 29244 ids unique, run 24 s; not in data/out/v1 yet
