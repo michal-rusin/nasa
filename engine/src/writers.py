@@ -65,7 +65,7 @@ def write_meta(out, grid, n_steps, crs, h_obs, mock=False):
         "moon_radius_km": R_KM,
         "frame": "MOON_ME",
         "ephem_source": "JPL Horizons API, COMMAND=301, CENTER=500@399, QUANTITIES=14,15,20",
-        "abcorr": "TODO from Horizons header",
+        "abcorr": "apparent (light-time corrected), Horizons OBSERVER quantities 14, 15, 20",
         "t0_utc": "2028-01-01T00:00:00Z",
         "step_s": 3600,
         "n_steps": int(n_steps),
