@@ -439,8 +439,12 @@ def make_sites(terrain: Terrain, lat, lon, ids, rho_max):
         sx, sy = latlon_to_xy(la, lo)
         item = {"id": f"mock-{cat}-{n}", "name": f"[MOCK] {name}", "category": cat,
                 "lat": round(la, 4), "lon": round(lo, 4),
+                "x_m": None, "y_m": None,
                 "note": "dane testowe, nie jest to prawdziwa lokalizacja",
                 "nearest_candidate_id": None, "nearest_candidate_dist_km": None}
+        # x_m, y_m w rzucie mocka (latlon_to_xy); null poza granicami rastrów.
+        if abs(sx) <= LAYER_HALF_M and abs(sy) <= LAYER_HALF_M:
+            item["x_m"], item["y_m"] = round(float(sx), 1), round(float(sy), 1)
         if math.hypot(sx, sy) <= rho_max:
             dist = great_circle_km(la, lo, lat, lon)
             k = int(np.argmin(dist))
