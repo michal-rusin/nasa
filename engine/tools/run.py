@@ -61,7 +61,7 @@ for i in order:
 dark = (m[:, 0] == 0) & (m[:, 2] == 0)
 print(f"sun=0 and earth=0: {dark.sum()} points; lowest mask value there, median "
       f"{np.median(masks[dark].min(axis=1)) / 100:.1f} deg")
-      
+
 idx = pick_validation_points(m)
 write_validation(out / "validation.json",
                  build_validation(idx, grid["id"], grid["lat"], grid["lon"],
@@ -72,6 +72,7 @@ for name, call in [
     ("write_candidates", lambda f: f(out, grid, m)),
     ("write_masks",      lambda f: f(out, grid, masks)),
     ("write_meta",       lambda f: f(out, grid, len(ephem), near.crs, H_OBS)),
+    ("write_meta",       lambda f: f(out, grid, len(ephem), near.crs, H_OBS, args.fake_ephem)),
 ]:
     if hasattr(writers, name):
         call(getattr(writers, name))
