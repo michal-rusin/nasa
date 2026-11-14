@@ -1,7 +1,7 @@
 """Pipeline entry point (to be written)."""
 """Engine pipeline: grid -> masks -> metrics -> validation -> files.
 Run: python engine/tools/run.py [--n 100] [--fake-ephem]"""
-import sys, time, argparse
+import sys, time, argparse, json
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 import numpy as np
@@ -11,7 +11,8 @@ from masks import compute_masks
 from metrics import compute_metrics
 from validation import pick_validation_points, build_validation, write_validation
 from terrain import sample_terrain_layers
-from sites import process_sites_file
+from sites import process_sites_file, enrich_sites
+from ranking import ranking_parents
 import writers
 
 H_OBS = 2.0                                   # observer_height_m, same value everywhere
@@ -22,6 +23,8 @@ ap = argparse.ArgumentParser()
 ap.add_argument("--n", type=int, default=0, help="random subsample of N points (0 = full grid)")
 ap.add_argument("--fake-ephem", action="store_true", help="TEST ONLY, never delivered")
 ap.add_argument("--refine", type=int, default=0, help="250 m level-1 grid around the N sunniest points (0 = off)")
+ap.add_argument("--refine-ranking", action="store_true",
+                help="250 m level-1 grid around frontend-ranking top-10s + named sites")
 args = ap.parse_args()
 
 t0 = time.time()
@@ -58,12 +61,30 @@ if args.fake_ephem:
 m = compute_metrics(grid["lat"], grid["lon"], grid["elev_m"], masks, ephem, h_obs=H_OBS)
 print(f"metrics: done ({time.time() - t0:.0f}s), median sun {np.nanmedian(m[:, 0]):.1f}%")
 
-if args.refine > 0:
-    # Level-1 masks are not cached: the parent set depends on the metrics of this run
+grid = sample_terrain_layers(grid, near_crs=near.crs)   # level 0; the ranking needs slope/PSR
+
+sites_raw = ROOT / "data/raw/sites_raw.json"
+parents = None
+if args.refine_ranking:
+    rank_p = ranking_parents(grid, m)
+    site_p = np.array([], np.int64)
+    if sites_raw.exists():
+        enriched = enrich_sites(json.loads(sites_raw.read_text(encoding="utf-8")), grid, fwd)
+        id_to_idx = {int(g): i for i, g in enumerate(grid["id"])}
+        site_p = np.array([id_to_idx[s["nearest_candidate_id"]] for s in enriched
+                           if s["nearest_candidate_id"] is not None], np.int64)
+    parents = np.union1d(rank_p, site_p)
+    print(f"refine parents: {len(rank_p)} from ranking, {len(np.unique(site_p))} from sites "
+          f"({len(np.setdiff1d(site_p, rank_p))} not already in ranking), total {len(parents)}")
+elif args.refine > 0:
     parents = np.argsort(-m[:, 0])[:args.refine]
+
+if parents is not None:
+    # Level-1 masks are not cached: the parent set depends on the metrics of this run
     fine = refine_grid(grid, parents, near, far, inv)
     fine_masks, _ = compute_masks(fine["lat"], fine["lon"], near, far, fwd, H_OBS)
     fine_m = compute_metrics(fine["lat"], fine["lon"], fine["elev_m"], fine_masks, ephem, h_obs=H_OBS)
+    fine = sample_terrain_layers(fine, near_crs=near.crs)   # same keys as grid for merge_grids
     print(f"refine: {len(fine['id'])} level-1 points, best sun {fine_m[:, 0].max():.1f}% "
           f"(level 0 best {m[:, 0].max():.1f}%)")
     grid = merge_grids(grid, fine)
@@ -81,8 +102,6 @@ idx = pick_validation_points(m)
 write_validation(out / "validation.json",
                  build_validation(idx, grid["id"], grid["lat"], grid["lon"],
                                   grid["elev_m"], masks, ephem, h_obs=H_OBS))
-
-grid = sample_terrain_layers(grid, near_crs=near.crs)
 
 # Writers (friend). Skipped with a message until they exist.
 for name, call in [
@@ -107,7 +126,6 @@ for col, name in [(0, "sun"), (2, "earth")]:
     Image.fromarray(img).resize((img.shape[1] * 4, img.shape[0] * 4), Image.NEAREST) \
         .save(out / f"preview_{name}.png")
 
-sites_raw = ROOT / "data/raw/sites_raw.json"
 if sites_raw.exists():
     process_sites_file(sites_raw, out / "sites.json", grid, near.crs)
 else:
