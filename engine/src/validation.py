@@ -16,11 +16,11 @@ def pick_validation_points(metrics):
     return list(dict.fromkeys(picks))          # drop duplicates, keep order
 
 
-def build_validation(idx, ids, lat, lon, elev, masks, ephem, r_sun=0.2666):
+def build_validation(idx, ids, lat, lon, elev, masks, ephem, r_sun=0.2666, h_obs=2.0):
     """Full hourly series for the chosen points, via the same series_one as metrics."""
     idx = np.asarray(idx)
     U, E, N, P = enu(np.asarray(lat, float)[idx], np.asarray(lon, float)[idx],
-                     np.asarray(elev)[idx])
+                     np.asarray(elev)[idx],  h_obs)
     e = np.asarray(ephem, np.float64)
     records = []
     for k, i in enumerate(idx):
