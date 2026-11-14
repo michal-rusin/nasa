@@ -45,7 +45,7 @@ Python 3.11+, numpy, rasterio, pyproj, numba, requests (Horizons API).
 | 9 | Sanity checks: Shackleton floor sun_pct ~0, best points on rims; compare pattern with PGDA product 69 | Jacob | P1 | todo |
 | 10 | Sample slope_deg (LDSM file) and dist_psr_km (data team's raster) at grid points | friend | P1 | todo |
 | 11 | Full 2 km grid (~18k points); fallback 87–90°S first if slow | Jacob | P1 | todo |
-| 12 | Fill nearest_candidate_id / nearest_candidate_dist_km in sites.json | friend | P1 | todo |
+| 12 | sites.json: fill x_m, y_m (dem.make_transformers, same as candidates), nearest_candidate_id, nearest_candidate_dist_km; all four null for sites outside layers.bounds_m | friend | P1 | todo |
 | 13 | Refinement to 250 m (level=1) | Jacob | P2 | todo |
 
 ## Rules
