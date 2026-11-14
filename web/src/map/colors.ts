@@ -1,11 +1,19 @@
-// Skala kolorów punktów: ciemny → fiołkowy → żółty. Czyste funkcje, bez DOM.
+// Skala kolorów punktów: jak mapa hipsometryczna, od czerwieni (najgorzej) przez pomarańcz
+// i żółć do zieleni (najlepiej). Czyste funkcje, bez DOM.
 
 export type RGB = readonly [number, number, number]
 
+/** Punkty kontrolne co 1/8: początek = najgorzej (czerwony), koniec = najlepiej (zielony). */
 export const RAMP_STOPS: readonly RGB[] = [
-  [20, 16, 60],    // ciemny granat
-  [150, 55, 160],  // fiołkowy
-  [255, 230, 90],  // żółty
+  [176, 32, 38],
+  [214, 64, 40],
+  [238, 112, 44],
+  [247, 160, 58],
+  [244, 202, 84],
+  [202, 214, 92],
+  [146, 202, 96],
+  [84, 178, 92],
+  [30, 150, 86],
 ]
 
 /** Kolor dla wartości spoza danych (NaN). */
@@ -29,11 +37,12 @@ export function computeRange(values: ArrayLike<number>): Range {
   return min === Infinity ? { min: 0, max: 0 } : { min, max }
 }
 
-/** Skala 3-punktowa, t w [0, 1] (przycinane). */
+/** Interpolacja liniowa między punktami RAMP_STOPS (równo rozłożonymi), t w [0, 1] (przycinane). */
 export function rampRgb(t: number): RGB {
   const tc = Math.min(1, Math.max(0, t))
-  const seg = tc <= 0.5 ? 0 : 1
-  const local = seg === 0 ? tc / 0.5 : (tc - 0.5) / 0.5
+  const nSeg = RAMP_STOPS.length - 1
+  const seg = Math.min(nSeg - 1, Math.floor(tc * nSeg))
+  const local = tc * nSeg - seg
   const a = RAMP_STOPS[seg]!
   const b = RAMP_STOPS[seg + 1]!
   return [

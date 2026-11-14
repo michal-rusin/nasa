@@ -29,16 +29,18 @@ function siteStyle(site: Site): Style {
   if (!s) {
     s = new Style({
       image: new Circle({
-        radius: 6,
+        radius: 4.5,
         fill: new Fill({ color: categoryColor(site.category) }),
-        stroke: new Stroke({ color: '#000000', width: 1.5 }),
+        stroke: new Stroke({ color: 'rgba(0, 0, 0, 0.85)', width: 1.5 }),
       }),
       text: new Text({
         text: site.name,
-        font: '12px system-ui, sans-serif',
-        offsetY: -14,
-        fill: new Fill({ color: '#ffffff' }),
-        stroke: new Stroke({ color: '#000000', width: 3 }),
+        font: '500 11.5px "Inter Variable", system-ui, sans-serif',
+        offsetY: -12,
+        fill: new Fill({ color: 'rgba(255, 255, 255, 0.92)' }),
+        stroke: new Stroke({ color: 'rgba(0, 0, 0, 0.85)', width: 3 }),
+        // Etykiety, które by na siebie nachodziły, OL pomija (przy przybliżeniu wracają).
+        overflow: false,
       }),
     })
     styleCache.set(key, s)
@@ -59,5 +61,5 @@ export function createSitesLayer(sites: Site[]): VectorLayer<VectorSource> {
     f.setStyle(siteStyle(site))
     features.push(f)
   })
-  return new VectorLayer({ source: new VectorSource({ features }), zIndex: 30 })
+  return new VectorLayer({ source: new VectorSource({ features }), zIndex: 30, declutter: true })
 }

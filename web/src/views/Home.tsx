@@ -16,6 +16,9 @@ const BUMP_SCALE = 1.5
 const STARS_MIN_WIDTH = 600
 const FLY_MS = 1200
 const FADE_MS = 350
+const TURN_MS = 1100
+/** Odległość kamery po obrocie na misję: miejsce lądowania jest wyraźnie widoczne, ale kula nadal w kadrze. */
+const SITE_VIEW_DIST = 2.6
 const FLY_END_LAT = -88 // nie dokładnie -90: kamera z up=+Y nie może patrzeć idealnie wzdłuż osi Y
 const FLY_END_DIST = 2.3
 const AUTOROTATE_RESUME_MS = 6000
@@ -39,6 +42,12 @@ export default function Home() {
   const exploreRef = useRef<() => void>(() => {
     window.location.hash = '#/south-pole'
   })
+  /** Obraca globus tak, żeby podany punkt (lat, lon) był na środku kadru. Ustawiane w efekcie three.js. */
+  const rotateRef = useRef<(lat: number, lon: number) => void>(() => {})
+  const selectSite = (s: ApolloSite) => {
+    setSelected(s)
+    rotateRef.current(s.lat, s.lon)
+  }
   const [selected, setSelected] = useState<ApolloSite | null>(null)
   const [textureFailed, setTextureFailed] = useState(false)
   const [glFailed, setGlFailed] = useState(false)
@@ -168,6 +177,7 @@ export default function Home() {
     controls.autoRotateSpeed = 0.35
     let resumeTimer = 0
     const onControlStart = () => {
+      turn = null
       window.clearTimeout(resumeTimer)
       controls.autoRotate = false
     }
@@ -192,6 +202,25 @@ export default function Home() {
       flight = { t0: performance.now(), dur: reduce ? 0 : FLY_MS, ...vec3ToLatLon(camera.position) }
     }
     exploreRef.current = explore
+
+    // --- Obrót na wybraną misję ---------------------------------------------
+    // Kamera płynie po łuku do kierunku misji (najkrótszą drogą po długości geograficznej).
+    let turn: {
+      t0: number; dur: number; lat0: number; lon0: number; dist0: number; lat1: number; lon1: number; dist1: number
+    } | null = null
+    rotateRef.current = (lat, lon) => {
+      if (flight || flightDone) return
+      window.clearTimeout(resumeTimer)
+      controls.autoRotate = false
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      const cur = vec3ToLatLon(camera.position)
+      turn = {
+        t0: performance.now(), dur: reduce ? 0 : TURN_MS,
+        lat0: cur.lat, lon0: cur.lon, dist0: cur.dist,
+        lat1: Math.max(-80, Math.min(80, lat)), lon1: lon,
+        dist1: Math.max(MIN_DISTANCE, Math.min(cur.dist, SITE_VIEW_DIST)),
+      }
+    }
 
     // --- Klik / kursor nad obszarem bieguna ----------------------------------
     const raycaster = new THREE.Raycaster()
@@ -261,7 +290,22 @@ export default function Home() {
           leaveTimer = window.setTimeout(() => { window.location.hash = '#/south-pole' }, FADE_MS)
         }
       } else if (!flightDone) {
-        controls.update()
+        if (turn) {
+          const k = turn.dur > 0 ? Math.min(1, (now - turn.t0) / turn.dur) : 1
+          const e = easeInOutCubic(k)
+          const dLon = ((turn.lon1 - turn.lon0 + 540) % 360) - 180
+          const p = latLonToVec3(lerp(turn.lat0, turn.lat1, e), turn.lon0 + dLon * e, lerp(turn.dist0, turn.dist1, e))
+          camera.position.set(p.x, p.y, p.z)
+          camera.lookAt(0, 0, 0)
+          if (k >= 1) {
+            turn = null
+            controls.update() // OrbitControls przejmuje kamerę od bieżącej pozycji
+            window.clearTimeout(resumeTimer)
+            resumeTimer = window.setTimeout(() => { controls.autoRotate = true }, AUTOROTATE_RESUME_MS)
+          }
+        } else {
+          controls.update()
+        }
       }
       camera.updateMatrixWorld()
 
@@ -312,6 +356,7 @@ export default function Home() {
       renderer.dispose()
       canvas.remove()
       exploreRef.current = () => { window.location.hash = '#/south-pole' }
+      rotateRef.current = () => {}
     }
   }, [])
 
@@ -331,7 +376,7 @@ export default function Home() {
                 if (el) markerRefs.current.set(s.id, el)
                 else markerRefs.current.delete(s.id)
               }}
-              onClick={() => setSelected(s)}
+              onClick={() => selectSite(s)}
             >
               <span className="globe-marker-dot" />
               <span className="globe-marker-label">{s.name}</span>
@@ -360,16 +405,50 @@ export default function Home() {
           <button type="button" className="site-card-close" aria-label={t('card.close')} onClick={() => setSelected(null)}>
             ×
           </button>
+          <div className="site-card-meta mono">{t('card.landed')} · {selected.year}</div>
           <h2>{selected.name}</h2>
-          <div className="muted">{t('card.landed')}: {selected.year}</div>
           <p>{t(`site.${selected.id}.desc`)}</p>
         </aside>
       )}
 
-      <div className="home-cta">
-        <button type="button" onClick={() => exploreRef.current()}>{t('home.cta')}</button>
-        <div className="muted">{t('home.hint')}</div>
-      </div>
+      <section className="home-hero" aria-labelledby="home-title">
+        <img className="hero-logo" src={`${ASSETS}logo.svg`} alt="" width={84} height={77} />
+        <h1 id="home-title" className="display">
+          <span>{t('home.titleA')}</span>
+          <span>{t('home.titleB')}</span>
+        </h1>
+        <div className="hairline" aria-hidden="true" />
+        <p className="home-lead">{t('home.lead')}</p>
+        <button type="button" className="btn-glow" onClick={() => exploreRef.current()}>
+          {t('home.cta')}
+          <span aria-hidden="true">→</span>
+        </button>
+        <p className="home-hint">{t('home.hint')}</p>
+        <details className="home-missions">
+          <summary>{t('home.missions')}</summary>
+          <ul>
+            {APOLLO_SITES.map((s) => (
+              <li key={s.id}>
+                <button type="button" aria-pressed={selected?.id === s.id} onClick={() => selectSite(s)}>
+                  <span>{s.name}</span>
+                  <span className="mono">{s.year}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </details>
+      </section>
+
+      <dl className="home-stats" aria-label={t('home.statsTitle')}>
+        <dt className="home-stats-title">{t('home.statsTitle')}</dt>
+        <dd />
+        <dt>{t('home.stat.apollo')}</dt>
+        <dd>{APOLLO_SITES.length}</dd>
+        <dt>{t('home.stat.years')}</dt>
+        <dd>{Math.min(...APOLLO_SITES.map((s) => s.year))}–{Math.max(...APOLLO_SITES.map((s) => s.year))}</dd>
+        <dt>{t('home.stat.region')}</dt>
+        <dd>{Math.abs(SOUTH_POLE_REGION_LAT)}°S–90°S</dd>
+      </dl>
     </div>
   )
 }

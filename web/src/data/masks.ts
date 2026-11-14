@@ -19,7 +19,8 @@ let fetcher: DataFetcher = fetchOk
 let indexPromise: Promise<MaskIndex> | null = null
 const tileCache = new Map<string, Promise<ArrayBuffer>>()
 let ephemPromise: Promise<Float32Array> | null = null
-let maskSeq = 0
+/** Osobny licznik wyprzedzania na kanał (np. miejsce A i B w porównaniu), żeby się nie anulowały. */
+const maskSeq = new Map<string, number>()
 
 /** Tylko do testów: własny fetcher + wyczyszczenie cache. */
 export function _resetMasksForTests(f: DataFetcher = fetchOk): void {
@@ -27,7 +28,7 @@ export function _resetMasksForTests(f: DataFetcher = fetchOk): void {
   indexPromise = null
   tileCache.clear()
   ephemPromise = null
-  maskSeq = 0
+  maskSeq.clear()
 }
 
 /** Wynik getMask został wyprzedzony przez nowsze żądanie; ignorować, nie pokazywać. */
@@ -85,20 +86,21 @@ export function loadMaskTile(file: string): Promise<ArrayBuffer> {
 
 /**
  * Maska punktu o danym id (720 × int16, setne stopnia).
- * Tylko najnowsze wywołanie się rozwiązuje; starsze kończą się StaleRequestError,
+ * Na każdym kanale rozwiązuje się tylko najnowsze wywołanie; starsze kończą się StaleRequestError,
  * więc szybka zmiana zaznaczenia nie nadpisze nowszego wyniku starym.
  */
-export async function getMask(id: number): Promise<Int16Array> {
-  const seq = ++maskSeq
+export async function getMask(id: number, channel = 'default'): Promise<Int16Array> {
+  const seq = (maskSeq.get(channel) ?? 0) + 1
+  maskSeq.set(channel, seq)
   const index = await loadMaskIndex()
   const rec = index.records[String(id)]
   if (!rec) {
-    if (seq !== maskSeq) throw new StaleRequestError()
+    if (seq !== maskSeq.get(channel)) throw new StaleRequestError()
     throw new Error(`Brak maski dla punktu ${id} w masks/index.json`)
   }
   const [file, record] = rec
   const buf = await loadMaskTile(file)
-  if (seq !== maskSeq) throw new StaleRequestError()
+  if (seq !== maskSeq.get(channel)) throw new StaleRequestError()
   return maskFromBuffer(buf, record)
 }
 

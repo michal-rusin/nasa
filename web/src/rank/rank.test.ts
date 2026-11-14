@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { COLUMN_NAMES, type Candidates, type ColumnName, type MetricKey } from '../data/types'
 import { passMask } from './filters'
-import { normalizeMetric, percentile } from './normalize'
+import { normalizeAll, normalizeMetric, percentile } from './normalize'
 import { computeScore } from './score'
 import { topN } from './topN'
 
@@ -136,5 +136,39 @@ describe('topN', () => {
     const y = [0, 0, 0, 0]
     const r = topN(score, [0, 1, 1, 1], x, y, { n: 2 })
     expect(r).toEqual([{ index: 1, score: 0.9 }, { index: 2, score: 0.8 }])
+  })
+})
+
+describe('ranking end-to-end: wagi zmieniają top-10', () => {
+  // 30 punktów daleko od siebie (NMS nie przeszkadza): sun_pct rośnie z i, slope_deg też rośnie z i
+  // (czyli gorzej). Waga na sun → najlepsze najwyższe i; waga na slope → najlepsze najniższe i.
+  const N = 30
+  const idx = Array.from({ length: N }, (_, i) => i)
+  const c = cands({
+    sun_pct: idx.map((i) => i),
+    slope_deg: idx.map((i) => i),
+    x_m: idx.map((i) => i * 100_000),
+    y_m: idx.map(() => 0),
+  }, N)
+  const norms = normalizeAll(c)
+  const all = new Uint8Array(N).fill(1)
+  const rank = (w: Partial<Record<MetricKey, number>>) =>
+    topN(computeScore(norms, w, N), all, c.col.x_m, c.col.y_m, { n: 10, radiusKm: 5 }).map((p) => p.index)
+
+  it('waga na nasłonecznienie vs na nachylenie odwraca kolejność', () => {
+    expect(rank({ sun_pct: 1 })).toEqual([29, 28, 27, 26, 25, 24, 23, 22, 21, 20])
+    expect(rank({ slope_deg: 1 })).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+  })
+
+  it('same remisy (stała metryka) → tie-breaker: niższy indeks, stabilnie i powtarzalnie', () => {
+    const a = rank({ earth_pct: 1 })
+    expect(a).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+    expect(rank({ earth_pct: 1 })).toEqual(a)
+  })
+
+  it('przesunięcie wagi przesuwa top-10 monotonicznie', () => {
+    const top = rank({ sun_pct: 3, slope_deg: 1 })
+    expect(top[0]).toBe(29)
+    expect(top).toEqual([...top].sort((x, y) => y - x))
   })
 })

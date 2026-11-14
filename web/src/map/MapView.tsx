@@ -1,13 +1,18 @@
 import 'ol/ol.css'
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
+import { isMockSite } from '../app/sites'
+import { useT } from '../i18n'
 import { useStore } from '../store'
 import { createMap } from './createMap'
 
 export function MapView() {
+  const t = useT()
   const ref = useRef<HTMLDivElement>(null)
   const meta = useStore((s) => s.meta)
   const candidates = useStore((s) => s.candidates)
-  const sites = useStore((s) => s.sites)
+  const allSites = useStore((s) => s.sites)
+  // Wpisy testowe „[MOCK]” nie trafiają na mapę produktu.
+  const sites = useMemo(() => allSites.filter((s) => !isMockSite(s)), [allSites])
 
   useEffect(() => {
     if (!ref.current || !meta || !candidates) return
@@ -19,5 +24,6 @@ export function MapView() {
     }
   }, [meta, candidates, sites])
 
-  return <div ref={ref} className="map" />
+  // tabIndex: OpenLayers nasłuchuje klawiszy (strzałki, +/-) na elemencie docelowym mapy.
+  return <div ref={ref} className="map starfield" tabIndex={0} role="application" aria-label={t('sp.mapAria')} />
 }
