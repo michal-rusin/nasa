@@ -24,7 +24,7 @@ args = ap.parse_args()
 t0 = time.time()
 near, far = Dem(DEM_NEAR), Dem(DEM_FAR)
 fwd, inv = make_transformers(near.crs)
-grid = build_grid(near, far, fwd, inv)
+grid = build_grid(near, far, fwd, inv, lat_edge=-84.0)
 if args.n:
     grid = subsample(grid, args.n)
 print(f"grid: {len(grid['id'])} points")

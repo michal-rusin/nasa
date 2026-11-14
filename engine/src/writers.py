@@ -9,7 +9,7 @@ COLUMNS = ["id", "lat", "lon", "x_m", "y_m", "elev_m", "level",
            "slope_deg", "dist_psr_km"]
 TILES = 8
 R_KM = 1737.4
-
+LAYER_HALF_M = 185_000
 
 def _write_json(path, obj):
     path.write_text(json.dumps(obj, ensure_ascii=False), encoding="utf-8")
@@ -76,13 +76,13 @@ def write_meta(out, grid, n_steps, crs, h_obs, mock=False):
         "dem_near": "LDEM_80S_80MPP_ADJ",
         "dem_far": "LDEM_60S_240MPP_ADJ",
         "psr_source": "TODO data team",
-        "region": {"lat_min": -90, "lat_max": -85},
+        "region": {"lat_min": -90, "lat_max": -84},
         "candidates": {"count": len(grid["id"]), "columns": COLUMNS},
         "raster_crs_wkt": crs.to_wkt(),
         "raster_proj4": crs.to_proj4(),
         "layers": {
-            # SHORTCUT: square around the grid until the data team's PNG bounds exist
-            "bounds_m": {"min_x": -half, "min_y": -half, "max_x": half, "max_y": half},
+            "bounds_m": {"min_x": -LAYER_HALF_M, "min_y": -LAYER_HALF_M,
+                         "max_x": LAYER_HALF_M, "max_y": LAYER_HALF_M},
             "files": {"basemap": "layers/basemap.png", "slope": "layers/slope.png",
                       "illumination": "layers/illumination.png", "psr": "layers/psr.png"},
         },
