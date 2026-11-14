@@ -73,18 +73,18 @@ def _metrics(U, E, N, P, masks, sun, earth, r_sun, night_thr, step_h):
     return out
 
 
-def enu(lat, lon, elev_m):
+def enu(lat, lon, elev_m,h_obs=2.0):
     """Contract 1.2: U, E, N unit vectors and position P (km) per point."""
     la, lo = np.radians(lat), np.radians(lon)
     U = np.stack([np.cos(la) * np.cos(lo), np.cos(la) * np.sin(lo), np.sin(la)], -1)
     E = np.stack([-np.sin(lo), np.cos(lo), np.zeros_like(lo)], -1)
     N = np.stack([-np.sin(la) * np.cos(lo), -np.sin(la) * np.sin(lo), np.cos(la)], -1)
-    P = (R_KM + np.asarray(elev_m) / 1000.0)[:, None] * U
+    P = (R_KM + (np.asarray(elev_m) + h_obs) / 1000.0)[:, None] * U
     return U, E, N, P
 
 
-def compute_metrics(lat, lon, elev_m, masks, ephem, step_h=1.0, r_sun=0.2666, night_thr=0.01):
+def compute_metrics(lat, lon, elev_m, masks, ephem, step_h=1.0, r_sun=0.2666, night_thr=0.01, h_obs=2.0):
     """Returns [N, 4]: sun_pct, longest_night_h, earth_pct, longest_comm_gap_h."""
-    U, E, N, P = enu(np.asarray(lat, float), np.asarray(lon, float), elev_m)
+    U, E, N, P = enu(np.asarray(lat, float), np.asarray(lon, float), elev_m, h_obs)
     e = np.asarray(ephem, np.float64)
     return _metrics(U, E, N, P, masks, e[:, :3], e[:, 3:], r_sun, night_thr, step_h)
