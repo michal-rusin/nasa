@@ -2,12 +2,16 @@
 from pathlib import Path
 import numpy as np
 from numba import njit
-from pyproj import Transformer
+from pyproj import CRS
 
-from dem import Dem, ROOT, sample
+from dem import Dem, DEM_FAR, DEM_NEAR, ROOT, sample
 
 SLOPE_TIF = ROOT / "data/dem/LDSM_80S_20MPP_ADJ.TIF"
-PSR_TIF = ROOT / "data/dem/PSR_DIST_80S.TIF"
+PSR_TIF = ROOT / "data/dem/PSR_DIST_80S.TIF"  # docelową nazwę poda zespół danych
+
+SLOPE_BASIS = "LDSM_80S_20MPP_ADJ"
+PSR_SOURCE = "TODO data team"
+PSR_METERS_TO_KM = 1e-3  # gdal_proximity.py -distunits GEO zapisuje w metrach -> / 1000 = km
 
 
 @njit(cache=True)
@@ -20,16 +24,53 @@ def _sample_points(h, x0, y0, dx, dy, xs, ys, scale):
     return out
 
 
+def verify_crs_match(reference_crs: CRS, raster: Dem, label: str) -> None:
+    """Abort with ValueError if raster CRS differs from the 80 m DEM reference CRS."""
+    if raster.crs != reference_crs:
+        raise ValueError(
+            f"Niezgodny CRS dla rastra '{label}'! "
+            f"Oczekiwano CRS z DEM 80m ({reference_crs.to_proj4()}), "
+            f"otrzymano ({raster.crs.to_proj4()})."
+        )
+
+
+def verify_all_rasters_crs(
+    near_path: Path | str = DEM_NEAR,
+    far_path: Path | str = DEM_FAR,
+    slope_path: Path | str = SLOPE_TIF,
+    psr_path: Path | str = PSR_TIF,
+) -> CRS:
+    """Load all 4 rasters and verify their CRS matches the 80 m DEM."""
+    near_p = Path(near_path)
+    if not near_p.exists():
+        raise FileNotFoundError(f"Brak bazowego DEM 80m: {near_p}")
+
+    ref_crs = Dem(near_p).crs
+    for label, path in [
+        ("DEM_FAR (240m)", far_path),
+        ("SLOPE (LDSM)", slope_path),
+        ("PSR_DIST", psr_path),
+    ]:
+        p = Path(path)
+        if not p.exists():
+            raise FileNotFoundError(f"Brak wymaganego rastra '{label}': {p}")
+        verify_crs_match(ref_crs, Dem(p), label)
+
+    return ref_crs
+
+
 def sample_raster(
     raster_path: Path | str,
     x_m: np.ndarray,
     y_m: np.ndarray,
-    target_crs=None,
+    reference_crs: CRS | None = None,
     scale: float = 1.0,
+    label: str | None = None,
 ) -> np.ndarray:
     """Bilinearly sample a GeoTIFF raster at map coordinates (x_m, y_m).
 
-    Returns float32 array with NaN for nodata, out-of-bounds, or missing raster file.
+    Raises ValueError if `reference_crs` is given and raster CRS does not match.
+    Returns float32 array with NaN if the file is not yet delivered or outside bounds/nodata.
     """
     path = Path(raster_path)
     xs = np.asarray(x_m, dtype=np.float64)
@@ -40,9 +81,8 @@ def sample_raster(
         return np.full(xs.shape[0], np.nan, dtype=np.float32)
 
     raster = Dem(path)
-    if target_crs is not None and raster.crs != target_crs:
-        tr = Transformer.from_crs(target_crs, raster.crs, always_xy=True)
-        xs, ys = tr.transform(xs, ys)
+    if reference_crs is not None:
+        verify_crs_match(reference_crs, raster, label or path.name)
 
     h, x0, y0, dx, dy = raster.params()
     return _sample_points(h, x0, y0, dx, dy, xs, ys, float(scale))
@@ -50,26 +90,37 @@ def sample_raster(
 
 def sample_terrain_layers(
     grid: dict,
+    near_crs: CRS | None = None,
+    far_path: Path | str = DEM_FAR,
     slope_path: Path | str = SLOPE_TIF,
     psr_path: Path | str = PSR_TIF,
-    target_crs=None,
-    psr_to_km: float = 1e-3,
 ) -> dict:
-    """Populate grid['slope_deg'] and grid['dist_psr_km'] in-place and return grid.
+    """Verify CRS of all 4 rasters against DEM 80m and sample slope_deg & dist_psr_km."""
+    if near_crs is None and Path(DEM_NEAR).exists():
+        near_crs = Dem(DEM_NEAR).crs
 
-    Args:
-        grid: Dict returned by grid.build_grid (must contain 'x_m' and 'y_m').
-        slope_path: Path to LDSM_80S_20MPP_ADJ.TIF (degrees).
-        psr_path: Path to PSR proximity raster from data team (default meters -> *1e-3 = km).
-        target_crs: CRS of grid['x_m'], grid['y_m'] (e.g. near.crs).
-        psr_to_km: Unit multiplier to convert PSR raster values to km (1e-3 if meters, 1.0 if km).
-    """
+    if near_crs is not None and Path(far_path).exists():
+        verify_crs_match(near_crs, Dem(far_path), "DEM_FAR (240m)")
+
     x_m, y_m = grid["x_m"], grid["y_m"]
 
-    slope_deg = sample_raster(slope_path, x_m, y_m, target_crs=target_crs, scale=1.0)
-    dist_psr_km = sample_raster(psr_path, x_m, y_m, target_crs=target_crs, scale=psr_to_km)
+    slope_deg = sample_raster(
+        slope_path,
+        x_m,
+        y_m,
+        reference_crs=near_crs,
+        scale=1.0,
+        label="SLOPE (LDSM)",
+    )
+    dist_psr_km = sample_raster(
+        psr_path,
+        x_m,
+        y_m,
+        reference_crs=near_crs,
+        scale=PSR_METERS_TO_KM,
+        label="PSR_DIST",
+    )
 
-    # Kontrola fizyczna dla niepustych próbek
     valid_slope = slope_deg[~np.isnan(slope_deg)]
     if valid_slope.size > 0:
         assert np.all((valid_slope >= 0.0) & (valid_slope <= 90.0)), (
