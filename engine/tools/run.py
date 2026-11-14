@@ -55,6 +55,13 @@ if args.fake_ephem:
 m = compute_metrics(grid["lat"], grid["lon"], grid["elev_m"], masks, ephem, h_obs=H_OBS)
 print(f"metrics: done ({time.time() - t0:.0f}s), median sun {np.nanmedian(m[:, 0]):.1f}%")
 
+order = np.argsort(-m[:, 0])[:5]
+for i in order:
+    print(f"top sun {m[i, 0]:.1f}% at lat {grid['lat'][i]:.2f}, lon {grid['lon'][i]:.1f}")
+dark = (m[:, 0] == 0) & (m[:, 2] == 0)
+print(f"sun=0 and earth=0: {dark.sum()} points; lowest mask value there, median "
+      f"{np.median(masks[dark].min(axis=1)) / 100:.1f} deg")
+      
 idx = pick_validation_points(m)
 write_validation(out / "validation.json",
                  build_validation(idx, grid["id"], grid["lat"], grid["lon"],
@@ -70,4 +77,17 @@ for name, call in [
         call(getattr(writers, name))
     else:
         print(f"skip: writers.{name} not written yet")
+
+
+from PIL import Image
+# Quick look: one pixel per grid point (grid is regular, 2 km spacing). North-up as on the map.
+ix = np.round((grid["x_m"] - grid["x_m"].min()) / 2000).astype(int)
+iy = np.round((grid["y_m"].max() - grid["y_m"]) / 2000).astype(int)   # image rows go down
+for col, name in [(0, "sun"), (2, "earth")]:
+    img = np.zeros((iy.max() + 1, ix.max() + 1), np.uint8)
+    img[iy, ix] = np.clip(m[:, col] * 2.55, 0, 255).astype(np.uint8)  # 0-100% -> 0-255
+    Image.fromarray(img).resize((img.shape[1] * 4, img.shape[0] * 4), Image.NEAREST) \
+        .save(out / f"preview_{name}.png")
+
+
 print(f"done in {time.time() - t0:.0f}s -> {out}")
