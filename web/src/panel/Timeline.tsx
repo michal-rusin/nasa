@@ -1,5 +1,7 @@
 import { useCallback, useMemo } from 'react'
-import { PANO_COLORS } from './Panorama'
+import { useT } from '../i18n'
+import { useStore } from '../store'
+import { PANO_COLORS } from './colors'
 import { bucketMean, monthTicks, type Span } from './timelineMath'
 import { useCanvas } from './useCanvas'
 
@@ -30,7 +32,15 @@ const EARTH = [74, 163, 255] as const
 
 export function Timeline({ f, g, t0Utc, stepS, cursor, trackLen, night, commGap, onCursor }: Props) {
   const n = f.length
-  const ticks = useMemo(() => monthTicks(t0Utc, stepS, n), [t0Utc, stepS, n])
+  const t = useT()
+  const lang = useStore((s) => s.lang)
+  const months = useMemo(
+    () => Array.from({ length: 12 }, (_, m) => new Date(Date.UTC(2000, m, 1)).toLocaleString(lang, { month: 'short', timeZone: 'UTC' })),
+    [lang],
+  )
+  const ticks = useMemo(() => monthTicks(t0Utc, stepS, n, months), [t0Utc, stepS, n, months])
+  const sunLabel = t('dock.sun')
+  const earthLabel = t('dock.earth')
 
   const draw = useCallback((ctx: CanvasRenderingContext2D, w: number) => {
     const pw = w - PAD_L - PAD_R
@@ -52,8 +62,8 @@ export function Timeline({ f, g, t0Utc, stepS, cursor, trackLen, night, commGap,
     ctx.textBaseline = 'middle'
     ctx.textAlign = 'left'
     ctx.fillStyle = PANO_COLORS.text
-    ctx.fillText('Słońce', 4, ySun + ROW.bar / 2)
-    ctx.fillText('Ziemia', 4, yEarth + ROW.bar / 2)
+    ctx.fillText(sunLabel, 4, ySun + ROW.bar / 2)
+    ctx.fillText(earthLabel, 4, yEarth + ROW.bar / 2)
 
     // Miesiące.
     ctx.textBaseline = 'top'
@@ -83,7 +93,7 @@ export function Timeline({ f, g, t0Utc, stepS, cursor, trackLen, night, commGap,
     ctx.setLineDash([2, 2])
     ctx.beginPath(); ctx.moveTo(xc, ySun - 4); ctx.lineTo(xc, yEnd + 4); ctx.stroke()
     ctx.setLineDash([])
-  }, [f, g, n, ticks, cursor, trackLen, night, commGap])
+  }, [f, g, n, ticks, cursor, trackLen, night, commGap, sunLabel, earthLabel])
 
   const ref = useCanvas(draw, H)
 

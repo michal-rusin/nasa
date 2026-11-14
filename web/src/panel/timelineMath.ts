@@ -44,7 +44,9 @@ export interface MonthTick {
 }
 
 /** Granice miesięcy (UTC) w okresie [t0, t0 + nSteps·stepS). */
-export function monthTicks(t0Utc: string, stepS: number, nSteps: number): MonthTick[] {
+export function monthTicks(
+  t0Utc: string, stepS: number, nSteps: number, names: readonly string[] = MONTHS_PL,
+): MonthTick[] {
   const t0 = Date.parse(t0Utc)
   const span = nSteps * stepS * 1000
   if (!Number.isFinite(t0) || span <= 0) return []
@@ -54,9 +56,17 @@ export function monthTicks(t0Utc: string, stepS: number, nSteps: number): MonthT
   for (let guard = 0; guard < 1000; guard++) {
     const t = Date.UTC(y, m, 1)
     if (t >= t0 + span) break
-    if (t >= t0) ticks.push({ pos: (t - t0) / span, label: MONTHS_PL[m]! })
+    if (t >= t0) ticks.push({ pos: (t - t0) / span, label: names[m] ?? MONTHS_PL[m]! })
     m++
     if (m === 12) { m = 0; y++ }
   }
   return ticks
+}
+
+/** Krok k osi czasu jako tekst UTC: „2028-01-01 05:00” (z godziną) albo „2028-01-01”. */
+export function stepToUtc(t0Utc: string, stepS: number, k: number, withTime = true): string {
+  const t = Date.parse(t0Utc) + k * stepS * 1000
+  if (!Number.isFinite(t)) return `#${k}`
+  const iso = new Date(t).toISOString()
+  return withTime ? iso.slice(0, 16).replace('T', ' ') : iso.slice(0, 10)
 }

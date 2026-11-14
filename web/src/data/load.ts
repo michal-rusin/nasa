@@ -134,6 +134,19 @@ export async function loadCandidates(meta: Meta): Promise<Candidates> {
   return parseCandidates(await res.arrayBuffer(), meta)
 }
 
+/**
+ * Czy plik obrazu istnieje (HEAD). Serwer dev Vite na brakujący plik zwraca 200 + index.html,
+ * więc sprawdzamy też content-type. Błąd sieci = brak (warstwę pomijamy bez błędu).
+ */
+export async function probeImage(path: string): Promise<boolean> {
+  try {
+    const res = await fetch(dataUrl(path), { method: 'HEAD' })
+    return res.ok && (res.headers.get('content-type') ?? '').startsWith('image/')
+  } catch {
+    return false
+  }
+}
+
 /** sites.json dostarcza zespół danych osobno; jego brak nie blokuje mapy (pusta lista + ostrzeżenie). */
 export async function loadSites(): Promise<Site[]> {
   try {

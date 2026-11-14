@@ -18,4 +18,11 @@ describe('nearestPoint', () => {
     expect(nearestPoint(0, 0, [NaN], [0], 1e9)).toBe(-1)
     expect(nearestPoint(0, 0, [], [], 1e9)).toBe(-1)
   })
+
+  it('z maską pomija odfiltrowane punkty, a promień Infinity szuka bez limitu', () => {
+    const mask = new Uint8Array([1, 0, 1, 1])
+    expect(nearestPoint(1900, 100, cx, cy, 500, mask)).toBe(-1)
+    expect(nearestPoint(1900, 100, cx, cy, Infinity, mask)).toBe(0)
+    expect(nearestPoint(1e6, 1e6, cx, cy, Infinity)).toBe(2)
+  })
 })

@@ -1,20 +1,50 @@
 import type { FrameState } from 'ol/Map'
 import Layer from 'ol/layer/Layer'
-import { NO_DATA_RGB, normalize, rampRgb, rgbCss, type Range } from './colors'
+import { NO_DATA_RGB, normalize, rampRgb, rgbCss, type Range, type RGB } from './colors'
+import { detectGrid } from './grid'
 
-/** Liczba kubełków koloru: punkty jednego kubełka rysujemy jedną ścieżką i jednym fill(). */
+/** Liczba kubełków koloru (tryb punktowy): punkty jednego kubełka rysujemy jednym fill(). */
 const N_BINS = 64
 const NAN_BIN = N_BINS
-/** Punkty niespełniające filtrów: szare, przygaszone, rysowane pierwsze (pod resztą). */
-const DIM_BIN = N_BINS + 1
+/** Punkty niespełniające filtrów: nie są rysowane wcale (znikają z mapy). */
+const HIDDEN_BIN = N_BINS + 1
 const N_ALL_BINS = N_BINS + 2
-const DIM_COLOR = 'rgba(140, 140, 140, 0.18)'
-const RADIUS_PX = 2.5
-const SELECTED_RADIUS_PX = 5.5
-const TOP_RING_RADIUS_PX = 9
+const DRAW_BINS = [NAN_BIN, ...Array.from({ length: N_BINS }, (_, b) => b)]
+/** Bok kwadratu punktu w trybie punktowym, gdy dane nie mają regularnej siatki. */
+const SIZE_PX = 3
+/** Zagęszczenie `level = 1` ma oczko 250 m (kontrakt 3.1); tak duże kwadraty rysujemy na wierzchu pola. */
+const FINE_CELL_M = 250
+const SELECTED_RADIUS_PX = 6
+const HOVER_RADIUS_PX = 5
+const MONO = '"JetBrains Mono", ui-monospace, monospace'
+/** Maks. liczba plakietek z animacją (Top N ≤ tyle). */
+const MAX_BADGES = 32
+/** Odsłanianie pola rankingu: czas przejścia [ms]. */
+const REVEAL_MS = 900
+/** Plakietki wskakują po kolei: opóźnienie startu i odstęp między kolejnymi [ms]. */
+const BADGE_DELAY_MS = 380
+const BADGE_STAGGER_MS = 60
+/** Sprężyna plakietek (lekko niedotłumiona, jak w iOS): sztywność i tłumienie. */
+const SPRING_K = 420
+const SPRING_C = 26
+/** Powiększenie plakietki pod kursorem. */
+const BADGE_HOVER_SCALE = 1.45
+
+/** Promień plakietki Top N w px CSS przy danej rozdzielczości (do hit-testu w createMap). */
+export function badgeRadiusPx(rank: number, resolution: number): number {
+  const base = resolution > 350 ? 11.5 : 10
+  return rank === 0 ? base * 1.2 : base
+}
+
+function easeInOutCubic(t: number): number {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+}
+function prefersReducedMotion(): boolean {
+  return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+}
 
 export interface PointsStyle {
-  values: Float32Array
+  values: ArrayLike<number>
   range: Range
   /** true dla metryk „mniej = lepiej”: rampa odwrócona, jasny = dobry. */
   invert: boolean
@@ -22,60 +52,176 @@ export interface PointsStyle {
   mask: Uint8Array | null
   /** Indeksy top-N w kolejności rankingu (numerowane pierścienie). */
   top: readonly number[]
+  /** Miejsce A (zaznaczone) i B (porównanie). */
   selectedIndex: number | null
+  compareIndex: number | null
 }
 
 export interface PointsLayerHandle {
   layer: Layer
   setStyle: (s: PointsStyle) => void
+  setHover: (i: number | null) => void
+  /** Podświetlenie z listy Top 10 (działa jak najechanie na mapie). */
+  setHighlight: (i: number | null) => void
+  /** Krycie samego pola/kwadratów (znaczniki i obrys zostają pełne). */
+  setOpacity: (v: number) => void
+  /** Pokazuje lub chowa kolory rankingu i plakietki (z animacją). */
+  setRevealed: (on: boolean) => void
+  /** Czy ranking jest włączony. */
+  isRevealed: () => boolean
+  dispose: () => void
 }
 
 /**
- * Własna warstwa canvas dla punktów siatki (bez obiektu Feature na punkt).
+ * Własna warstwa canvas dla punktów kandydatów (bez obiektu Feature na punkt).
+ * Punkty poziomu 0 (siatka 2 km) rysujemy jako gładkie pole wartości (jeden piksel obrazu
+ * na punkt, skalowanie z wygładzaniem); zagęszczenia (poziom ≠ 0) jako drobne kwadraty na wierzchu.
+ * Jeśli poziom 0 nie jest regularną siatką, wszystkie punkty idą jako kwadraty.
+ * Na koniec: poświata krawędzi obszaru (okrąg o promieniu regionRadiusM wokół 0,0).
  * cx, cy: współrzędne w metrach CRS rastrów (x_m, y_m z candidates.bin).
  */
-export function createPointsLayer(cx: Float32Array, cy: Float32Array): PointsLayerHandle {
+export function createPointsLayer(
+  cx: Float32Array,
+  cy: Float32Array,
+  regionRadiusM: number,
+  level?: ArrayLike<number>,
+): PointsLayerHandle {
   const n = Math.min(cx.length, cy.length)
   const canvas = document.createElement('canvas')
   canvas.style.position = 'absolute'
   canvas.style.left = '0'
   canvas.style.top = '0'
   const ctx = canvas.getContext('2d')
-  if (!ctx) throw new Error('Przeglądarka nie obsługuje canvas 2D')
+  if (!ctx) throw new Error('Canvas 2D is not supported')
 
-  // Punkty posortowane po kubełku koloru (sortowanie przez zliczanie).
-  const order = new Int32Array(n)
+  const coarse: number[] = []
+  const fine: number[] = []
+  for (let i = 0; i < n; i++) (!level || level[i] === 0 ? coarse : fine).push(i)
+  const coarseIdx = Int32Array.from(coarse)
+  const grid = detectGrid(Float32Array.from(coarse, (i) => cx[i]!), Float32Array.from(coarse, (i) => cy[i]!))
+  // Tryb punktowy obejmuje: zagęszczenia (gdy jest pole) albo wszystkie punkty (gdy pola nie ma).
+  const pointIdx = Int32Array.from(grid ? fine : Array.from({ length: n }, (_, i) => i))
+  const field = grid ? document.createElement('canvas') : null
+  const fctx = field?.getContext('2d') ?? null
+  if (grid && field) {
+    field.width = grid.nx
+    field.height = grid.ny
+  }
+
+  // Tryb punktowy: punkty posortowane po kubełku koloru (sortowanie przez zliczanie).
+  const order = new Int32Array(pointIdx.length)
   const offsets = new Int32Array(N_ALL_BINS + 1)
   const binColors: string[] = []
   for (let b = 0; b < N_BINS; b++) binColors.push(rgbCss(rampRgb((b + 0.5) / N_BINS)))
   binColors.push(rgbCss(NO_DATA_RGB))
-  binColors.push(DIM_COLOR)
-  // Kolejność rysowania: przygaszone na spodzie.
-  const DRAW_ORDER = [DIM_BIN, NAN_BIN, ...Array.from({ length: N_BINS }, (_, b) => b)]
   let style: PointsStyle | null = null
+  let hover: number | null = null
+  let highlight: number | null = null
+  let opacity = 1
+
+  // Animacje: odsłanianie pola (0..1) i sprężyny skali plakietek.
+  let revealed = false
+  let reveal = 0
+  let revealedAt = 0
+  const bScale = new Float32Array(MAX_BADGES)
+  const bVel = new Float32Array(MAX_BADGES)
+  let raf = 0
+  let lastT = 0
+  const hot = () => hover ?? highlight
+
+  function badgeTarget(rank: number, now: number): number {
+    if (!revealed || !style || rank >= style.top.length) return 0
+    if (now < revealedAt + BADGE_DELAY_MS + rank * BADGE_STAGGER_MS) return 0
+    return style.top[rank] === hot() ? BADGE_HOVER_SCALE : 1
+  }
+  function step(now: number): void {
+    const dt = Math.min(0.05, lastT ? (now - lastT) / 1000 : 1 / 60)
+    lastT = now
+    let moving = false
+    if (prefersReducedMotion()) {
+      reveal = revealed ? 1 : 0
+      for (let r = 0; r < MAX_BADGES; r++) { bScale[r] = badgeTarget(r, Infinity); bVel[r] = 0 }
+    } else {
+      if (reveal !== (revealed ? 1 : 0)) {
+        const d = (dt * 1000) / (revealed ? REVEAL_MS : REVEAL_MS * 0.5)
+        reveal = revealed ? Math.min(1, reveal + d) : Math.max(0, reveal - d)
+        moving = true
+      }
+      for (let r = 0; r < MAX_BADGES; r++) {
+        if (!revealed) {
+          // Chowanie: szybkie, bez odbicia.
+          bScale[r] = Math.max(0, bScale[r]! - dt * 6)
+          bVel[r] = 0
+          if (bScale[r]! > 0) moving = true
+          continue
+        }
+        const tg = badgeTarget(r, now)
+        if (tg === 0 && style && r < style.top.length) moving = true // czeka na swoją kolej
+        const x = bScale[r]!, v = bVel[r]!
+        const a = SPRING_K * (tg - x) - SPRING_C * v
+        const nv = v + a * dt
+        const nx = x + nv * dt
+        if (Math.abs(tg - nx) > 0.002 || Math.abs(nv) > 0.01) {
+          bVel[r] = nv
+          bScale[r] = nx
+          moving = true
+        } else {
+          bScale[r] = tg
+          bVel[r] = 0
+        }
+      }
+    }
+    layer.changed()
+    if (moving) raf = requestAnimationFrame(step)
+    else { raf = 0; lastT = 0 }
+  }
+  function kick(): void {
+    if (raf === 0) raf = requestAnimationFrame(step)
+  }
 
   function colorT(s: PointsStyle, i: number): number {
     const t = normalize(s.values[i]!, s.range.min, s.range.max)
     return s.invert && !Number.isNaN(t) ? 1 - t : t
   }
+  function rgbOf(s: PointsStyle, i: number): RGB {
+    const t = colorT(s, i)
+    return Number.isNaN(t) ? NO_DATA_RGB : rampRgb(t)
+  }
 
-  function rebin(s: PointsStyle): void {
-    const bins = new Uint8Array(n)
+  function rebuild(s: PointsStyle): void {
+    if (grid && fctx && field) {
+      const img = fctx.createImageData(grid.nx, grid.ny)
+      const d = img.data
+      for (let kk = 0; kk < coarseIdx.length; kk++) {
+        const i = coarseIdx[kk]!
+        if (s.mask && s.mask[i] === 0) continue // alfa 0: odfiltrowany znika
+        const c = rgbOf(s, i)
+        const o = (grid.row[kk]! * grid.nx + grid.col[kk]!) * 4
+        d[o] = c[0]
+        d[o + 1] = c[1]
+        d[o + 2] = c[2]
+        d[o + 3] = 255
+      }
+      fctx.putImageData(img, 0, 0)
+    }
+    const m = pointIdx.length
+    const bins = new Uint8Array(m)
     const counts = new Int32Array(N_ALL_BINS)
-    for (let i = 0; i < n; i++) {
+    for (let j = 0; j < m; j++) {
+      const i = pointIdx[j]!
       let b: number
-      if (s.mask && s.mask[i] === 0) b = DIM_BIN
+      if (s.mask && s.mask[i] === 0) b = HIDDEN_BIN
       else {
         const t = colorT(s, i)
         b = Number.isNaN(t) ? NAN_BIN : Math.min(N_BINS - 1, Math.floor(t * N_BINS))
       }
-      bins[i] = b
+      bins[j] = b
       counts[b]!++
     }
     offsets[0] = 0
     for (let b = 0; b < N_ALL_BINS; b++) offsets[b + 1] = offsets[b]! + counts[b]!
     const fill = offsets.slice(0, N_ALL_BINS)
-    for (let i = 0; i < n; i++) order[fill[bins[i]!]!++] = i
+    for (let j = 0; j < m; j++) order[fill[bins[j]!]!++] = pointIdx[j]!
   }
 
   function render(fs: FrameState): HTMLElement {
@@ -90,85 +236,159 @@ export function createPointsLayer(cx: Float32Array, cy: Float32Array): PointsLay
     }
     ctx!.setTransform(1, 0, 0, 1, 0, 0)
     ctx!.clearRect(0, 0, w, h)
-    if (!style) return canvas
 
     // Mapa → piksele CSS, potem × pixelRatio.
     const t = fs.coordinateToPixelTransform
     const a = t[0]! * pr, b = t[1]! * pr, c = t[2]! * pr, d = t[3]! * pr, e = t[4]! * pr, f = t[5]! * pr
-    const r = RADIUS_PX * pr
-    const margin = r / pr * fs.viewState.resolution
-    const ext = fs.extent
-    const minX = (ext ? ext[0]! : -Infinity) - margin
-    const minY = (ext ? ext[1]! : -Infinity) - margin
-    const maxX = (ext ? ext[2]! : Infinity) + margin
-    const maxY = (ext ? ext[3]! : Infinity) + margin
+    const px = (x: number, y: number) => a * x + c * y + e
+    const py = (x: number, y: number) => b * x + d * y + f
+    const res = fs.viewState.resolution
 
-    for (const bin of DRAW_ORDER) {
-      const from = offsets[bin]!
-      const to = offsets[bin + 1]!
-      if (from === to) continue
-      ctx!.fillStyle = binColors[bin]!
+    // Poświata krawędzi obszaru: rysowana zawsze, także przy ukrytych punktach.
+    const ox = px(0, 0), oy = py(0, 0)
+    const rr = (regionRadiusM / res) * pr
+    ctx!.save()
+    ctx!.beginPath()
+    ctx!.arc(ox, oy, rr, 0, 2 * Math.PI)
+    ctx!.shadowColor = 'rgba(140, 180, 255, 0.55)'
+    ctx!.shadowBlur = 28 * pr
+    ctx!.lineWidth = 1 * pr
+    ctx!.strokeStyle = 'rgba(200, 220, 255, 0.45)'
+    ctx!.stroke()
+    ctx!.restore()
+
+    if (!style) return canvas
+    const s = style
+
+    const ease = easeInOutCubic(reveal)
+    if (ease > 0) {
+    ctx!.save()
+    ctx!.globalAlpha = opacity * ease
+    if (ease < 1) {
+      // Kolory rozlewają się od bieguna ku krawędzi obszaru.
       ctx!.beginPath()
-      for (let k = from; k < to; k++) {
-        const i = order[k]!
-        const x = cx[i]!
-        const y = cy[i]!
-        if (x < minX || x > maxX || y < minY || y > maxY) continue
-        const px = a * x + c * y + e
-        const py = b * x + d * y + f
-        ctx!.moveTo(px + r, py)
-        ctx!.arc(px, py, r, 0, 2 * Math.PI)
+      ctx!.arc(ox, oy, rr * (0.06 + ease), 0, 2 * Math.PI)
+      ctx!.clip()
+    }
+    if (grid && field) {
+      const half = grid.step / 2
+      const x0 = px(grid.x0 - half, grid.yTop + half)
+      const y0 = py(grid.x0 - half, grid.yTop + half)
+      const x1 = px(grid.x0 + (grid.nx - 1) * grid.step + half, grid.yTop - (grid.ny - 1) * grid.step - half)
+      const y1 = py(grid.x0 + (grid.nx - 1) * grid.step + half, grid.yTop - (grid.ny - 1) * grid.step - half)
+      ctx!.imageSmoothingEnabled = true
+      ctx!.imageSmoothingQuality = 'high'
+      ctx!.drawImage(field, x0, y0, x1 - x0, y1 - y0)
+    }
+    if (pointIdx.length > 0) {
+      // Przy polu: kwadraty zagęszczenia wielkości oczka 250 m (min. 2,2 px); bez pola: stałe 3 px.
+      const sz = (grid ? Math.min(10, Math.max(2.2, (FINE_CELL_M * 0.85) / res)) : SIZE_PX) * pr
+      const hs = sz / 2
+      for (const bin of DRAW_BINS) {
+        const from = offsets[bin]!
+        const to = offsets[bin + 1]!
+        if (from === to) continue
+        ctx!.fillStyle = binColors[bin]!
+        ctx!.beginPath()
+        for (let k = from; k < to; k++) {
+          const i = order[k]!
+          ctx!.rect(px(cx[i]!, cy[i]!) - hs, py(cx[i]!, cy[i]!) - hs, sz, sz)
+        }
+        ctx!.fill()
       }
-      ctx!.fill()
+    }
+    ctx!.restore()
     }
 
-    // Top-N: numerowane pierścienie.
-    if (style.top.length > 0) {
-      const rr = TOP_RING_RADIUS_PX * pr
-      ctx!.font = `bold ${Math.round(10 * pr)}px sans-serif`
+    const ipx = (i: number) => px(cx[i]!, cy[i]!)
+    const ipy = (i: number) => py(cx[i]!, cy[i]!)
+
+    // Top-N: białe plakietki z numerem (#1 złota, największa i na wierzchu). Przy oddaleniu
+    // powiększone, żeby na tle gęstego pola kolorów było je widać od razu.
+    if (s.top.length > 0) {
       ctx!.textAlign = 'center'
       ctx!.textBaseline = 'middle'
-      style.top.forEach((i, rank) => {
-        if (i < 0 || i >= n) return
-        const px = a * cx[i]! + c * cy[i]! + e
-        const py = b * cx[i]! + d * cy[i]! + f
+      const hotI = hot()
+      // Od ostatniego do #1, a wskazana plakietka na samym wierzchu.
+      const order = Array.from({ length: Math.min(MAX_BADGES, s.top.length) }, (_, r) => r).reverse()
+      const hr = order.findIndex((r) => s.top[r] === hotI)
+      if (hr >= 0) order.push(order.splice(hr, 1)[0]!)
+      for (const rank of order) {
+        const i = s.top[rank]!
+        const sc = bScale[rank]!
+        if (i < 0 || i >= n || sc <= 0.01) continue
+        const r = badgeRadiusPx(rank, res) * pr
+        ctx!.save()
+        ctx!.translate(ipx(i), ipy(i))
+        ctx!.scale(sc, sc)
+        if (i === hotI) {
+          // Miękka aureola wokół wskazanej plakietki.
+          const g = ctx!.createRadialGradient(0, 0, r, 0, 0, r * 2.4)
+          g.addColorStop(0, rank === 0 ? 'rgba(255, 216, 107, 0.45)' : 'rgba(255, 255, 255, 0.35)')
+          g.addColorStop(1, 'rgba(255, 255, 255, 0)')
+          ctx!.fillStyle = g
+          ctx!.beginPath()
+          ctx!.arc(0, 0, r * 2.4, 0, 2 * Math.PI)
+          ctx!.fill()
+        }
+        ctx!.save()
+        ctx!.shadowColor = 'rgba(0, 0, 0, 0.9)'
+        ctx!.shadowBlur = 9 * pr
         ctx!.beginPath()
-        ctx!.arc(px, py, rr, 0, 2 * Math.PI)
-        ctx!.lineWidth = 3 * pr
-        ctx!.strokeStyle = '#000000'
-        ctx!.stroke()
+        ctx!.arc(0, 0, r, 0, 2 * Math.PI)
+        ctx!.fillStyle = rank === 0 ? '#ffd86b' : '#ffffff'
+        ctx!.fill()
+        ctx!.restore()
         ctx!.lineWidth = 1.5 * pr
-        ctx!.strokeStyle = '#00e5ff'
+        ctx!.strokeStyle = 'rgba(2, 3, 6, 0.95)'
         ctx!.stroke()
-        const label = String(rank + 1)
-        const ly = py - rr - 7 * pr
-        ctx!.lineWidth = 3 * pr
-        ctx!.strokeStyle = '#000000'
-        ctx!.strokeText(label, px, ly)
-        ctx!.fillStyle = '#ffffff'
-        ctx!.fillText(label, px, ly)
-      })
+        ctx!.fillStyle = '#05070c'
+        ctx!.font = `600 ${Math.round((rank >= 9 ? 9.5 : 11.5) * pr)}px ${MONO}`
+        ctx!.fillText(String(rank + 1), 0, 0.5 * pr)
+        ctx!.restore()
+      }
     }
 
-    const sel = style.selectedIndex
-    if (sel !== null && sel >= 0 && sel < n) {
-      const x = cx[sel]!
-      const y = cy[sel]!
-      const px = a * x + c * y + e
-      const py = b * x + d * y + f
-      const tt = colorT(style, sel)
+    const dot = (i: number, radiusPx: number, glow: string) => {
+      const x = ipx(i), y = ipy(i)
+      const cc = rgbOf(s, i)
+      ctx!.save()
+      ctx!.shadowColor = glow
+      ctx!.shadowBlur = 14 * pr
       ctx!.beginPath()
-      ctx!.arc(px, py, SELECTED_RADIUS_PX * pr, 0, 2 * Math.PI)
-      ctx!.fillStyle = rgbCss(Number.isNaN(tt) ? NO_DATA_RGB : rampRgb(tt))
+      ctx!.arc(x, y, radiusPx * pr, 0, 2 * Math.PI)
+      ctx!.fillStyle = rgbCss(cc)
       ctx!.fill()
       ctx!.lineWidth = 2 * pr
       ctx!.strokeStyle = '#ffffff'
       ctx!.stroke()
-      ctx!.beginPath()
-      ctx!.arc(px, py, (SELECTED_RADIUS_PX + 2) * pr, 0, 2 * Math.PI)
-      ctx!.lineWidth = 1 * pr
-      ctx!.strokeStyle = '#000000'
-      ctx!.stroke()
+      ctx!.restore()
+    }
+    const hv = hot()
+    const hotIsBadge = hv !== null && revealed && s.top.includes(hv)
+    if (hv !== null && hv >= 0 && hv < n && hv !== s.selectedIndex && !hotIsBadge) {
+      dot(hv, HOVER_RADIUS_PX, 'rgba(255, 255, 255, 0.6)')
+    }
+    const tag = (i: number, text: string) => {
+      ctx!.font = `600 ${Math.round(11 * pr)}px ${MONO}`
+      ctx!.textAlign = 'center'
+      ctx!.textBaseline = 'alphabetic'
+      ctx!.lineWidth = 3 * pr
+      ctx!.strokeStyle = 'rgba(2, 3, 6, 0.9)'
+      ctx!.strokeText(text, ipx(i), ipy(i) - (SELECTED_RADIUS_PX + 6) * pr)
+      ctx!.fillStyle = '#ffffff'
+      ctx!.fillText(text, ipx(i), ipy(i) - (SELECTED_RADIUS_PX + 6) * pr)
+    }
+    const both = s.selectedIndex !== null && s.compareIndex !== null
+    const cmp = s.compareIndex
+    if (cmp !== null && cmp >= 0 && cmp < n) {
+      dot(cmp, SELECTED_RADIUS_PX, 'rgba(255, 179, 92, 0.95)')
+      if (both) tag(cmp, 'B')
+    }
+    const sel = s.selectedIndex
+    if (sel !== null && sel >= 0 && sel < n) {
+      dot(sel, SELECTED_RADIUS_PX, 'rgba(140, 190, 255, 0.95)')
+      if (both) tag(sel, 'A')
     }
     return canvas
   }
@@ -179,9 +399,37 @@ export function createPointsLayer(cx: Float32Array, cy: Float32Array): PointsLay
     layer,
     setStyle(s) {
       if (!style || style.values !== s.values || style.range !== s.range
-        || style.invert !== s.invert || style.mask !== s.mask) rebin(s)
+        || style.invert !== s.invert || style.mask !== s.mask) rebuild(s)
       style = s
       layer.changed()
+    },
+    setOpacity(v) {
+      if (v === opacity) return
+      opacity = v
+      layer.changed()
+    },
+    setHover(i) {
+      if (i === hover) return
+      hover = i
+      layer.changed()
+      kick()
+    },
+    setHighlight(i) {
+      if (i === highlight) return
+      highlight = i
+      layer.changed()
+      kick()
+    },
+    setRevealed(on) {
+      if (on === revealed) return
+      revealed = on
+      revealedAt = performance.now()
+      kick()
+    },
+    isRevealed: () => revealed,
+    dispose() {
+      cancelAnimationFrame(raf)
+      raf = 0
     },
   }
 }

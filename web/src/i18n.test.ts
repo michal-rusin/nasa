@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { dictionary, t, translate } from './i18n'
+import { dictionary, fill, t, translate } from './i18n'
 import { useStore } from './store'
 
 afterEach(() => useStore.getState().setLang('en'))
@@ -26,5 +26,9 @@ describe('i18n', () => {
 
   it('oba słowniki mają ten sam zestaw kluczy', () => {
     expect(Object.keys(dictionary.pl).sort()).toEqual(Object.keys(dictionary.en).sort())
+  })
+
+  it('fill podstawia zmienne, nieznane zostawia', () => {
+    expect(fill('#{id} · {s} {x}', { id: 7, s: '0.5' })).toBe('#7 · 0.5 {x}')
   })
 })
