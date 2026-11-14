@@ -73,7 +73,7 @@ tr = Transformer.from_crs(geo, dem_crs, always_xy=True)
 x_m, y_m = tr.transform(lon_deg, lat_deg)
 ```
 
-- Zapisz CRS (WKT) w `meta.json` (`raster_crs_wkt`).
+- Zapisz CRS w `meta.json` dwa razy: jako WKT (`raster_crs_wkt`) i jako równoważny ciąg PROJ (`raster_proj4`, np. `+proj=stere +lat_0=-90 +lat_ts=-90 +lon_0=0 +R=1737400 +units=m`; parametry muszą zgadzać się z plikiem DEM). Front rejestruje CRS w proj4js, który WKT parsuje niepewnie, więc ciąg PROJ jest obowiązkowy.
 - **Test:** punkt na środku krateru Shackleton (~89.67°S, ~129.8°E) musi wypaść na kraterze na `basemap.png`.
 
 ### 1.4 Czas
@@ -233,6 +233,7 @@ Uwagi:
   },
 
   "raster_crs_wkt": "PROJCS[...]",
+  "raster_proj4": "+proj=stere +lat_0=-90 +lat_ts=-90 +lon_0=0 +R=1737400 +units=m",
   "layers": {
     "bounds_m": { "min_x": 0, "min_y": 0, "max_x": 0, "max_y": 0 },
     "files": {
