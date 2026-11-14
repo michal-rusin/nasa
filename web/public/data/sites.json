@@ -1,0 +1,82 @@
+[
+  {
+    "id": "mock-artemis-1",
+    "name": "[MOCK] Obok największego krateru",
+    "category": "artemis",
+    "lat": -87.5394,
+    "lon": 175.9897,
+    "note": "dane testowe, nie jest to prawdziwa lokalizacja",
+    "nearest_candidate_id": 9452,
+    "nearest_candidate_dist_km": 0.897
+  },
+  {
+    "id": "mock-artemis-2",
+    "name": "[MOCK] Przy kraterze polarnym",
+    "category": "artemis",
+    "lat": -89.431,
+    "lon": 156.6337,
+    "note": "dane testowe, nie jest to prawdziwa lokalizacja",
+    "nearest_candidate_id": 9481,
+    "nearest_candidate_dist_km": 0.858
+  },
+  {
+    "id": "mock-clps-3",
+    "name": "[MOCK] Równina A",
+    "category": "clps",
+    "lat": -86.9988,
+    "lon": 32.7042,
+    "note": "dane testowe, nie jest to prawdziwa lokalizacja",
+    "nearest_candidate_id": 12793,
+    "nearest_candidate_dist_km": 1.012
+  },
+  {
+    "id": "mock-clps-4",
+    "name": "[MOCK] Równina B",
+    "category": "clps",
+    "lat": -85.9991,
+    "lon": -116.2648,
+    "note": "dane testowe, nie jest to prawdziwa lokalizacja",
+    "nearest_candidate_id": 1575,
+    "nearest_candidate_dist_km": 0.888
+  },
+  {
+    "id": "mock-international-5",
+    "name": "[MOCK] Grzbiet",
+    "category": "international",
+    "lat": -87.9989,
+    "lon": 163.5211,
+    "note": "dane testowe, nie jest to prawdziwa lokalizacja",
+    "nearest_candidate_id": 10366,
+    "nearest_candidate_dist_km": 0.809
+  },
+  {
+    "id": "mock-apollo-6",
+    "name": "[MOCK] Kontekst historyczny",
+    "category": "apollo",
+    "lat": -20.0,
+    "lon": 30.0,
+    "note": "dane testowe, nie jest to prawdziwa lokalizacja",
+    "nearest_candidate_id": null,
+    "nearest_candidate_dist_km": null
+  },
+  {
+    "id": "mock-reference-7",
+    "name": "[MOCK] Punkt kontrolny 1",
+    "category": "reference",
+    "lat": -85.4995,
+    "lon": -36.0507,
+    "note": "dane testowe, nie jest to prawdziwa lokalizacja",
+    "nearest_candidate_id": 3320,
+    "nearest_candidate_dist_km": 0.529
+  },
+  {
+    "id": "mock-reference-8",
+    "name": "[MOCK] Punkt kontrolny 2",
+    "category": "reference",
+    "lat": -88.9994,
+    "lon": 78.5408,
+    "note": "dane testowe, nie jest to prawdziwa lokalizacja",
+    "nearest_candidate_id": 11297,
+    "nearest_candidate_dist_km": 0.264
+  }
+]

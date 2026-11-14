@@ -77,7 +77,7 @@ x_m, y_m = tr.transform(lon_deg, lat_deg)
 - **Test:** punkt na środku krateru Shackleton (~89.67°S, ~129.8°E) musi wypaść na kraterze na `basemap.png`.
 
 ### 1.4 Czas
-- Okres symulacji: **1 rok, krok 1 h** (8760 kroków). Start i krok zapisane w meta (`t0_utc`, `step_s`, `n_steps`).
+- Okres symulacji: **1 rok, krok 1 h**. Dla 2028 to **8784 kroki** (rok przestępny, 366 dni). Start, krok i liczba kroków zapisane w meta (`t0_utc`, `step_s`, `n_steps`); **liczbę kroków zawsze czytaj z `n_steps`, nie wpisuj na sztywno**.
 - Horizons podaje efemerydy dla dowolnych dat, więc rok wybieramy pod narrację, nie pod źródło danych. Rozsądnie jest wziąć okno, w którym realnie planowane są lądowania przy biegunie (najbliższe lata). Ustalono: 2028 (sekcja 9).
 - Rok to minimum, żeby objąć zmiany pór (nachylenie osi Księżyca ~1.5°). Dłuższy okres jest lepszy, ale liniowo zwiększa czas liczenia.
 - Krok `k` odpowiada czasowi `t0_utc + k·step_s`.
@@ -146,6 +146,7 @@ arr.astype('<f4').tofile('data/out/v1/candidates.bin')
 
 ### 3.2 Maski horyzontu: `masks/`
 - Na punkt: **720 × int16**, setne części stopnia (np. `523` = 5.23°), azymut `k · 0.5°` dla `k = 0..719`, konwencja z 1.2.
+- Wartości **mogą być ujemne** (horyzont poniżej lokalnej poziomej, typowo na grzbietach i szczytach, gdzie teren opada we wszystkie strony). To int16 ze znakiem i front nie może zakładać, że maska jest ≥ 0.
 - Maska zawiera już poprawkę na krzywiznę (promień przeszukiwania ok. 150 km).
 - Maska liczona z wysokości `observer_height_m` nad gruntem. Promienie zaczynają się `mask_min_dist_m` od punktu, żeby szum DEM tuż obok punktu nie zasłaniał horyzontu.
 - Kafelki: siatka **8×8** po `x_m, y_m` w granicach obszaru kandydatów. Plik `tile_<i>_<j>.bin` = rekordy punktów z tego kafelka sklejone jeden po drugim (1440 B na punkt).
@@ -171,7 +172,7 @@ sun_dir_x, sun_dir_y, sun_dir_z,      # wektor jednostkowy ze środka Księżyca
 earth_x,   earth_y,   earth_z         # położenie środka Ziemi w km, MOON_ME
 ```
 
-- Dzięki temu front policzy oś czasu dla **dowolnego** punktu z jego maski, bez gigantycznych szeregów dla 18 tys. punktów (~400 KB zamiast setek MB).
+- Dzięki temu front policzy oś czasu dla **dowolnego** punktu z jego maski, bez gigantycznych szeregów dla 18 tys. punktów (~210 KB zamiast setek MB).
 
 #### Źródło: JPL Horizons API (pobierane **offline przez silnik**, nie przez przeglądarkę)
 Horizons dla Księżyca podaje współrzędne kartograficzne w **MOON_ME, długość wschodnia dodatnia** (w nagłówku odpowiedzi linia `Target pole/equ : MOON_ME {East-longitude positive}`, sprawdź ją). To ta sama ramka, co reszta kontraktu.
@@ -212,7 +213,7 @@ Uwagi:
 
   "t0_utc": "2028-01-01T00:00:00Z",
   "step_s": 3600,
-  "n_steps": 8760,
+  "n_steps": 8784,
 
   "sun_radius_deg": 0.2666,
   "night_threshold": 0.01,
@@ -278,6 +279,8 @@ Siatka to ~18 tys. anonimowych punktów. Jury będzie szukać konkretnych, znany
     "category": "artemis",
     "lat": -89.4,
     "lon": -137.0,
+    "x_m": 1234.5,
+    "y_m": -5678.9,
     "note": "Krótki opis i źródło",
     "nearest_candidate_id": 12345,
     "nearest_candidate_dist_km": 0.8
@@ -288,6 +291,7 @@ Siatka to ~18 tys. anonimowych punktów. Jury będzie szukać konkretnych, znany
 - `category`: `artemis` (regiony kandydackie Artemis), `clps` (np. IM-2), `international` (np. Chang'e-7), `apollo` (kontekst historyczny), `reference` (punkty kontrolne, np. Malapert).
 - Wartości `lat/lon` w przykładzie są poglądowe. **Każde miejsce z podanym źródłem**, nie z pamięci.
 - `nearest_candidate_id` i `nearest_candidate_dist_km` liczy silnik po wygenerowaniu siatki. Miejsca poza obszarem siatki (np. Apollo) mają oba pola `null`.
+- `x_m`, `y_m`: położenie miejsca w metrach w rzucie rastrów, liczone tak samo jak dla kandydatów (pyproj z CRS pliku DEM, sekcja 1.3). Front stawia marker po tych polach, bo nie zna rzutu i nie przelicza `lat/lon`. Miejsca poza granicami rastrów (`layers.bounds_m`), np. Apollo, mają oba pola `null`; front nie rysuje ich na mapie, tylko pokazuje na liście.
 - Front pokazuje je jako osobną warstwę z etykietami. Po kliknięciu otwiera się panel najbliższego punktu siatki z dopiskiem o odległości.
 
 ---
