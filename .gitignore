@@ -1,5 +1,8 @@
 # Surowe dane NASA (za duże na repo)
-data/raw/
+data/raw/*
+!data/raw/.gitkeep
+data/dem/*
+!data/dem/.gitkeep
 engine/vendor/
 engine/kernels/
 
@@ -7,6 +10,10 @@ engine/kernels/
 engine/*.o
 engine/engine
 engine/engine.exe
+
+# Python
+.venv/
+__pycache__/
 
 # Node
 node_modules/

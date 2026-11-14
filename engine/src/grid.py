@@ -1,0 +1,1 @@
+"""Candidate grid (owner: friend)."""
