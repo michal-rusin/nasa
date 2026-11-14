@@ -56,7 +56,7 @@ def write_masks(out, grid, masks):
                                       "dtype": "int16", "records": records})
 
 
-def write_meta(out, grid, n_steps, crs, h_obs, mock=False):
+def write_meta(out, grid, n_steps, crs, h_obs, mock=False, years=tuple(range(2028, 2038))):
     half = int(round(_half(grid)))
     meta = {
         "contract_version": 1,
@@ -79,6 +79,10 @@ def write_meta(out, grid, n_steps, crs, h_obs, mock=False):
         "psr_source": PSR_SOURCE,
         "region": {"lat_min": -90, "lat_max": -84},
         "candidates": {"count": len(grid["id"]), "columns": COLUMNS},
+        "candidates_period": str(years[0]),
+        "metrics_by_year": {"file": "metrics_by_year.bin", "years": list(years),
+                            "columns": ["sun_pct", "longest_night_h", "earth_pct", "longest_comm_gap_h"],
+                            "dtype": "float32", "layout": "[n_points, n_years, n_columns]"},
         "raster_crs_wkt": crs.to_wkt(),
         "raster_proj4": crs.to_proj4(),
         "layers": {

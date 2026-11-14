@@ -47,6 +47,7 @@ Python 3.11+, numpy, rasterio, pyproj, numba, requests (Horizons API).
 | 11 | Full 2 km grid (~26k points); fallback 87–90°S first if slow | Jacob | P1 | todo |
 | 12 | sites.json: fill x_m, y_m (dem.make_transformers, same as candidates), nearest_candidate_id, nearest_candidate_dist_km; all four null for sites outside layers.bounds_m | friend | P1 | todo |
 | 13 | Refinement to 250 m (level=1) | Jacob | P2 | done, fake-ephem test only; real delivery waits for Michał's OK |
+| 14 | 10-year ephemeris 2028–2037 (one Horizons query per year) + metrics_by_year.bin [N, 10, 4]; candidates/validation stay on 2028 | Jacob | P2 | done |
 
 ## Rules
 - Contract wins. If the code and the contract disagree, ask, don't guess.
@@ -58,3 +59,4 @@ Python 3.11+, numpy, rasterio, pyproj, numba, requests (Horizons API).
 - (one line per milestone, newest last)
 - 2026-11-14: grid extended to 84°S (confirmed by Michał): 26044 points, layers.bounds_m ±185000, IM-2 0.93 km from nearest point; full run 123 s
 - 2026-11-14: 250 m refinement (run.py --refine N, ids 100000 + parent*64 + k): fake-ephem test with N=50 -> 3200 level-1 points, all 29244 ids unique, run 24 s; not in data/out/v1 yet
+- 2026-11-15: ephem 2028–2037 (87672 steps, 2028 slice identical to the old ephem.bin); --refine-ranking run: 223 parents, 40316 points; metrics_by_year.bin 6.2 MB, 2028 slice == candidates exactly; median sun per year 25.7–26.2% (all points); run 172 s

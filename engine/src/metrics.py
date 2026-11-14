@@ -73,6 +73,41 @@ def _metrics(U, E, N, P, masks, sun, earth, r_sun, night_thr, step_h):
     return out
 
 
+@njit(cache=True)
+def longest_overlap(cond_arr, starts, ends, out):
+    """out[k] = longest streak of True that overlaps year k = [starts[k], ends[k]).
+    Streaks are found on the whole series, so one crossing Jan 1 counts in full in both years."""
+    T = cond_arr.shape[0]
+    t = 0
+    while t < T:
+        if not cond_arr[t]:
+            t += 1
+            continue
+        a = t
+        while t < T and cond_arr[t]:
+            t += 1
+        n = t - a                                  # streak is [a, t)
+        for k in range(starts.shape[0]):
+            if a < ends[k] and t > starts[k] and n > out[k]:
+                out[k] = n
+
+
+@njit(parallel=True, cache=True)
+def _longest_by_year(U, E, N, P, masks, sun, earth, r_sun, night_thr, step_h, starts, ends):
+    Y = starts.shape[0]
+    out = np.zeros((U.shape[0], Y, 2))
+    for p in prange(U.shape[0]):
+        f, g = series_one(U[p], E[p], N[p], P[p], masks[p], sun, earth, r_sun)
+        night = np.zeros(Y, np.int64)
+        gap = np.zeros(Y, np.int64)
+        longest_overlap(f < night_thr, starts, ends, night)
+        longest_overlap(g == 0, starts, ends, gap)
+        for k in range(Y):
+            out[p, k, 0] = night[k] * step_h       # longest_night_h
+            out[p, k, 1] = gap[k] * step_h         # longest_comm_gap_h
+    return out
+
+
 def enu(lat, lon, elev_m,h_obs=2.0):
     """Contract 1.2: U, E, N unit vectors and position P (km) per point."""
     la, lo = np.radians(lat), np.radians(lon)
@@ -88,3 +123,13 @@ def compute_metrics(lat, lon, elev_m, masks, ephem, step_h=1.0, r_sun=0.2666, ni
     U, E, N, P = enu(np.asarray(lat, float), np.asarray(lon, float), elev_m, h_obs)
     e = np.asarray(ephem, np.float64)
     return _metrics(U, E, N, P, masks, e[:, :3], e[:, 3:], r_sun, night_thr, step_h)
+
+
+def longest_by_year(lat, lon, elev_m, masks, ephem, starts, ends, step_h=1.0, r_sun=0.2666,
+                    night_thr=0.01, h_obs=2.0):
+    """Returns [N, n_years, 2]: longest_night_h, longest_comm_gap_h overlapping each year,
+    found on the full ephem series (no calendar cut at Jan 1)."""
+    U, E, N, P = enu(np.asarray(lat, float), np.asarray(lon, float), elev_m, h_obs)
+    e = np.asarray(ephem, np.float64)
+    return _longest_by_year(U, E, N, P, masks, e[:, :3], e[:, 3:], r_sun, night_thr, step_h,
+                            np.asarray(starts, np.int64), np.asarray(ends, np.int64))

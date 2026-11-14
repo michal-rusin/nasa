@@ -2,13 +2,14 @@
 """Engine pipeline: grid -> masks -> metrics -> validation -> files.
 Run: python engine/tools/run.py [--n 100] [--fake-ephem]"""
 import sys, time, argparse, json
+from datetime import date
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 import numpy as np
 from dem import Dem, DEM_NEAR, DEM_FAR, make_transformers, ROOT
 from grid import build_grid, subsample, refine_grid, merge_grids
 from masks import compute_masks
-from metrics import compute_metrics
+from metrics import compute_metrics, longest_by_year
 from validation import pick_validation_points, build_validation, write_validation
 from terrain import sample_terrain_layers
 from sites import process_sites_file, enrich_sites
@@ -18,6 +19,19 @@ import writers
 H_OBS = 2.0                                   # observer_height_m, same value everywhere
 OUT = ROOT / "data/out/v1"
 CACHE = ROOT / "data/cache"
+T0 = date(2028, 1, 1)                         # meta t0_utc, 1 h steps
+YEARS = range(2028, 2038)
+
+
+def year_slices(n_steps):
+    """(year, first step, end step) for every full year the ephemeris covers."""
+    out = []
+    for y in YEARS:
+        s = (date(y, 1, 1) - T0).days * 24
+        e = (date(y + 1, 1, 1) - T0).days * 24
+        if e <= n_steps:
+            out.append((y, s, e))
+    return out
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--n", type=int, default=0, help="random subsample of N points (0 = full grid)")
@@ -48,15 +62,18 @@ else:
 
 if args.fake_ephem:
     from fake import fake_ephem
-    ephem = fake_ephem()
+    ephem_all = fake_ephem()
     out = ROOT / "data/mock/engine_fake"
     print("WARNING: FAKE EPHEMERIS, output goes to data/mock/engine_fake")
 else:
-    ephem = np.fromfile(OUT / "ephem.bin", dtype="<f4").reshape(-1, 6)
+    ephem_all = np.fromfile(OUT / "ephem.bin", dtype="<f4").reshape(-1, 6)
     out = OUT
 out.mkdir(parents=True, exist_ok=True)
 if args.fake_ephem:
-    ephem.astype("<f4").tofile(out / "ephem.bin")   # real one is written by horizons.py
+    ephem_all.astype("<f4").tofile(out / "ephem.bin")   # real one is written by horizons.py
+slices = year_slices(len(ephem_all))
+ephem = ephem_all[slices[0][1]:slices[0][2]]   # 2028 only: candidates, refinement, validation
+print(f"ephem: {len(ephem_all)} steps, years {[y for y, _, _ in slices]}; candidates on {slices[0][0]}")
 
 m = compute_metrics(grid["lat"], grid["lon"], grid["elev_m"], masks, ephem, h_obs=H_OBS)
 print(f"metrics: done ({time.time() - t0:.0f}s), median sun {np.nanmedian(m[:, 0]):.1f}%")
@@ -103,12 +120,28 @@ write_validation(out / "validation.json",
                  build_validation(idx, grid["id"], grid["lat"], grid["lon"],
                                   grid["elev_m"], masks, ephem, h_obs=H_OBS))
 
+# Per-year metrics on the final grid (level 0 + 1), same row order as candidates.bin
+by_year = np.stack([compute_metrics(grid["lat"], grid["lon"], grid["elev_m"], masks,
+                                    ephem_all[s:e], h_obs=H_OBS) for _, s, e in slices], axis=1)
+# longest_* (cols 1, 3): runs found on the full series, so a night across Jan 1 isn't cut in two
+runs = longest_by_year(grid["lat"], grid["lon"], grid["elev_m"], masks, ephem_all,
+                       [s for _, s, _ in slices], [e for _, _, e in slices], h_obs=H_OBS)
+year_h = np.array([e - s for _, s, e in slices], np.float64)   # 1 h steps: 8760 or 8784
+by_year[:, :, 1] = np.minimum(runs[:, :, 0], year_h)          # cap: = year length means dark all year
+by_year[:, :, 3] = np.minimum(runs[:, :, 1], year_h)
+by_year.astype("<f4").tofile(out / "metrics_by_year.bin")
+years = [y for y, _, _ in slices]
+print(f"metrics_by_year: {by_year.shape}, max |2028 - candidates| (sun_pct, earth_pct) = "
+      f"{np.nanmax(np.abs(by_year[:, 0, [0, 2]] - m[:, [0, 2]])):.2g}")
+for k, y in enumerate(years):
+    print(f"  {y}: median sun {np.nanmedian(by_year[:, k, 0]):.2f}%")
+
 # Writers (friend). Skipped with a message until they exist.
 for name, call in [
     ("write_candidates", lambda f: f(out, grid, m)),
     ("write_masks",      lambda f: f(out, grid, masks)),
-    ("write_meta",       lambda f: f(out, grid, len(ephem), near.crs, H_OBS)),
-    ("write_meta",       lambda f: f(out, grid, len(ephem), near.crs, H_OBS, args.fake_ephem)),
+    ("write_meta",       lambda f: f(out, grid, len(ephem_all), near.crs, H_OBS, years=years)),
+    ("write_meta",       lambda f: f(out, grid, len(ephem_all), near.crs, H_OBS, args.fake_ephem, years=years)),
 ]:
     if hasattr(writers, name):
         call(getattr(writers, name))

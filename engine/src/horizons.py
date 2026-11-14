@@ -1,4 +1,5 @@
 """Horizons query -> ephem.bin (owner: friend)."""
+import calendar
 from pathlib import Path
 import numpy as np
 import requests
@@ -11,10 +12,11 @@ DATA_RAW.mkdir(parents=True, exist_ok=True)
 DATA_OUT.mkdir(parents=True, exist_ok=True)
 
 AU_TO_KM = 149597870.7
+YEARS = range(2028, 2038)  # 2028..2037, jedno zapytanie na rok
 
 
-def fetch_horizons_csv() -> str:
-    """Pobiera efemerydy Księżyca (301) względem Ziemi (500@399) na cały rok 2028."""
+def fetch_horizons_csv(year: int) -> str:
+    """Pobiera efemerydy Księżyca (301) względem Ziemi (500@399) na cały podany rok."""
     url = "https://ssd.jpl.nasa.gov/api/horizons.api"
     params = {
         "format": "text",
@@ -22,15 +24,15 @@ def fetch_horizons_csv() -> str:
         "CENTER": "'500@399'",
         "MAKE_EPHEM": "'YES'",
         "TABLE_TYPE": "'OBSERVER'",  # liczba pojedyncza wymagana przez Horizons
-        "START_TIME": "'2028-01-01 00:00'",
-        "STOP_TIME": "'2028-12-31 23:00'",  # rok przestępny 2028 -> dokładnie 8784 godziny
+        "START_TIME": f"'{year}-01-01 00:00'",
+        "STOP_TIME": f"'{year}-12-31 23:00'",  # 8760 godzin, 8784 w roku przestępnym
         "STEP_SIZE": "'1h'",
         "QUANTITIES": "'14,15,20'",
         "ANG_FORMAT": "'DEG'",
         "CSV_FORMAT": "'YES'",
     }
 
-    print("Wysyłanie zapytania do NASA JPL Horizons API (rok 2028)...")
+    print(f"Wysyłanie zapytania do NASA JPL Horizons API (rok {year})...")
     response = requests.get(url, params=params, timeout=60)
     if not response.ok:
         print(f"\n--- BŁĄD HTTP {response.status_code} ---")
@@ -43,7 +45,7 @@ def fetch_horizons_csv() -> str:
         print(text[-2000:])
         raise RuntimeError("Brak znaczników $$SOE / $$EOE w odpowiedzi z Horizons.")
 
-    raw_path = DATA_RAW / "horizons_2028.csv"
+    raw_path = DATA_RAW / f"horizons_{year}.csv"
     raw_path.write_text(text, encoding="utf-8")
     print(f"[OK] Zapisano surowe dane: {raw_path}")
     return text
@@ -74,8 +76,8 @@ def extract_header_and_rows(text: str) -> tuple[list[str], list[str]]:
     return headers, rows
 
 
-def parse_and_save_ephem(headers: list[str], rows: list[str]) -> None:
-    """Dobiera kolumny po nazwach z nagłówka, przelicza współrzędne i zapisuje ephem.bin."""
+def parse_ephem(headers: list[str], rows: list[str]) -> np.ndarray:
+    """Dobiera kolumny po nazwach z nagłówka i przelicza współrzędne na wiersze ephem.bin."""
     col_idx = {name.lower(): i for i, name in enumerate(headers) if name}
 
     required_cols = ["obssub-lon", "obssub-lat", "sunsub-lon", "sunsub-lat", "delta"]
@@ -84,9 +86,6 @@ def parse_and_save_ephem(headers: list[str], rows: list[str]) -> None:
         raise KeyError(f"Brak wymaganych kolumn w nagłówku CSV: {missing}")
 
     n_steps = len(rows)
-    print(f"\nLiczba wczytanych kroków czasowych: {n_steps} (oczekiwano 8784)")
-    assert n_steps == 8784, f"Oczekiwano 8784 kroków, otrzymano {n_steps}!"
-
     ephem = np.zeros((n_steps, 6), dtype=np.float32)
 
     for i, row in enumerate(rows):
@@ -115,6 +114,11 @@ def parse_and_save_ephem(headers: list[str], rows: list[str]) -> None:
 
         ephem[i] = [sun_x, sun_y, sun_z, earth_x, earth_y, earth_z]
 
+    return ephem
+
+
+def save_ephem(ephem: np.ndarray) -> None:
+    """Testy kontrolne na całym szeregu i zapis ephem.bin."""
     # --- Testy kontrolne (Sanity Checks) ---
     sun_norms = np.linalg.norm(ephem[:, :3], axis=1)
     earth_dists = np.linalg.norm(ephem[:, 3:], axis=1)
@@ -135,6 +139,14 @@ def parse_and_save_ephem(headers: list[str], rows: list[str]) -> None:
 
 
 if __name__ == "__main__":
-    raw_csv = fetch_horizons_csv()
-    col_headers, data_rows = extract_header_and_rows(raw_csv)
-    parse_and_save_ephem(col_headers, data_rows)
+    parts = []
+    for year in YEARS:
+        raw_csv = fetch_horizons_csv(year)
+        col_headers, data_rows = extract_header_and_rows(raw_csv)
+        expected = 8784 if calendar.isleap(year) else 8760
+        print(f"Rok {year}: {len(data_rows)} kroków (oczekiwano {expected})")
+        assert len(data_rows) == expected, f"Rok {year}: oczekiwano {expected} kroków, otrzymano {len(data_rows)}!"
+        parts.append(parse_ephem(col_headers, data_rows))
+    ephem = np.concatenate(parts)
+    print(f"\nRazem {len(YEARS)} lat: {ephem.shape[0]} kroków")
+    save_ephem(ephem)

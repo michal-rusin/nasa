@@ -16,7 +16,8 @@ Ten dokument opisuje **dokładnie**, jakie pliki silnik ma wyprodukować, w jaki
 data/out/v1/
 ├── meta.json            # metadane, kolejność kolumn, definicje, granice rastrów
 ├── candidates.bin       # metryki dla każdego punktu siatki (float32 LE)
-├── ephem.bin            # Słońce i Ziemia co godzinę w MOON_ME (float32 LE)
+├── ephem.bin            # Słońce i Ziemia co godzinę w MOON_ME, lata 2028–2037 (float32 LE)
+├── metrics_by_year.bin  # metryki każdego punktu osobno dla każdego roku 2028–2037 (float32 LE)
 ├── masks/
 │   ├── index.json       # id punktu → kafelek + numer rekordu
 │   └── tile_<i>_<j>.bin # maski horyzontu (int16 LE)
@@ -77,7 +78,10 @@ x_m, y_m = tr.transform(lon_deg, lat_deg)
 - **Test:** punkt na środku krateru Shackleton (~89.67°S, ~129.8°E) musi wypaść na kraterze na `basemap.png`.
 
 ### 1.4 Czas
-- Okres symulacji: **1 rok, krok 1 h**. Dla 2028 to **8784 kroki** (rok przestępny, 366 dni). Start, krok i liczba kroków zapisane w meta (`t0_utc`, `step_s`, `n_steps`); **liczbę kroków zawsze czytaj z `n_steps`, nie wpisuj na sztywno**.
+- Okres metryk w `candidates.bin` i `validation.json`: **1 rok (2028), krok 1 h**, czyli **8784 kroki** (rok przestępny, 366 dni), kroki `0..8783`. W meta: `candidates_period = "2028"`.
+- `ephem.bin` obejmuje **10 lat: 2028–2037**, czyli **87 672 kroki** (lata przestępne: 2028, 2032, 2036). Start, krok i liczba kroków zapisane w meta (`t0_utc`, `step_s`, `n_steps`); **liczbę kroków zawsze czytaj z `n_steps`, nie wpisuj na sztywno**.
+- **Uwaga dla frontu:** `n_steps` to teraz długość całego `ephem.bin` (10 lat). Żeby porównać wynik z `candidates.bin` albo `validation.json`, licz tylko na krokach roku 2028 (`0..8783`), nie na całym pliku.
+- Rok `Y` zaczyna się w kroku `(liczba dni od t0_utc do Y-01-01) · 24`, np. 2029 → 8784, 2030 → 17544.
 - Horizons podaje efemerydy dla dowolnych dat, więc rok wybieramy pod narrację, nie pod źródło danych. Rozsądnie jest wziąć okno, w którym realnie planowane są lądowania przy biegunie (najbliższe lata). Ustalono: 2028 (sekcja 9).
 - Rok to minimum, żeby objąć zmiany pór (nachylenie osi Księżyca ~1.5°). Dłuższy okres jest lepszy, ale liniowo zwiększa czas liczenia.
 - Krok `k` odpowiada czasowi `t0_utc + k·step_s`.
@@ -172,14 +176,14 @@ sun_dir_x, sun_dir_y, sun_dir_z,      # wektor jednostkowy ze środka Księżyca
 earth_x,   earth_y,   earth_z         # położenie środka Ziemi w km, MOON_ME
 ```
 
-- Dzięki temu front policzy oś czasu dla **dowolnego** punktu z jego maski, bez gigantycznych szeregów dla 26 tys. punktów (~210 KB zamiast setek MB).
+- Dzięki temu front policzy oś czasu dla **dowolnego** punktu z jego maski, bez gigantycznych szeregów dla 26 tys. punktów (~2,1 MB dla 10 lat zamiast setek MB).
 
 #### Źródło: JPL Horizons API (pobierane **offline przez silnik**, nie przez przeglądarkę)
 Horizons dla Księżyca podaje współrzędne kartograficzne w **MOON_ME, długość wschodnia dodatnia** (w nagłówku odpowiedzi linia `Target pole/equ : MOON_ME {East-longitude positive}`, sprawdź ją). To ta sama ramka, co reszta kontraktu.
 
-Wystarczy **jedno zapytanie typu OBSERVER na cały okres**:
+**Jedno zapytanie typu OBSERVER na każdy rok** (2028–2037), sklejone w kolejności lat:
 - `COMMAND='301'` (cel: Księżyc), `CENTER='500@399'` (obserwator: środek Ziemi),
-- `EPHEM_TYPE='OBSERVER'`, `STEP_SIZE='1 h'`, `START_TIME`/`STOP_TIME` = okres z meta,
+- `EPHEM_TYPE='OBSERVER'`, `STEP_SIZE='1 h'`, `START_TIME='YYYY-01-01 00:00'`, `STOP_TIME='YYYY-12-31 23:00'` (8760 wierszy, w roku przestępnym 8784; silnik to sprawdza),
 - `QUANTITIES='14,15,20'`, `CSV_FORMAT='YES'`, `ANG_FORMAT='DEG'`:
   - **14** – punkt sub-obserwatora (= sub-Ziemi) na Księżycu: `lon_E, lat_E`,
   - **15** – punkt podsłoneczny na Księżycu: `lon_S, lat_S`,
@@ -196,7 +200,20 @@ Uwagi:
 - Sprawdź w nagłówku, czy długości są wschodnie, i czy rozumiesz, której poprawki aberracji użył Horizons (zapisz w meta jako `ephem_source` i `abcorr`). Różnice rzędu ułamków minuty kątowej są dla nas nieistotne.
 - Jeśli rok w kroku 1 h przekroczy limit linii odpowiedzi, podziel okres na kilka zapytań i sklej.
 - **Nie** odpytujemy Horizons z przeglądarki w trakcie demo: zależność od zewnętrznego serwera i sieci na prezentacji to niepotrzebne ryzyko, a nie sprawdzaliśmy, czy API pozwala na zapytania z innej domeny (CORS). Silnik pobiera raz, zapisuje `ephem.bin`, front czyta plik.
-- Surową odpowiedź Horizons zapisz w repo (`data/raw/horizons_<okres>.csv`), żeby dało się odtworzyć `ephem.bin` bez sieci.
+- Surową odpowiedź Horizons zapisz w repo (`data/raw/horizons_<rok>.csv`, osobny plik na każdy rok), żeby dało się odtworzyć `ephem.bin` bez sieci.
+
+### 3.4 `metrics_by_year.bin`
+- `float32`, układ `[n_points, n_years, n_columns]` (wiersz = punkt, w nim kolejne lata, w każdym roku kolejne kolumny).
+- **Kolejność punktów identyczna jak w `candidates.bin`** (wiersz `i` tu = wiersz `i` tam, w tym punkty `level = 1`).
+- Lata i kolumny z `meta.json → metrics_by_year`: `years = [2028, …, 2037]`, `columns = [sun_pct, longest_night_h, earth_pct, longest_comm_gap_h]`.
+- `sun_pct`, `earth_pct`: definicje jak w 2.3, średnia po krokach danego roku.
+- `longest_night_h`, `longest_comm_gap_h`: **najdłuższy ciąg nakładający się na dany rok, liczony na całym 10-letnim szeregu (noc na przełomie lat liczy się w całości)**, czyli w obu latach, na które zachodzi. Powód: pory roku na Księżycu (rok zaćmieniowy 346,6 dnia) przesuwają się względem kalendarza, więc cięcie na 1 stycznia dzieliłoby długie noce na dwie krótsze. Wartość ograniczona do długości roku (8760 h, 8784 h w latach przestępnych 2028, 2032, 2036); równa długości roku = ciemno/brak łączności przez cały rok.
+- `candidates.bin` zachowuje pierwotną definicję z 2.3: tylko rok 2028, ciąg ucięty na granicach roku. Dlatego `sun_pct` i `earth_pct` dla 2028 są tu równe `candidates.bin`, a `longest_*` dla 2028 mogą być tu **większe** niż w `candidates.bin`.
+- Rozmiar: `n_points · 10 · 4 · 4 B` (~6,5 MB dla ~40 tys. punktów).
+
+```python
+mby = np.fromfile('metrics_by_year.bin', '<f4').reshape(n_points, len(years), len(columns))
+```
 
 ---
 
@@ -213,7 +230,7 @@ Uwagi:
 
   "t0_utc": "2028-01-01T00:00:00Z",
   "step_s": 3600,
-  "n_steps": 8784,
+  "n_steps": 87672,
 
   "sun_radius_deg": 0.2666,
   "night_threshold": 0.01,
@@ -230,6 +247,14 @@ Uwagi:
     "columns": ["id","lat","lon","x_m","y_m","elev_m","level",
                 "sun_pct","longest_night_h","earth_pct","longest_comm_gap_h",
                 "slope_deg","dist_psr_km"]
+  },
+  "candidates_period": "2028",
+  "metrics_by_year": {
+    "file": "metrics_by_year.bin",
+    "years": [2028, 2029, 2030, 2031, 2032, 2033, 2034, 2035, 2036, 2037],
+    "columns": ["sun_pct", "longest_night_h", "earth_pct", "longest_comm_gap_h"],
+    "dtype": "float32",
+    "layout": "[n_points, n_years, n_columns]"
   },
 
   "raster_crs_wkt": "PROJCS[...]",
@@ -315,7 +340,7 @@ Dla 3–5 punktów (różne typy: dobrze oświetlony grzbiet, dno krateru w PSR,
 ]
 ```
 
-Front policzy to samo z maski i `ephem.bin` i sprawdzi zgodność (cel: różnica `sun_pct` ≤ 1 pkt proc.). To jedyne zabezpieczenie przed tym, że logika widoczności w Pythonie i w JS rozjedzie się po cichu.
+Szeregi i wartości dotyczą roku 2028 (`candidates_period`), czyli 8784 kroków. Front policzy to samo z maski i pierwszych 8784 kroków `ephem.bin` i sprawdzi zgodność (cel: różnica `sun_pct` ≤ 1 pkt proc.). To jedyne zabezpieczenie przed tym, że logika widoczności w Pythonie i w JS rozjedzie się po cichu.
 
 Kontrola zdrowego rozsądku po stronie silnika:
 - punkty na dnie Shackletona: `sun_pct ≈ 0`,
@@ -356,6 +381,7 @@ Ustalone:
 - [x] **Siatka sięga 84°S** (nie 85°S): regiony kandydackie Artemis leżą do ok. 6° od bieguna, więc 85° obcinałoby m.in. część Mons Mouton i lądowisko IM-2. Ok. 26 tys. punktów (siatka 2 km), `region.lat_max = −84`.
 - [x] **`layers.bounds_m` = ±185000 m na stałe**, PNG 4096 × 4096, granice = krawędzie pikseli, wiersz 0 = góra, kolumna 0 = lewa strona (5.2).
 - [x] **`sites.json`:** `nearest_candidate_id` wypełniany przy odległości ≤ 4 km, inaczej `null`; `nearest_candidate_dist_km` zawsze razem z nim (5.3).
+- [x] **Efemerydy na 10 lat (2028–2037)** + `metrics_by_year.bin` (3.4). `candidates.bin` i `validation.json` zostają na 2028.
 
 Do potwierdzenia:
 - [ ] Nagłówek pierwszej prawdziwej odpowiedzi Horizons: `MOON_ME`, długość wschodnia, użyta poprawka aberracji.
@@ -367,3 +393,4 @@ Do potwierdzenia:
 ## 10. Historia zmian
 
 - **2026-11-14:** siatka do 84°S (było 85°S), `layers.bounds_m` ±185000 m na stałe, PNG 4096 × 4096 z konwencją krawędzi pikseli i orientacji wiersza/kolumny (5.2), próg 4 km dla `nearest_candidate_id` (5.3). Formaty binarne bez zmian, `contract_version` pozostaje 1.
+- **2026-11-15:** `ephem.bin` na 10 lat 2028–2037 (`n_steps = 87672`), nowy plik `metrics_by_year.bin` (3.4), nowe pola w meta: `candidates_period`, `metrics_by_year`. `candidates.bin` i `validation.json` bez zmian (rok 2028). Front musi liczyć porównania na krokach `0..8783` (1.4). `contract_version` pozostaje 1.
