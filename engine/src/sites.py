@@ -6,15 +6,16 @@ import numpy as np
 from pyproj import CRS
 
 from dem import Dem, DEM_NEAR, ROOT, make_transformers
+from writers import LAYER_HALF_M
 
 DEFAULT_PROJ4 = "+proj=stere +lat_0=-90 +lat_ts=-90 +lon_0=0 +R=1737400 +units=m"
 
-# Ustalony na sztywno zakres warstw PNG (layers.bounds_m)
+# Zakres warstw PNG (layers.bounds_m), ten sam co w meta.json
 BOUNDS_M = {
-    "min_x": -152000.0,
-    "min_y": -152000.0,
-    "max_x": 152000.0,
-    "max_y": 152000.0,
+    "min_x": -float(LAYER_HALF_M),
+    "min_y": -float(LAYER_HALF_M),
+    "max_x": float(LAYER_HALF_M),
+    "max_y": float(LAYER_HALF_M),
 }
 
 # Maksymalna odległość przypisania kandydata (<= 4 km -> wypełniamy, > 4 km -> null)
@@ -39,7 +40,7 @@ def enrich_sites(
 ) -> list[dict]:
     """Compute map coordinates and nearest grid candidate for each site (contract 5.3).
 
-    - Sites outside `bounds_m` (±152 000 m) get null for all four fields.
+    - Sites outside `bounds_m` (±185 000 m) get null for all four fields.
     - Sites inside `bounds_m` get `x_m`, `y_m`, and nearest candidate if dist <= `max_nearest_km`.
     """
     cand_ids = np.asarray(grid["id"], dtype=np.int64)

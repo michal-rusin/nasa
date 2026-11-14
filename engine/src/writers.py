@@ -3,6 +3,7 @@
 import json
 from datetime import datetime, timezone
 import numpy as np
+from terrain import PSR_SOURCE
 
 COLUMNS = ["id", "lat", "lon", "x_m", "y_m", "elev_m", "level",
            "sun_pct", "longest_night_h", "earth_pct", "longest_comm_gap_h",
@@ -26,8 +27,8 @@ def write_candidates(out, grid, metrics, slope=None, dist_psr=None):
     cols = {**grid,
             "sun_pct": metrics[:, 0], "longest_night_h": metrics[:, 1],
             "earth_pct": metrics[:, 2], "longest_comm_gap_h": metrics[:, 3],
-            "slope_deg": nan if slope is None else slope,
-            "dist_psr_km": nan if dist_psr is None else dist_psr}
+            "slope_deg": grid.get("slope_deg", nan) if slope is None else slope,
+            "dist_psr_km": grid.get("dist_psr_km", nan) if dist_psr is None else dist_psr}
     arr = np.stack([np.asarray(cols[c], np.float32) for c in COLUMNS], axis=1).astype("<f4")
     arr.tofile(out / "candidates.bin")
 
@@ -75,7 +76,7 @@ def write_meta(out, grid, n_steps, crs, h_obs, mock=False):
         "slope_basis": "LDSM_80S_20MPP_ADJ",
         "dem_near": "LDEM_80S_80MPP_ADJ",
         "dem_far": "LDEM_60S_240MPP_ADJ",
-        "psr_source": "TODO data team",
+        "psr_source": PSR_SOURCE,
         "region": {"lat_min": -90, "lat_max": -84},
         "candidates": {"count": len(grid["id"]), "columns": COLUMNS},
         "raster_crs_wkt": crs.to_wkt(),

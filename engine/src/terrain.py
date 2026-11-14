@@ -1,10 +1,10 @@
 """Sample slope_deg (LDSM) and dist_psr_km rasters at candidate grid points (Task 10)."""
 from pathlib import Path
 import numpy as np
-from numba import njit
+import rasterio
 from pyproj import CRS
 
-from dem import Dem, DEM_FAR, DEM_NEAR, ROOT, sample
+from dem import DEM_FAR, DEM_NEAR, ROOT
 
 SLOPE_TIF = ROOT / "data/dem/LDSM_80S_20MPP_ADJ.TIF"
 PSR_TIF = ROOT / "data/dem/PSR_DIST_80S.TIF"  # docelową nazwę poda zespół danych
@@ -14,23 +14,19 @@ PSR_SOURCE = "TODO data team"
 PSR_METERS_TO_KM = 1e-3  # gdal_proximity.py -distunits GEO zapisuje w metrach -> / 1000 = km
 
 
-@njit(cache=True)
-def _sample_points(h, x0, y0, dx, dy, xs, ys, scale):
-    n = xs.shape[0]
-    out = np.empty(n, dtype=np.float32)
-    for i in range(n):
-        val = sample(h, x0, y0, dx, dy, xs[i], ys[i])
-        out[i] = val * scale if not np.isnan(val) else np.nan
-    return out
+def _crs_of(path: Path | str) -> CRS:
+    """CRS of a raster without reading its pixels."""
+    with rasterio.open(path) as ds:
+        return CRS.from_user_input(ds.crs)
 
 
-def verify_crs_match(reference_crs: CRS, raster: Dem, label: str) -> None:
+def verify_crs_match(reference_crs: CRS, raster_crs: CRS, label: str) -> None:
     """Abort with ValueError if raster CRS differs from the 80 m DEM reference CRS."""
-    if raster.crs != reference_crs:
+    if raster_crs != reference_crs:
         raise ValueError(
             f"Niezgodny CRS dla rastra '{label}'! "
             f"Oczekiwano CRS z DEM 80m ({reference_crs.to_proj4()}), "
-            f"otrzymano ({raster.crs.to_proj4()})."
+            f"otrzymano ({raster_crs.to_proj4()})."
         )
 
 
@@ -45,7 +41,7 @@ def verify_all_rasters_crs(
     if not near_p.exists():
         raise FileNotFoundError(f"Brak bazowego DEM 80m: {near_p}")
 
-    ref_crs = Dem(near_p).crs
+    ref_crs = _crs_of(near_p)
     for label, path in [
         ("DEM_FAR (240m)", far_path),
         ("SLOPE (LDSM)", slope_path),
@@ -54,7 +50,7 @@ def verify_all_rasters_crs(
         p = Path(path)
         if not p.exists():
             raise FileNotFoundError(f"Brak wymaganego rastra '{label}': {p}")
-        verify_crs_match(ref_crs, Dem(p), label)
+        verify_crs_match(ref_crs, _crs_of(p), label)
 
     return ref_crs
 
@@ -67,7 +63,7 @@ def sample_raster(
     scale: float = 1.0,
     label: str | None = None,
 ) -> np.ndarray:
-    """Bilinearly sample a GeoTIFF raster at map coordinates (x_m, y_m).
+    """Sample a GeoTIFF raster (nearest pixel, via rasterio) at map coordinates (x_m, y_m).
 
     Raises ValueError if `reference_crs` is given and raster CRS does not match.
     Returns float32 array with NaN if the file is not yet delivered or outside bounds/nodata.
@@ -80,12 +76,13 @@ def sample_raster(
         print(f"[WARN] Brak pliku rastra: {path} -> wypełniono NaN (kontrakt 3.1)")
         return np.full(xs.shape[0], np.nan, dtype=np.float32)
 
-    raster = Dem(path)
-    if reference_crs is not None:
-        verify_crs_match(reference_crs, raster, label or path.name)
-
-    h, x0, y0, dx, dy = raster.params()
-    return _sample_points(h, x0, y0, dx, dy, xs, ys, float(scale))
+    with rasterio.open(path) as ds:  # windowed reads, the raster never sits in memory
+        if reference_crs is not None:
+            verify_crs_match(reference_crs, CRS.from_user_input(ds.crs), label or path.name)
+        vals = np.array([v[0] for v in ds.sample(zip(xs, ys))], dtype=np.float64)
+        if ds.nodata is not None:
+            vals[vals == ds.nodata] = np.nan
+    return (vals * scale).astype(np.float32)
 
 
 def sample_terrain_layers(
@@ -97,10 +94,10 @@ def sample_terrain_layers(
 ) -> dict:
     """Verify CRS of all 4 rasters against DEM 80m and sample slope_deg & dist_psr_km."""
     if near_crs is None and Path(DEM_NEAR).exists():
-        near_crs = Dem(DEM_NEAR).crs
+        near_crs = _crs_of(DEM_NEAR)
 
     if near_crs is not None and Path(far_path).exists():
-        verify_crs_match(near_crs, Dem(far_path), "DEM_FAR (240m)")
+        verify_crs_match(near_crs, _crs_of(far_path), "DEM_FAR (240m)")
 
     x_m, y_m = grid["x_m"], grid["y_m"]
 
