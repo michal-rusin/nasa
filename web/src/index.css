@@ -7,4 +7,156 @@ body,
 
 body {
   font-family: system-ui, sans-serif;
+  font-size: 14px;
+  color: #e6e6ea;
+  background: #121216;
+}
+
+#app-root {
+  display: flex;
+  height: 100%;
+}
+
+.map {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  background: #08080b;
+}
+
+.sidebar {
+  width: 320px;
+  flex: none;
+  height: 100%;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  background: #1a1a20;
+  border-left: 1px solid #2c2c34;
+}
+
+.sidebar section {
+  margin-bottom: 18px;
+}
+
+.sidebar h2 {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+
+.sidebar select {
+  width: 100%;
+  padding: 4px;
+  background: #24242c;
+  color: inherit;
+  border: 1px solid #3a3a44;
+}
+
+.mock-banner {
+  margin-bottom: 14px;
+  padding: 6px 8px;
+  background: #7a2d00;
+  color: #fff;
+  font-weight: 700;
+  text-align: center;
+}
+
+.legend-bar {
+  height: 12px;
+  margin-top: 8px;
+}
+
+.legend-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #a0a0aa;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0;
+}
+
+.row input[type='range'] {
+  flex: 1;
+}
+
+.muted {
+  color: #a0a0aa;
+  font-size: 12px;
+}
+
+.kv {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.kv th,
+.kv td {
+  padding: 2px 4px;
+  border-bottom: 1px solid #2c2c34;
+}
+
+.kv th {
+  text-align: left;
+  font-weight: 400;
+  color: #a0a0aa;
+}
+
+.kv td {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.sites {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sites button {
+  display: grid;
+  grid-template-columns: 12px 1fr;
+  column-gap: 8px;
+  width: 100%;
+  padding: 6px 4px;
+  text-align: left;
+  background: none;
+  color: inherit;
+  border: 0;
+  border-bottom: 1px solid #2c2c34;
+  cursor: pointer;
+  font: inherit;
+}
+
+.sites button:disabled {
+  cursor: default;
+}
+
+.sites button:not(:disabled):hover {
+  background: #24242c;
+}
+
+.sites .dot {
+  width: 10px;
+  height: 10px;
+  margin-top: 4px;
+  border-radius: 50%;
+  grid-row: span 2;
+}
+
+.state {
+  margin: auto;
+  padding: 24px;
+  max-width: 480px;
+  text-align: center;
+}
+
+.state.error {
+  color: #ffb4a8;
 }

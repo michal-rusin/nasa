@@ -1,0 +1,98 @@
+[
+  {
+    "id": "mock-artemis-1",
+    "name": "[MOCK] Obok największego krateru",
+    "category": "artemis",
+    "lat": -87.5394,
+    "lon": 175.9897,
+    "x_m": 5218.9,
+    "y_m": -74442.1,
+    "note": "dane testowe, nie jest to prawdziwa lokalizacja",
+    "nearest_candidate_id": null,
+    "nearest_candidate_dist_km": null
+  },
+  {
+    "id": "mock-artemis-2",
+    "name": "[MOCK] Przy kraterze polarnym",
+    "category": "artemis",
+    "lat": -89.431,
+    "lon": 156.6337,
+    "x_m": 6842.9,
+    "y_m": -15838.6,
+    "note": "dane testowe, nie jest to prawdziwa lokalizacja",
+    "nearest_candidate_id": 446,
+    "nearest_candidate_dist_km": 0.858
+  },
+  {
+    "id": "mock-clps-3",
+    "name": "[MOCK] Równina A",
+    "category": "clps",
+    "lat": -89.4,
+    "lon": 32.7042,
+    "x_m": 9830.5,
+    "y_m": 15310.1,
+    "note": "dane testowe, nie jest to prawdziwa lokalizacja",
+    "nearest_candidate_id": 520,
+    "nearest_candidate_dist_km": 0.71
+  },
+  {
+    "id": "mock-clps-4",
+    "name": "[MOCK] Równina B",
+    "category": "clps",
+    "lat": -89.2,
+    "lon": -116.2648,
+    "x_m": -21754.7,
+    "y_m": -10735.2,
+    "note": "dane testowe, nie jest to prawdziwa lokalizacja",
+    "nearest_candidate_id": 55,
+    "nearest_candidate_dist_km": 0.775
+  },
+  {
+    "id": "mock-international-5",
+    "name": "[MOCK] Grzbiet",
+    "category": "international",
+    "lat": -89.6,
+    "lon": 163.5211,
+    "x_m": 3440.7,
+    "y_m": -11631.4,
+    "note": "dane testowe, nie jest to prawdziwa lokalizacja",
+    "nearest_candidate_id": 418,
+    "nearest_candidate_dist_km": 0.67
+  },
+  {
+    "id": "mock-apollo-6",
+    "name": "[MOCK] Kontekst historyczny",
+    "category": "apollo",
+    "lat": -20.0,
+    "lon": 30.0,
+    "x_m": null,
+    "y_m": null,
+    "note": "dane testowe, nie jest to prawdziwa lokalizacja",
+    "nearest_candidate_id": null,
+    "nearest_candidate_dist_km": null
+  },
+  {
+    "id": "mock-reference-7",
+    "name": "[MOCK] Punkt kontrolny 1",
+    "category": "reference",
+    "lat": -89.1,
+    "lon": -36.0507,
+    "x_m": -16061.2,
+    "y_m": 22065.2,
+    "note": "dane testowe, nie jest to prawdziwa lokalizacja",
+    "nearest_candidate_id": 142,
+    "nearest_candidate_dist_km": 0.089
+  },
+  {
+    "id": "mock-reference-8",
+    "name": "[MOCK] Punkt kontrolny 2",
+    "category": "reference",
+    "lat": -89.8,
+    "lon": 78.5408,
+    "x_m": 5943.9,
+    "y_m": 1204.9,
+    "note": "dane testowe, nie jest to prawdziwa lokalizacja",
+    "nearest_candidate_id": 455,
+    "nearest_candidate_dist_km": 0.797
+  }
+]
