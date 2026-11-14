@@ -36,7 +36,7 @@ Python 3.11+, numpy, rasterio, pyproj, numba, requests (Horizons API).
 |---|---|---|---|---|
 | 1 | Env + load DEMs + CRS transformer; Shackleton test (89.67S, 129.8E lands on the crater) | friend | P0 | todo |
 | 2 | Horizons query -> data/raw/horizons_2028.csv -> ephem.bin; verify header (MOON_ME, east-positive); record abcorr in meta | friend | P0 | todo |
-| 3 | Grid: points every 2 km in stereographic x/y, region -90..-85; lat/lon, elev_m, ids, level=0 | friend | P0 | todo |
+| 3 | Grid: points every 2 km in stereographic x/y, region -90..-84 (layer bounds ±185000 m); lat/lon, elev_m, ids, level=0 | friend | P0 | todo |
 | 4 | Horizon masks (see algorithm above), numba parallel | Jacob | P0 | todo |
 | 5 | Metrics: sun f (disc-segment formula), earth g (with parallax), sun_pct, longest_night_h, earth_pct, longest_comm_gap_h | Jacob | P0 | todo |
 | 6 | Writers: candidates.bin, masks tiles + index.json, meta.json (exact contract format) | friend | P0 | todo |
@@ -44,7 +44,7 @@ Python 3.11+, numpy, rasterio, pyproj, numba, requests (Horizons API).
 | 8 | validation.json (3–5 points, full hourly series) | Jacob | P1 | todo |
 | 9 | Sanity checks: Shackleton floor sun_pct ~0, best points on rims; compare pattern with PGDA product 69 | Jacob | P1 | todo |
 | 10 | Sample slope_deg (LDSM file) and dist_psr_km (data team's raster) at grid points | friend | P1 | todo |
-| 11 | Full 2 km grid (~18k points); fallback 87–90°S first if slow | Jacob | P1 | todo |
+| 11 | Full 2 km grid (~26k points); fallback 87–90°S first if slow | Jacob | P1 | todo |
 | 12 | sites.json: fill x_m, y_m (dem.make_transformers, same as candidates), nearest_candidate_id, nearest_candidate_dist_km; all four null for sites outside layers.bounds_m | friend | P1 | todo |
 | 13 | Refinement to 250 m (level=1) | Jacob | P2 | todo |
 
@@ -56,3 +56,4 @@ Python 3.11+, numpy, rasterio, pyproj, numba, requests (Horizons API).
 
 ## Status log
 - (one line per milestone, newest last)
+- 2026-11-14: grid extended to 84°S (confirmed by Michał): 26044 points, layers.bounds_m ±185000, IM-2 0.93 km from nearest point; full run 123 s

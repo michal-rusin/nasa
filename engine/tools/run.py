@@ -10,6 +10,8 @@ from grid import build_grid, subsample
 from masks import compute_masks
 from metrics import compute_metrics
 from validation import pick_validation_points, build_validation, write_validation
+from terrain import sample_terrain_layers
+from sites import process_sites_file
 import writers
 
 H_OBS = 2.0                                   # observer_height_m, same value everywhere
@@ -24,7 +26,7 @@ args = ap.parse_args()
 t0 = time.time()
 near, far = Dem(DEM_NEAR), Dem(DEM_FAR)
 fwd, inv = make_transformers(near.crs)
-grid = build_grid(near, far, fwd, inv)
+grid = build_grid(near, far, fwd, inv, lat_edge=-84.0)
 if args.n:
     grid = subsample(grid, args.n)
 print(f"grid: {len(grid['id'])} points")
@@ -67,6 +69,8 @@ write_validation(out / "validation.json",
                  build_validation(idx, grid["id"], grid["lat"], grid["lon"],
                                   grid["elev_m"], masks, ephem, h_obs=H_OBS))
 
+grid = sample_terrain_layers(grid, near_crs=near.crs)
+
 # Writers (friend). Skipped with a message until they exist.
 for name, call in [
     ("write_candidates", lambda f: f(out, grid, m)),
@@ -90,5 +94,10 @@ for col, name in [(0, "sun"), (2, "earth")]:
     Image.fromarray(img).resize((img.shape[1] * 4, img.shape[0] * 4), Image.NEAREST) \
         .save(out / f"preview_{name}.png")
 
+sites_raw = ROOT / "data/raw/sites_raw.json"
+if sites_raw.exists():
+    process_sites_file(sites_raw, out / "sites.json", grid, near.crs)
+else:
+    print("skip: sites_raw.json not delivered yet")
 
 print(f"done in {time.time() - t0:.0f}s -> {out}")

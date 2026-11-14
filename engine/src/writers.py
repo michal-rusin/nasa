@@ -3,13 +3,14 @@
 import json
 from datetime import datetime, timezone
 import numpy as np
+from terrain import PSR_SOURCE
 
 COLUMNS = ["id", "lat", "lon", "x_m", "y_m", "elev_m", "level",
            "sun_pct", "longest_night_h", "earth_pct", "longest_comm_gap_h",
            "slope_deg", "dist_psr_km"]
 TILES = 8
 R_KM = 1737.4
-
+LAYER_HALF_M = 185_000
 
 def _write_json(path, obj):
     path.write_text(json.dumps(obj, ensure_ascii=False), encoding="utf-8")
@@ -26,8 +27,8 @@ def write_candidates(out, grid, metrics, slope=None, dist_psr=None):
     cols = {**grid,
             "sun_pct": metrics[:, 0], "longest_night_h": metrics[:, 1],
             "earth_pct": metrics[:, 2], "longest_comm_gap_h": metrics[:, 3],
-            "slope_deg": nan if slope is None else slope,
-            "dist_psr_km": nan if dist_psr is None else dist_psr}
+            "slope_deg": grid.get("slope_deg", nan) if slope is None else slope,
+            "dist_psr_km": grid.get("dist_psr_km", nan) if dist_psr is None else dist_psr}
     arr = np.stack([np.asarray(cols[c], np.float32) for c in COLUMNS], axis=1).astype("<f4")
     arr.tofile(out / "candidates.bin")
 
@@ -64,7 +65,7 @@ def write_meta(out, grid, n_steps, crs, h_obs, mock=False):
         "moon_radius_km": R_KM,
         "frame": "MOON_ME",
         "ephem_source": "JPL Horizons API, COMMAND=301, CENTER=500@399, QUANTITIES=14,15,20",
-        "abcorr": "TODO from Horizons header",
+        "abcorr": "apparent (light-time corrected), Horizons OBSERVER quantities 14, 15, 20",
         "t0_utc": "2028-01-01T00:00:00Z",
         "step_s": 3600,
         "n_steps": int(n_steps),
@@ -75,14 +76,14 @@ def write_meta(out, grid, n_steps, crs, h_obs, mock=False):
         "slope_basis": "LDSM_80S_20MPP_ADJ",
         "dem_near": "LDEM_80S_80MPP_ADJ",
         "dem_far": "LDEM_60S_240MPP_ADJ",
-        "psr_source": "TODO data team",
-        "region": {"lat_min": -90, "lat_max": -85},
+        "psr_source": PSR_SOURCE,
+        "region": {"lat_min": -90, "lat_max": -84},
         "candidates": {"count": len(grid["id"]), "columns": COLUMNS},
         "raster_crs_wkt": crs.to_wkt(),
         "raster_proj4": crs.to_proj4(),
         "layers": {
-            # SHORTCUT: square around the grid until the data team's PNG bounds exist
-            "bounds_m": {"min_x": -half, "min_y": -half, "max_x": half, "max_y": half},
+            "bounds_m": {"min_x": -LAYER_HALF_M, "min_y": -LAYER_HALF_M,
+                         "max_x": LAYER_HALF_M, "max_y": LAYER_HALF_M},
             "files": {"basemap": "layers/basemap.png", "slope": "layers/slope.png",
                       "illumination": "layers/illumination.png", "psr": "layers/psr.png"},
         },
