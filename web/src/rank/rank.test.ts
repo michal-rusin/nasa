@@ -19,25 +19,53 @@ describe('normalize', () => {
     expect(percentile(Float64Array.from(vals), 0.02)).toBeCloseTo(2)
   })
 
-  it('przycina do 0..1 między p2 a p98', () => {
+  it('rank / (N-1), bez nasycenia powyżej dawnego p98', () => {
     const t = normalizeMetric(vals, 'high')
     expect(t[0]).toBe(0)
-    expect(t[2]).toBe(0)
     expect(t[50]).toBeCloseTo(0.5)
-    expect(t[98]).toBe(1)
     expect(t[100]).toBe(1)
+    expect(t[99]).toBeLessThan(t[100]!)
+    expect(t[98]).toBeLessThan(t[99]!)
+  })
+
+  it('kolejność wejścia nie ma znaczenia (rank po wartościach)', () => {
+    const t = normalizeMetric([30, 10, 20], 'high')
+    expect(Array.from(t)).toEqual([1, 0, 0.5])
+  })
+
+  it('remisy → równe normy (średni rank)', () => {
+    const t = normalizeMetric([5, 1, 5, 9, 5], 'high')
+    expect(t[0]).toBe(t[2])
+    expect(t[2]).toBe(t[4])
+    expect(t[0]).toBeCloseTo(2 / 4) // ranki 1,2,3 → średnio 2
+    expect(t[1]).toBe(0)
+    expect(t[3]).toBe(1)
   })
 
   it('odwraca dla low (1 = najlepiej)', () => {
     const t = normalizeMetric(vals, 'low')
     expect(t[0]).toBe(1)
     expect(t[100]).toBe(0)
-    expect(t[25]).toBeCloseTo(1 - 23 / 96, 5)
+    expect(t[25]).toBeCloseTo(1 - 25 / 100, 5)
   })
 
-  it('NaN → 0', () => {
+  it('NaN → 0 i nie wlicza się do N', () => {
     const t = normalizeMetric([1, NaN, 3], 'high')
-    expect(t[1]).toBe(0)
+    expect(Array.from(t)).toEqual([0, 0, 1])
+    expect(normalizeMetric([NaN, 7], 'low')[1]).toBe(1)
+  })
+
+  it('topN rośnie ze score, bez zależności od indeksu przy różnych wartościach', () => {
+    // 100 punktów, górne wartości rosną z malejącym indeksem → dawniej wszystkie > p98 miały 1.0
+    const raw = Array.from({ length: 100 }, (_, i) => (i < 90 ? i : 1000 - i))
+    const norm = normalizeMetric(raw, 'high')
+    const x = raw.map((_, i) => i * 1e5)
+    const y = raw.map(() => 0)
+    const r = topN(norm, raw.map(() => 1), x, y, { n: 10 })
+    const expected = raw.map((v, i) => [v, i] as const).sort((a, b) => b[0] - a[0]).slice(0, 10).map((p) => p[1])
+    expect(r.map((p) => p.index)).toEqual(expected)
+    expect(new Set(r.map((p) => p.score)).size).toBe(10)
+    for (let k = 1; k < r.length; k++) expect(r[k]!.score).toBeLessThan(r[k - 1]!.score)
   })
 })
 

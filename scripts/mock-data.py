@@ -9,7 +9,7 @@ z generatora").
 
 Zależności: tylko numpy i Pillow.
 
-    python scripts/mock-data.py [--out DIR] [--lat-min -85] [--seed 42]
+    python scripts/mock-data.py [--out DIR] [--lat-min -84] [--seed 42] [--layer-px 1024]
 
 UWAGA O NAZWIE --lat-min: to szerokość zewnętrznej krawędzi siatki (siatka
 obejmuje -90..lat_min). W meta.json jest to region {lat_min: -90, lat_max: <arg>},
@@ -51,7 +51,7 @@ MASK_SCALE = 0.01
 MASK_REC_BYTES = MASK_SAMPLES * 2          # 1440 B
 TILES = 8
 LAYER_PX = 1024
-LAYER_HALF_M = 160000.0                    # bounds_m = kwadrat ±160000 m
+LAYER_HALF_M = 185000.0                    # bounds_m = kwadrat ±185000 m (kontrakt 5.2)
 COLUMNS = ["id", "lat", "lon", "x_m", "y_m", "elev_m", "level",
            "sun_pct", "longest_night_h", "earth_pct", "longest_comm_gap_h",
            "slope_deg", "dist_psr_km"]
@@ -473,17 +473,21 @@ def pick_validation(sun_pct, earth_pct):
 # Główny przebieg
 # --------------------------------------------------------------------------- #
 def main():
+    global LAYER_PX
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(encoding="utf-8")
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--out", default="web/public/data")
-    ap.add_argument("--lat-min", type=float, default=-85.0,
-                    help="szerokość zewnętrznej krawędzi siatki (-85 pełna ~18k pkt, -89 mała ~700)")
+    ap.add_argument("--lat-min", type=float, default=-84.0,
+                    help="szerokość zewnętrznej krawędzi siatki (-84 pełna ~26k pkt, -89 mała ~700)")
+    ap.add_argument("--layer-px", type=int, default=LAYER_PX,
+                    help="rozmiar PNG-ów w px (kontrakt zaleca 4096 dla prawdziwych danych; mock domyślnie 1024)")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--generated-utc", default=DEFAULT_GENERATED_UTC,
                     help="stała, żeby wynik był bit-w-bit powtarzalny")
     args = ap.parse_args()
+    LAYER_PX = args.layer_px
     if not (-90.0 < args.lat_min < -60.0):
         sys.exit("--lat-min musi być w zakresie (-90, -60)")
 
@@ -573,6 +577,7 @@ def main():
         "region": {"lat_min": -90, "lat_max": clean_num(args.lat_min)},
         "candidates": {"count": n, "columns": COLUMNS},
         "raster_crs_wkt": PROJ_STRING,
+        "raster_proj4": PROJ_STRING,
         "layers": {
             "bounds_m": {"min_x": -int(LAYER_HALF_M), "min_y": -int(LAYER_HALF_M),
                          "max_x": int(LAYER_HALF_M), "max_y": int(LAYER_HALF_M)},

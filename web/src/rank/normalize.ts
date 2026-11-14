@@ -1,9 +1,6 @@
 import { METRIC_KEYS, type Candidates, type MetricKey } from '../data/types'
 import { METRIC_META, type Direction } from './metrics'
 
-export const P_LO = 0.02
-export const P_HI = 0.98
-
 /** Percentyl p w [0, 1] z posortowanej rosnąco tablicy (interpolacja liniowa). Pusta → NaN. */
 export function percentile(sorted: ArrayLike<number>, p: number): number {
   const n = sorted.length
@@ -17,28 +14,31 @@ export function percentile(sorted: ArrayLike<number>, p: number): number {
 }
 
 /**
- * Normalizacja metryki do 0..1 między p2 a p98 (z przycięciem).
- * Dla 'low' odwrócona, żeby zawsze 1 = najlepiej. NaN → 0 (najgorzej).
- * Zakres zerowy (p2 == p98) → 1 dla wszystkich wartości liczbowych.
+ * Normalizacja percentylowa (rankowa) metryki do 0..1: n_i = średni rank / (N - 1),
+ * rank liczony po posortowanych wartościach liczbowych, remisy dostają średni rank.
+ * Dla 'low' odwrócona (1 - n_i), żeby zawsze 1 = najlepiej. NaN → 0 (najgorzej).
+ * Jedna wartość liczbowa (N = 1) → 1.
  */
 export function normalizeMetric(values: ArrayLike<number>, direction: Direction): Float32Array {
   const n = values.length
-  const finite: number[] = []
-  for (let i = 0; i < n; i++) {
-    const v = values[i]!
-    if (!Number.isNaN(v)) finite.push(v)
-  }
-  const sorted = Float64Array.from(finite).sort()
-  const lo = percentile(sorted, P_LO)
-  const hi = percentile(sorted, P_HI)
-  const span = hi - lo
-  const out = new Float32Array(n)
-  for (let i = 0; i < n; i++) {
-    const v = values[i]!
-    if (Number.isNaN(v)) { out[i] = 0; continue }
-    let t = span > 0 ? Math.min(1, Math.max(0, (v - lo) / span)) : 1
-    if (direction === 'low' && span > 0) t = 1 - t
-    out[i] = t
+  const out = new Float32Array(n) // NaN zostają 0
+  let m = 0
+  for (let i = 0; i < n; i++) if (!Number.isNaN(values[i]!)) m++
+  if (m === 0) return out
+  const idx = new Int32Array(m)
+  m = 0
+  for (let i = 0; i < n; i++) if (!Number.isNaN(values[i]!)) idx[m++] = i
+  if (m === 1) { out[idx[0]!] = 1; return out }
+  idx.sort((a, b) => values[a]! - values[b]!)
+  const denom = m - 1
+  for (let start = 0; start < m;) {
+    const v = values[idx[start]!]!
+    let end = start + 1
+    while (end < m && values[idx[end]!]! === v) end++
+    let t = (start + end - 1) / 2 / denom // średni rank grupy remisów
+    if (direction === 'low') t = 1 - t
+    for (let k = start; k < end; k++) out[idx[k]!] = t
+    start = end
   }
   return out
 }

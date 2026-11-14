@@ -1,8 +1,9 @@
-import { COLUMN_NAMES, METRIC_KEYS, type MetricKey } from '../data/types'
+import { METRIC_KEYS, type MetricKey } from '../data/types'
 import { rampCssGradient } from '../map/colors'
 import { categoryColor } from '../map/sitesLayer'
 import { METRIC_META } from '../rank/metrics'
 import { useStore, type LayerKey } from '../store'
+import { PointPanel } from '../panel/PointPanel'
 import { FiltersPanel } from './FiltersPanel'
 import { TopList } from './TopList'
 import { WeightsPanel } from './WeightsPanel'
@@ -80,29 +81,6 @@ function Layers() {
   )
 }
 
-function SelectedPoint() {
-  const meta = useStore((s) => s.meta)
-  const candidates = useStore((s) => s.candidates)
-  const sel = useStore((s) => s.selectedIndex)
-  if (!meta || !candidates) return null
-  const columns = meta.candidates.columns.filter((c): c is (typeof COLUMN_NAMES)[number] =>
-    (COLUMN_NAMES as readonly string[]).includes(c))
-  return (
-    <section>
-      <h2>Zaznaczony punkt</h2>
-      {sel === null ? <p className="muted">Kliknij punkt na mapie.</p> : (
-        <table className="kv">
-          <tbody>
-            {columns.map((c) => (
-              <tr key={c}><th>{c}</th><td>{fmt(candidates.col[c][sel] ?? NaN)}</td></tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </section>
-  )
-}
-
 function SitesList() {
   const sites = useStore((s) => s.sites)
   const selectById = useStore((s) => s.selectById)
@@ -139,12 +117,12 @@ export function Sidebar() {
   return (
     <aside className="sidebar">
       {mock && <div className="mock-banner">DANE TESTOWE (mock)</div>}
+      <PointPanel />
       <ColorBy />
       <TopList />
       <FiltersPanel />
       <WeightsPanel />
       <Layers />
-      <SelectedPoint />
       <SitesList />
     </aside>
   )

@@ -1,0 +1,375 @@
+import { useEffect, useRef, useState } from 'react'
+import * as THREE from 'three'
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { isVisibleOnSphere, latLonToVec3, vec3ToLatLon } from '../home/geo'
+import { APOLLO_SITES, SOUTH_POLE_REGION_LAT, type ApolloSite } from '../home/sites'
+import { useT } from '../i18n'
+
+const ASSETS = `${import.meta.env.BASE_URL}assets/`
+const COLOR_URL = `${ASSETS}moon_4k.jpg`
+const BUMP_URL = `${ASSETS}moon_disp.jpg`
+
+const FOV_DEG = 40
+const MIN_DISTANCE = 1.5
+/** three >= r151 liczy bump w przestrzeni ekranu; 1.5 daje czytelne krawędzie kraterów bez "plasteliny". */
+const BUMP_SCALE = 1.5
+const STARS_MIN_WIDTH = 600
+const FLY_MS = 1200
+const FADE_MS = 350
+const FLY_END_LAT = -88 // nie dokładnie -90: kamera z up=+Y nie może patrzeć idealnie wzdłuż osi Y
+const FLY_END_DIST = 2.3
+const AUTOROTATE_RESUME_MS = 6000
+const CLICK_SLOP_PX = 5
+
+const easeInOutCubic = (k: number) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2)
+const lerp = (a: number, b: number, k: number) => a + (b - a) * k
+
+/** Odległość kamery, przy której cała kula (r = 1) mieści się w kadrze z zapasem. */
+function fitDistance(aspect: number): number {
+  const halfV = (FOV_DEG / 2) * (Math.PI / 180)
+  const halfH = Math.atan(Math.tan(halfV) * aspect)
+  return 1 / Math.sin(Math.min(halfV, halfH) * 0.85)
+}
+
+export default function Home() {
+  const t = useT()
+  const hostRef = useRef<HTMLDivElement>(null)
+  const markerRefs = useRef(new Map<string, HTMLButtonElement>())
+  const poleLabelRef = useRef<HTMLButtonElement>(null)
+  const exploreRef = useRef<() => void>(() => {
+    window.location.hash = '#/south-pole'
+  })
+  const [selected, setSelected] = useState<ApolloSite | null>(null)
+  const [textureFailed, setTextureFailed] = useState(false)
+  const [glFailed, setGlFailed] = useState(false)
+  const [leaving, setLeaving] = useState(false)
+
+  useEffect(() => {
+    const host = hostRef.current
+    if (!host) return
+
+    let renderer: THREE.WebGLRenderer
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true })
+    } catch {
+      setGlFailed(true)
+      return
+    }
+
+    let disposed = false
+    const disposables: { dispose: () => void }[] = []
+    const track = <T extends { dispose: () => void }>(o: T): T => {
+      disposables.push(o)
+      return o
+    }
+
+    let width = Math.max(1, host.clientWidth)
+    let height = Math.max(1, host.clientHeight)
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    renderer.setSize(width, height)
+    renderer.setClearColor(0x000000)
+    host.appendChild(renderer.domElement)
+
+    const scene = new THREE.Scene()
+    const camera = new THREE.PerspectiveCamera(FOV_DEG, width / height, 0.1, 200)
+    const startDist = fitDistance(width / height)
+    // Start nad stroną widoczną, lekko od południa, żeby obszar bieguna był od razu w kadrze.
+    const start = latLonToVec3(-25, 10, startDist)
+    camera.position.set(start.x, start.y, start.z)
+    camera.lookAt(0, 0, 0)
+
+    // --- Księżyc -------------------------------------------------------------
+    const moonMaterial = track(new THREE.MeshStandardMaterial({ color: 0x8a8a8a, roughness: 1, metalness: 0 }))
+    const moon = new THREE.Mesh(track(new THREE.SphereGeometry(1, 128, 64)), moonMaterial)
+    scene.add(moon)
+
+    const loader = new THREE.TextureLoader()
+    loader.load(
+      COLOR_URL,
+      (tex) => {
+        if (disposed) return tex.dispose()
+        track(tex)
+        tex.colorSpace = THREE.SRGBColorSpace
+        tex.anisotropy = renderer.capabilities.getMaxAnisotropy()
+        moonMaterial.map = tex
+        moonMaterial.color.set(0xffffff)
+        moonMaterial.needsUpdate = true
+      },
+      undefined,
+      () => {
+        if (!disposed) setTextureFailed(true)
+      },
+    )
+
+    // Relief opcjonalny. Serwer deweloperski dla brakującego pliku oddaje index.html z kodem 200,
+    // więc sprawdzamy też content-type.
+    fetch(BUMP_URL, { method: 'HEAD' })
+      .then((r) => {
+        if (disposed || !r.ok || !(r.headers.get('content-type') ?? '').startsWith('image/')) return
+        loader.load(BUMP_URL, (tex) => {
+          if (disposed) return tex.dispose()
+          track(tex)
+          moonMaterial.bumpMap = tex
+          moonMaterial.bumpScale = BUMP_SCALE
+          moonMaterial.needsUpdate = true
+        }, undefined, () => { /* brak reliefu nie jest błędem */ })
+      })
+      .catch(() => { /* jw. */ })
+
+    // --- Światło: z boku względem kamery, żeby terminator był zawsze w kadrze --
+    scene.add(new THREE.AmbientLight(0xffffff, 0.07))
+    const sun = new THREE.DirectionalLight(0xffffff, 3.2)
+    scene.add(sun)
+
+    // --- Obszar bieguna południowego (okrąg 84°S + delikatne wypełnienie) -----
+    const capAngle = (90 + SOUTH_POLE_REGION_LAT) * (Math.PI / 180)
+    const capFill = new THREE.Mesh(
+      track(new THREE.SphereGeometry(1.003, 64, 6, 0, Math.PI * 2, Math.PI - capAngle, capAngle)),
+      track(new THREE.MeshBasicMaterial({ color: 0x6fd3ff, transparent: true, opacity: 0.16, depthWrite: false })),
+    )
+    scene.add(capFill)
+    const ringPts: THREE.Vector3[] = []
+    for (let i = 0; i < 128; i++) {
+      const p = latLonToVec3(SOUTH_POLE_REGION_LAT, (i / 128) * 360, 1.004)
+      ringPts.push(new THREE.Vector3(p.x, p.y, p.z))
+    }
+    scene.add(new THREE.LineLoop(
+      track(new THREE.BufferGeometry().setFromPoints(ringPts)),
+      track(new THREE.LineBasicMaterial({ color: 0x9fe2ff })),
+    ))
+    const capMinY = Math.sin(SOUTH_POLE_REGION_LAT * (Math.PI / 180)) // punkt kuli jest w obszarze, gdy y < capMinY
+
+    // --- Gwiazdy (pomijane na wąskich ekranach) ------------------------------
+    if (width >= STARS_MIN_WIDTH) {
+      const n = 1400
+      const pos = new Float32Array(n * 3)
+      for (let i = 0; i < n; i++) {
+        const u = Math.random() * 2 - 1
+        const a = Math.random() * Math.PI * 2
+        const s = Math.sqrt(1 - u * u)
+        pos[i * 3] = 60 * s * Math.cos(a)
+        pos[i * 3 + 1] = 60 * u
+        pos[i * 3 + 2] = 60 * s * Math.sin(a)
+      }
+      const geo = track(new THREE.BufferGeometry())
+      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3))
+      scene.add(new THREE.Points(geo, track(new THREE.PointsMaterial({
+        color: 0xffffff, size: 1.4, sizeAttenuation: false, transparent: true, opacity: 0.55,
+      }))))
+    }
+
+    // --- Sterowanie ----------------------------------------------------------
+    const controls = new OrbitControls(camera, renderer.domElement)
+    controls.enablePan = false
+    controls.enableDamping = true
+    controls.minDistance = MIN_DISTANCE
+    controls.maxDistance = Math.max(6, startDist * 1.3)
+    controls.autoRotate = true
+    controls.autoRotateSpeed = 0.35
+    let resumeTimer = 0
+    const onControlStart = () => {
+      window.clearTimeout(resumeTimer)
+      controls.autoRotate = false
+    }
+    const onControlEnd = () => {
+      window.clearTimeout(resumeTimer)
+      resumeTimer = window.setTimeout(() => { controls.autoRotate = true }, AUTOROTATE_RESUME_MS)
+    }
+    controls.addEventListener('start', onControlStart)
+    controls.addEventListener('end', onControlEnd)
+
+    // --- Przelot nad biegun --------------------------------------------------
+    let flight: { t0: number; dur: number; lat: number; lon: number; dist: number } | null = null
+    let flightDone = false
+    let leaveTimer = 0
+    const explore = () => {
+      if (flight || flightDone) return
+      window.clearTimeout(resumeTimer)
+      controls.enabled = false
+      controls.autoRotate = false
+      setSelected(null)
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      flight = { t0: performance.now(), dur: reduce ? 0 : FLY_MS, ...vec3ToLatLon(camera.position) }
+    }
+    exploreRef.current = explore
+
+    // --- Klik / kursor nad obszarem bieguna ----------------------------------
+    const raycaster = new THREE.Raycaster()
+    const ndc = new THREE.Vector2()
+    const overPoleRegion = (ev: PointerEvent): boolean => {
+      const rect = renderer.domElement.getBoundingClientRect()
+      ndc.set(((ev.clientX - rect.left) / rect.width) * 2 - 1, -((ev.clientY - rect.top) / rect.height) * 2 + 1)
+      raycaster.setFromCamera(ndc, camera)
+      const hit = raycaster.intersectObject(moon, false)[0]
+      return hit !== undefined && hit.point.y < capMinY
+    }
+    let downX = 0
+    let downY = 0
+    const onPointerDown = (ev: PointerEvent) => {
+      downX = ev.clientX
+      downY = ev.clientY
+    }
+    const onPointerUp = (ev: PointerEvent) => {
+      if (Math.hypot(ev.clientX - downX, ev.clientY - downY) > CLICK_SLOP_PX) return // to było przeciąganie
+      if (overPoleRegion(ev)) explore()
+      else setSelected(null)
+    }
+    const onPointerMove = (ev: PointerEvent) => {
+      if (ev.buttons !== 0) return
+      renderer.domElement.style.cursor = overPoleRegion(ev) ? 'pointer' : 'grab'
+    }
+    const canvas = renderer.domElement
+    canvas.addEventListener('pointerdown', onPointerDown)
+    canvas.addEventListener('pointerup', onPointerUp)
+    canvas.addEventListener('pointermove', onPointerMove)
+
+    // --- Nakładka HTML: markery i etykieta bieguna ---------------------------
+    const sitePos = APOLLO_SITES.map((s) => {
+      const p = latLonToVec3(s.lat, s.lon)
+      return { id: s.id, v: new THREE.Vector3(p.x, p.y, p.z) }
+    })
+    const proj = new THREE.Vector3()
+    const place = (el: HTMLElement | null | undefined, v: THREE.Vector3) => {
+      if (!el) return
+      if (!isVisibleOnSphere(v, camera.position)) {
+        el.style.visibility = 'hidden'
+        return
+      }
+      proj.copy(v).project(camera)
+      el.style.visibility = 'visible'
+      el.style.transform = `translate(${((proj.x + 1) / 2) * width}px, ${((1 - proj.y) / 2) * height}px)`
+    }
+    const poleAnchor = new THREE.Vector3()
+    const right = new THREE.Vector3()
+    const up = new THREE.Vector3()
+
+    // --- Pętla renderowania (wstrzymywana, gdy karta jest ukryta) -------------
+    let raf = 0
+    const frame = (now: number) => {
+      raf = requestAnimationFrame(frame)
+
+      if (flight) {
+        const k = flight.dur > 0 ? Math.min(1, (now - flight.t0) / flight.dur) : 1
+        const e = easeInOutCubic(k)
+        const p = latLonToVec3(lerp(flight.lat, FLY_END_LAT, e), flight.lon, lerp(flight.dist, FLY_END_DIST, e))
+        camera.position.set(p.x, p.y, p.z)
+        camera.lookAt(0, 0, 0)
+        if (k >= 1) {
+          flight = null
+          flightDone = true
+          setLeaving(true)
+          leaveTimer = window.setTimeout(() => { window.location.hash = '#/south-pole' }, FADE_MS)
+        }
+      } else if (!flightDone) {
+        controls.update()
+      }
+      camera.updateMatrixWorld()
+
+      // Słońce z prawej strony kadru i lekko zza kamery: oświetlone ok. 55% tarczy.
+      right.setFromMatrixColumn(camera.matrixWorld, 0)
+      up.setFromMatrixColumn(camera.matrixWorld, 1)
+      sun.position.copy(right).multiplyScalar(5).addScaledVector(up, 1.5)
+        .addScaledVector(proj.copy(camera.position).normalize(), 1.2)
+
+      for (const s of sitePos) place(markerRefs.current.get(s.id), s.v)
+      // Etykieta bieguna: punkt okręgu 84°S najbliższy kamerze.
+      const a = latLonToVec3(SOUTH_POLE_REGION_LAT, vec3ToLatLon(camera.position).lon)
+      place(poleLabelRef.current, poleAnchor.set(a.x, a.y, a.z))
+
+      renderer.render(scene, camera)
+    }
+    const onVisibility = () => {
+      cancelAnimationFrame(raf)
+      raf = 0
+      if (!document.hidden) raf = requestAnimationFrame(frame)
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    onVisibility()
+
+    const resizeObserver = new ResizeObserver(() => {
+      width = Math.max(1, host.clientWidth)
+      height = Math.max(1, host.clientHeight)
+      camera.aspect = width / height
+      camera.updateProjectionMatrix()
+      renderer.setSize(width, height)
+    })
+    resizeObserver.observe(host)
+
+    return () => {
+      disposed = true
+      cancelAnimationFrame(raf)
+      window.clearTimeout(resumeTimer)
+      window.clearTimeout(leaveTimer)
+      document.removeEventListener('visibilitychange', onVisibility)
+      resizeObserver.disconnect()
+      canvas.removeEventListener('pointerdown', onPointerDown)
+      canvas.removeEventListener('pointerup', onPointerUp)
+      canvas.removeEventListener('pointermove', onPointerMove)
+      controls.removeEventListener('start', onControlStart)
+      controls.removeEventListener('end', onControlEnd)
+      controls.dispose()
+      for (const d of disposables) d.dispose()
+      renderer.dispose()
+      canvas.remove()
+      exploreRef.current = () => { window.location.hash = '#/south-pole' }
+    }
+  }, [])
+
+  return (
+    <div className={`home${leaving ? ' leaving' : ''}`}>
+      <div className="globe-host" ref={hostRef} />
+
+      {!glFailed && (
+        <div className="globe-overlay">
+          {APOLLO_SITES.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              className={`globe-marker${selected?.id === s.id ? ' active' : ''}`}
+              style={{ visibility: 'hidden' }}
+              ref={(el) => {
+                if (el) markerRefs.current.set(s.id, el)
+                else markerRefs.current.delete(s.id)
+              }}
+              onClick={() => setSelected(s)}
+            >
+              <span className="globe-marker-dot" />
+              <span className="globe-marker-label">{s.name}</span>
+            </button>
+          ))}
+          <button
+            type="button"
+            className="globe-pole-label"
+            style={{ visibility: 'hidden' }}
+            ref={poleLabelRef}
+            onClick={() => exploreRef.current()}
+          >
+            {t('home.southPole')}
+          </button>
+        </div>
+      )}
+
+      {(glFailed || textureFailed) && (
+        <div className="home-notice" role="status">
+          {t(glFailed ? 'home.webglError' : 'home.textureError')}
+        </div>
+      )}
+
+      {selected && (
+        <aside className="site-card">
+          <button type="button" className="site-card-close" aria-label={t('card.close')} onClick={() => setSelected(null)}>
+            ×
+          </button>
+          <h2>{selected.name}</h2>
+          <div className="muted">{t('card.landed')}: {selected.year}</div>
+          <p>{t(`site.${selected.id}.desc`)}</p>
+        </aside>
+      )}
+
+      <div className="home-cta">
+        <button type="button" onClick={() => exploreRef.current()}>{t('home.cta')}</button>
+        <div className="muted">{t('home.hint')}</div>
+      </div>
+    </div>
+  )
+}

@@ -11,11 +11,11 @@ Dane NIE są prawdziwe. `meta.json` ma `"mock": true`, pola źródeł mają wart
 
 ## Uruchamianie
 ```
-python scripts/mock-data.py [--out DIR] [--lat-min -85] [--seed 42] [--generated-utc ...]
+python scripts/mock-data.py [--out DIR] [--lat-min -84] [--seed 42] [--generated-utc ...]
 ```
 - Zależności: tylko `numpy` i `Pillow`. Nie dodawaj innych (scipy, numba, pyproj).
 - Nie używaj `python -I`: na tej maszynie numpy jest w katalogu użytkownika.
-- `--out`: domyślnie `web/public/data`. `--lat-min`: szerokość zewnętrznej krawędzi siatki (siatka obejmuje -90..lat_min). `-85` = 18 073 punkty (ok. 50 s, ok. 30 MB), `-89` = 725 punktów (ok. 4 s, ok. 2,6 MB, nadaje się do repo).
+- `--out`: domyślnie `web/public/data`. `--lat-min`: szerokość zewnętrznej krawędzi siatki (siatka obejmuje -90..lat_min). `-84` (domyślnie, jak w kontrakcie) = 26 045 punktów (ok. 50 s, ok. 42 MB), `-89` = 725 punktów (ok. 4 s, ok. 2,6 MB, nadaje się do repo).
 - Wynik jest deterministyczny bit w bit przy tym samym `--seed`. Dlatego `generated_utc` to stała (`2026-11-14T00:00:00Z`), a nie zegar. Nie zamieniaj jej na `datetime.now()`.
 - Kod wyjścia ≠ 0, gdy samokontrola wykryje błąd. Ostrzeżenia o rozrzucie i histogramie `sun_pct` nie są błędami.
 
@@ -27,7 +27,7 @@ python scripts/mock-data.py [--out DIR] [--lat-min -85] [--seed 42] [--generated
 - **Słońce:** kierunek ze środka Księżyca, bez paralaksy. **Ziemia:** wektor `earth_pos − P` z paralaksą, `P = (R + elev_km + 0.002)·U`. Elewacja środka tarczy, bez promienia.
 - **Ciągi** (`longest_night_h`, `longest_comm_gap_h`) liczone jako odcinki, bez sklejania początku z końcem okresu.
 - **Czas:** `n_steps = 8784` (2028 przestępny), stała `N_STEPS` w jednym miejscu. Sekcja 1.4 kontraktu nadal mówi 8760, co jest nieaktualne.
-- **Rastry:** 1024×1024, wspólne `bounds_m` = ±160000 m, wiersz 0 = górny = `max_y`. Warstwy tematyczne są przezroczyste poza regionem siatki. `illumination.png`: piksel → najbliższa komórka 2 km.
+- **Rastry:** domyślnie 1024×1024 (`--layer-px`; kontrakt zaleca 4096 dla prawdziwych danych), wspólne `bounds_m` = ±185000 m (kontrakt 5.2), granice to krawędzie pikseli, wiersz 0 = górny = `max_y`. Warstwy tematyczne są przezroczyste poza regionem siatki. `illumination.png`: piksel → najbliższa komórka 2 km.
 - **Kafelki masek:** siatka 8×8 w kwadracie `±rho(lat_min)`, `i` po x, `j` po y, rekordy rosnąco po `id`, 1440 B na rekord, puste kafelki bez pliku.
 - **`sites.json`:** miejsce z `rho` większym niż promień siatki dostaje `nearest_candidate_id` i `nearest_candidate_dist_km` równe `null` (jak Apollo). Dlatego w próbce `-89` więcej miejsc ma `null`.
 - **`sites.json`, `x_m`/`y_m`:** położenie miejsca w metrach w rzucie mocka (`latlon_to_xy`, kontrakt 5.3), liczone z niezaokrąglonych `lat`/`lon`, zaokrąglone do 0,1 m. Miejsce poza granicami rastrów (`|x|` lub `|y|` > `LAYER_HALF_M`, np. Apollo na −20°) ma oba pola `null`. To niezależne od `nearest_candidate_*`, które zależy od promienia siatki (`--lat-min`), więc w małej próbce miejsce może mieć `x_m`/`y_m`, a `nearest_candidate_*` równe `null`.

@@ -7,15 +7,27 @@ export function dataUrl(path: string): string {
   return DATA_BASE + path
 }
 
-async function fetchOk(path: string): Promise<Response> {
+export async function fetchOk(path: string): Promise<Response> {
   let res: Response
   try {
     res = await fetch(dataUrl(path))
   } catch (e) {
     throw new Error(`Nie udało się pobrać ${path}: ${e instanceof Error ? e.message : String(e)}`)
   }
+  if (res.status === 404) throw new MissingDataFileError(path)
   if (!res.ok) throw new Error(`Nie udało się pobrać ${path} (HTTP ${res.status})`)
+  // Serwer dev Vite na brakujący plik odpowiada 200 + index.html (fallback SPA).
+  if ((res.headers.get('content-type') ?? '').includes('text/html')) throw new MissingDataFileError(path)
   return res
+}
+
+export class MissingDataFileError extends Error {
+  readonly path: string
+  constructor(path: string) {
+    super(`Brak pliku danych public/data/${path} (sprawdź npm run sync-data)`)
+    this.name = 'MissingDataFileError'
+    this.path = path
+  }
 }
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -122,7 +134,16 @@ export async function loadCandidates(meta: Meta): Promise<Candidates> {
   return parseCandidates(await res.arrayBuffer(), meta)
 }
 
+/** sites.json dostarcza zespół danych osobno; jego brak nie blokuje mapy (pusta lista + ostrzeżenie). */
 export async function loadSites(): Promise<Site[]> {
-  const res = await fetchOk('sites.json')
-  return parseSites(await res.json())
+  try {
+    const res = await fetchOk('sites.json')
+    return parseSites(await res.json())
+  } catch (e) {
+    if (e instanceof MissingDataFileError) {
+      console.warn(`${e.message}; lista miejsc będzie pusta.`)
+      return []
+    }
+    throw e
+  }
 }

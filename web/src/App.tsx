@@ -1,32 +1,32 @@
-import { useEffect } from 'react'
-import { Sidebar } from './app/Sidebar'
-import { MapView } from './map/MapView'
-import { useStore } from './store'
+import { lazy, Suspense, useSyncExternalStore } from 'react'
+import { TopBar } from './app/TopBar'
+import { useT } from './i18n'
+
+// Osobne paczki: globus (three.js) i mapa (OpenLayers) nie obciążają się nawzajem.
+const Home = lazy(() => import('./views/Home'))
+const SouthPole = lazy(() => import('./views/SouthPole'))
+
+type Route = 'home' | 'south-pole'
+
+function subscribeHash(cb: () => void): () => void {
+  window.addEventListener('hashchange', cb)
+  return () => window.removeEventListener('hashchange', cb)
+}
+
+function currentRoute(): Route {
+  return window.location.hash === '#/south-pole' ? 'south-pole' : 'home'
+}
 
 export default function App() {
-  const status = useStore((s) => s.status)
-  const error = useStore((s) => s.error)
-  const load = useStore((s) => s.load)
-
-  useEffect(() => {
-    void load()
-  }, [load])
+  const route = useSyncExternalStore(subscribeHash, currentRoute)
+  const t = useT()
 
   return (
-    <div id="app-root">
-      {status === 'loading' && <div className="state">Wczytywanie danych…</div>}
-      {status === 'error' && (
-        <div className="state error">
-          <strong>Nie udało się wczytać danych.</strong>
-          <p>{error}</p>
-        </div>
-      )}
-      {status === 'ready' && (
-        <>
-          <MapView />
-          <Sidebar />
-        </>
-      )}
+    <div className="shell">
+      <TopBar />
+      <Suspense fallback={<div className="state">{t('home.loading')}</div>}>
+        {route === 'south-pole' ? <SouthPole /> : <Home />}
+      </Suspense>
     </div>
   )
 }

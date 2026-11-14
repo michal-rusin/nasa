@@ -7,7 +7,21 @@ import {
   type Bound, type Filters, type Norms, type RankedPoint, type Weights,
 } from './rank'
 
+import type { Lang } from './i18n'
+
 export type LayerKey = 'points' | 'sites' | 'slope' | 'illumination' | 'psr'
+
+const LANG_STORAGE_KEY = 'lunar-navigator.lang'
+
+function readStoredLang(): Lang {
+  try {
+    const v = localStorage.getItem(LANG_STORAGE_KEY)
+    if (v === 'en' || v === 'pl') return v
+  } catch {
+    // brak localStorage (tryb prywatny, testy w node): zostaje domyślny
+  }
+  return 'en'
+}
 
 export const TOP_N = 10
 export const DEFAULT_NMS_RADIUS_KM = 5
@@ -15,6 +29,9 @@ export const DEFAULT_NMS_RADIUS_KM = 5
 export interface AppState {
   status: 'loading' | 'ready' | 'error'
   error: string | null
+  /** Język interfejsu (i18n.ts). */
+  lang: Lang
+  setLang: (lang: Lang) => void
   meta: Meta | null
   candidates: Candidates | null
   sites: Site[]
@@ -69,6 +86,15 @@ function recompute(s: RankInput, what: { score?: boolean; mask?: boolean }): Ran
 export const useStore = create<AppState>()((set, get) => ({
   status: 'loading',
   error: null,
+  lang: readStoredLang(),
+  setLang: (lang) => {
+    try {
+      localStorage.setItem(LANG_STORAGE_KEY, lang)
+    } catch {
+      // zapis opcjonalny
+    }
+    set({ lang })
+  },
   meta: null,
   candidates: null,
   sites: [],

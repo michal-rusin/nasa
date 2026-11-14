@@ -12,9 +12,16 @@ body {
   background: #121216;
 }
 
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
 #app-root {
   display: flex;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 .map {
@@ -159,4 +166,89 @@ body {
 
 .state.error {
   color: #ffb4a8;
+}
+
+/* Panel punktu */
+.point-panel .pp-site { margin-bottom: 2px; }
+.point-panel .pp-coords { font-size: 12px; margin-bottom: 6px; }
+.point-panel .pp-canvas { width: 100%; margin-top: 8px; }
+.point-panel .pp-canvas canvas { display: block; background: #121216; }
+.point-panel .pp-timeline { cursor: ew-resize; touch-action: none; }
+.point-panel .pp-note { font-size: 11px; margin-top: 2px; line-height: 1.35; }
+.point-panel .pp-slider { font-size: 12px; margin-top: 6px; }
+.point-panel .pp-slider input { flex: 1; min-width: 0; }
+.point-panel .pp-h3 { font-size: 12px; font-weight: 600; margin: 10px 0 4px; }
+.point-panel .pp-bar-cell { width: 56px; }
+.point-panel .pp-bar { position: relative; height: 6px; background: #2c2c34; }
+.point-panel .pp-bar-mark { position: absolute; top: -2px; width: 2px; height: 10px; margin-left: -1px; background: #e6e6ea; }
+.point-panel .pp-check td { font-size: 11px; }
+.point-panel .pp-ok { color: #5ad07a; }
+.point-panel .pp-bad { color: #ff5a5a; }
+.point-panel .pp-error { color: #ff8a7a; font-size: 12px; }
+
+/* Dolny panel: panorama + oś czasu */
+.main-col { flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; }
+.main-col .map { flex: 1; min-height: 0; height: auto; }
+.horizon-dock { flex: none; padding: 8px 12px 10px; background: #15151b; border-top: 1px solid #2c2c34; }
+.horizon-dock .pp-canvas { width: 100%; margin-top: 6px; }
+.horizon-dock .pp-canvas canvas { display: block; }
+.horizon-dock .pp-timeline { cursor: ew-resize; touch-action: none; }
+.hd-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; font-size: 12px; }
+.hd-head strong { font-size: 13px; }
+.hd-time { font-variant-numeric: tabular-nums; color: #e6e6ea; }
+.hd-play { width: 28px; height: 22px; padding: 0; background: #24242c; color: #e6e6ea; border: 1px solid #3a3a44; cursor: pointer; font-size: 11px; }
+.hd-play:hover { background: #2e2e38; }
+.hd-note { font-size: 11px; margin-top: 4px; line-height: 1.4; }
+
+/* Górny pasek */
+.topbar { flex: none; display: flex; align-items: center; justify-content: space-between; height: 40px; padding: 0 14px; background: #15151b; border-bottom: 1px solid #2c2c34; }
+.topbar-name { color: #e6e6ea; font-weight: 600; letter-spacing: 0.02em; text-decoration: none; }
+.topbar-name:hover { color: #fff; }
+.topbar-lang { display: flex; }
+.topbar-lang button { min-width: 36px; height: 24px; padding: 0 8px; background: #24242c; color: #a0a0aa; border: 1px solid #3a3a44; font: inherit; font-size: 12px; cursor: pointer; }
+.topbar-lang button + button { border-left: 0; }
+.topbar-lang button[aria-pressed='true'] { background: #e6e6ea; color: #121216; border-color: #e6e6ea; }
+
+/* Przejścia między widokami */
+.view-fade { animation: view-fade-in 0.35s ease-out; }
+@keyframes view-fade-in { from { opacity: 0; } }
+
+/* Home: globus */
+.home { position: relative; flex: 1; min-height: 0; overflow: hidden; background: #000; transition: opacity 0.35s ease-in; }
+.home.leaving { opacity: 0; }
+.globe-host { position: absolute; inset: 0; }
+.globe-host canvas { display: block; cursor: grab; touch-action: none; }
+.globe-overlay { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+
+/* Kotwica 0x0 ustawiana przez transform; zawartość centrowana względem niej. */
+.globe-marker, .globe-pole-label { position: absolute; left: 0; top: 0; margin: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; pointer-events: auto; }
+.globe-marker { width: 0; height: 0; }
+.globe-marker-dot { position: absolute; left: -12px; top: -12px; width: 24px; height: 24px; }
+.globe-marker-dot::after { content: ''; position: absolute; left: 7px; top: 7px; width: 8px; height: 8px; border-radius: 50%; background: #ffcf5a; border: 1px solid #121216; box-shadow: 0 0 0 1px rgba(255, 207, 90, 0.5); }
+.globe-marker-label { position: absolute; left: 12px; top: -10px; padding: 2px 6px; white-space: nowrap; font-size: 12px; background: rgba(18, 18, 22, 0.9); border: 1px solid #3a3a44; opacity: 0; pointer-events: none; }
+.globe-marker:hover .globe-marker-label, .globe-marker:focus-visible .globe-marker-label, .globe-marker.active .globe-marker-label { opacity: 1; }
+.globe-marker:hover, .globe-marker.active { z-index: 1; }
+.globe-marker:focus-visible { outline: none; }
+.globe-marker:focus-visible .globe-marker-dot::after { box-shadow: 0 0 0 3px #fff; }
+.globe-pole-label { width: 220px; margin: 8px 0 0 -110px; padding: 3px 8px; text-align: center; font-size: 12px; color: #9fe2ff; background: rgba(8, 8, 11, 0.8); border: 1px solid rgba(159, 226, 255, 0.5); }
+.globe-pole-label:hover { color: #fff; border-color: #9fe2ff; }
+
+.home-notice { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 32px); box-sizing: border-box; padding: 6px 10px; background: #2a1c18; color: #ffb4a8; border: 1px solid #5a3a32; font-size: 12px; text-align: center; }
+
+.site-card { position: absolute; left: 16px; bottom: 16px; width: 260px; max-width: calc(100% - 32px); box-sizing: border-box; padding: 12px 14px; background: rgba(26, 26, 32, 0.95); border: 1px solid #3a3a44; }
+.site-card h2 { margin: 0 24px 2px 0; font-size: 15px; font-weight: 600; }
+.site-card p { margin: 8px 0 0; line-height: 1.4; }
+.site-card-close { position: absolute; top: 4px; right: 4px; width: 28px; height: 28px; padding: 0; background: none; color: #a0a0aa; border: 0; font-size: 18px; line-height: 1; cursor: pointer; }
+.site-card-close:hover { color: #fff; }
+
+.home-cta { position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; pointer-events: none; }
+.home-cta button { padding: 9px 18px; background: #e6e6ea; color: #121216; border: 0; font: inherit; font-weight: 600; cursor: pointer; pointer-events: auto; }
+.home-cta button:hover { background: #fff; }
+
+@media (max-width: 640px) {
+  .site-card { bottom: 92px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .view-fade { animation: none; }
+  .home { transition: none; }
 }

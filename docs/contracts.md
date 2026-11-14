@@ -22,7 +22,7 @@ data/out/v1/
 │   └── tile_<i>_<j>.bin # maski horyzontu (int16 LE)
 ├── validation.json      # 3–5 punktów z pełnymi szeregami godzinowymi (do testów frontu)
 ├── sites.json           # (zespół danych) nazwane miejsca: Artemis, CLPS, Chang'e-7, Apollo
-└── layers/              # (zespół danych) PNG-i rastrów
+└── layers/              # (zespół danych) PNG-i rastrów, 4096×4096, bounds ±185 km (5.2)
     ├── basemap.png
     ├── slope.png
     ├── illumination.png
@@ -172,7 +172,7 @@ sun_dir_x, sun_dir_y, sun_dir_z,      # wektor jednostkowy ze środka Księżyca
 earth_x,   earth_y,   earth_z         # położenie środka Ziemi w km, MOON_ME
 ```
 
-- Dzięki temu front policzy oś czasu dla **dowolnego** punktu z jego maski, bez gigantycznych szeregów dla 18 tys. punktów (~210 KB zamiast setek MB).
+- Dzięki temu front policzy oś czasu dla **dowolnego** punktu z jego maski, bez gigantycznych szeregów dla 26 tys. punktów (~210 KB zamiast setek MB).
 
 #### Źródło: JPL Horizons API (pobierane **offline przez silnik**, nie przez przeglądarkę)
 Horizons dla Księżyca podaje współrzędne kartograficzne w **MOON_ME, długość wschodnia dodatnia** (w nagłówku odpowiedzi linia `Target pole/equ : MOON_ME {East-longitude positive}`, sprawdź ją). To ta sama ramka, co reszta kontraktu.
@@ -224,9 +224,9 @@ Uwagi:
   "dem_far": "LDEM_60S_240MPP_ADJ",
   "psr_source": "...",
 
-  "region": { "lat_min": -90, "lat_max": -85 },
+  "region": { "lat_min": -90, "lat_max": -84 },
   "candidates": {
-    "count": 18000,
+    "count": 26000,
     "columns": ["id","lat","lon","x_m","y_m","elev_m","level",
                 "sun_pct","longest_night_h","earth_pct","longest_comm_gap_h",
                 "slope_deg","dist_psr_km"]
@@ -235,7 +235,7 @@ Uwagi:
   "raster_crs_wkt": "PROJCS[...]",
   "raster_proj4": "+proj=stere +lat_0=-90 +lat_ts=-90 +lon_0=0 +R=1737400 +units=m",
   "layers": {
-    "bounds_m": { "min_x": 0, "min_y": 0, "max_x": 0, "max_y": 0 },
+    "bounds_m": { "min_x": -185000, "min_y": -185000, "max_x": 185000, "max_y": 185000 },
     "files": {
       "basemap": "layers/basemap.png",
       "slope": "layers/slope.png",
@@ -246,7 +246,7 @@ Uwagi:
 }
 ```
 
-Wartości przykładowe, a `abcorr` i `ephem_source` uzupełnij tym, co realnie zwrócił Horizons.
+Wartości przykładowe, a `abcorr` i `ephem_source` uzupełnij tym, co realnie zwrócił Horizons. **Nie są przykładowe** i obowiązują dokładnie takie: `region.lat_max = -84` oraz `layers.bounds_m` (±185000 m), patrz 5.2 i 9.
 
 ---
 
@@ -256,7 +256,7 @@ Rola zespołu danych: wszystko, co nie jest geometrią horyzontu ani symulacją.
 
 ### 5.1 Źródła (PGDA product 90, Barker et al. 2023)
 - **DEM do masek:** `LDEM_80S_80MPP_ADJ.TIF` (80 m/px, 80–90°S).
-- **DEM dalekiego pola:** `LDEM_60S_240MPP_ADJ.TIF` (240 m/px, 60–90°S). Potrzebny, bo siatka sięga 85°S, a promień 150 km kończy się przy ~80°S, czyli dokładnie na krawędzi pliku 80 m. Promienie, które wychodzą poza plik 80 m, dalej próbkują plik 240 m. Dla odległego terenu taka rozdzielczość wystarcza.
+- **DEM dalekiego pola:** `LDEM_60S_240MPP_ADJ.TIF` (240 m/px, 60–90°S). Potrzebny, bo siatka sięga 84°S, a promień 150 km z jej brzegu wychodzi do ok. 79°S, czyli poza krawędź pliku 80 m (80°S). Promienie, które wychodzą poza plik 80 m, dalej próbkują plik 240 m. Dla odległego terenu taka rozdzielczość wystarcza.
 - **Nachylenie:** `LDSM_80S_20MPP_ADJ.TIF`, gotowa mapa nachylenia w stopniach. Nie liczymy nachylenia sami, tylko próbkujemy ten plik. W meta: `slope_basis = "LDSM_80S_20MPP_ADJ"`.
 - **PSR:** do potwierdzenia, które pliki PGDA dają mapę PSR. Z niej zespół danych robi **raster odległości do PSR** (`gdal_proximity.py`), a silnik go próbkuje → `dist_psr_km`.
 - **Referencja do walidacji:** PGDA product 69 (Lunar Polar Illumination) ma mapy średniego oświetlenia i widoczności Ziemi dla bieguna południowego. Są uśrednione po 18,6 roku, więc liczby nie zgodzą się z naszym rokiem 1:1, ale **rozkład przestrzenny** (gdzie jasno, gdzie ciemno) musi się zgadzać. Dobra kontrola silnika i gotowa warstwa `illumination.png`.
@@ -264,13 +264,15 @@ Rola zespołu danych: wszystko, co nie jest geometrią horyzontu ani symulacją.
 ### 5.2 Rastry (`layers/`)
 
 - PNG, **wszystkie dokładnie z tymi samymi granicami** (`layers.bounds_m`) i w tym samym rzucie. Front nakłada je jeden na drugi bez przeliczania.
-- Warstwy tematyczne z kanałem alfa (przezroczyste tam, gdzie brak danych).
-- Rozmiar rozsądny dla przeglądarki: do ~4096 px na bok.
-- Przydatne: `gdalwarp -te <bounds>` (wspólne granice), `gdaldem color-relief`, `gdal_proximity.py`, `gdal_translate -of PNG`.
+- **Granice są stałe: kwadrat ±185 000 m** (`min_x = min_y = −185000`, `max_x = max_y = 185000`). Obejmuje okrąg 84°S (promień `2R·tan(3°)` ≈ 182 100 m) z zapasem ok. 2,9 km. Nie dopasowujemy granic do siatki ani do wersji danych.
+- **Rozmiar: 4096 × 4096 px** (≈ 90,3 m/px), każda warstwa tak samo. Mniejszy rozmiar dopuszczalny, byle kwadratowy i taki sam dla wszystkich czterech.
+- **Granice to krawędzie pikseli, nie ich środki** (jak w `gdalwarp -te`): lewa krawędź kolumny 0 leży w `x = −185000`, górna krawędź wiersza 0 w `y = +185000`. **Wiersz 0 = góra (max_y), kolumna 0 = lewa strona (min_x).** Środek piksela `(i, j)` (`i` = kolumna, `j` = wiersz) ma `x = −185000 + (i + 0.5)·px`, `y = 185000 − (j + 0.5)·px`, gdzie `px = 370000 / 4096`.
+- Warstwy tematyczne z kanałem alfa (przezroczyste tam, gdzie brak danych, np. poza okręgiem 84°S).
+- Przydatne: `gdalwarp -te -185000 -185000 185000 185000 -ts 4096 4096` (wspólne granice i rozmiar), `gdaldem color-relief`, `gdal_proximity.py`, `gdal_translate -of PNG`.
 
 ### 5.3 `sites.json`: nazwane miejsca
 
-Siatka to ~18 tys. anonimowych punktów. Jury będzie szukać konkretnych, znanych miejsc, więc zespół danych przygotowuje krótką listę ręcznie:
+Siatka to ~26 tys. anonimowych punktów. Jury będzie szukać konkretnych, znanych miejsc, więc zespół danych przygotowuje krótką listę ręcznie:
 
 ```json
 [
@@ -291,7 +293,7 @@ Siatka to ~18 tys. anonimowych punktów. Jury będzie szukać konkretnych, znany
 
 - `category`: `artemis` (regiony kandydackie Artemis), `clps` (np. IM-2), `international` (np. Chang'e-7), `apollo` (kontekst historyczny), `reference` (punkty kontrolne, np. Malapert).
 - Wartości `lat/lon` w przykładzie są poglądowe. **Każde miejsce z podanym źródłem**, nie z pamięci.
-- `nearest_candidate_id` i `nearest_candidate_dist_km` liczy silnik po wygenerowaniu siatki. Miejsca poza obszarem siatki (np. Apollo) mają oba pola `null`.
+- `nearest_candidate_id` i `nearest_candidate_dist_km` (km po powierzchni) liczy silnik po wygenerowaniu siatki. `nearest_candidate_id` jest wypełniony, gdy najbliższy punkt siatki leży **≤ 4 km** od miejsca, w przeciwnym razie oba pola są `null` (m.in. miejsca poza siatką, np. Apollo). Próg chroni przed pokazaniem metryk punktu z innego fragmentu terenu jako metryk miejsca; front zawsze pokazuje odległość obok metryk.
 - `x_m`, `y_m`: położenie miejsca w metrach w rzucie rastrów, liczone tak samo jak dla kandydatów (pyproj z CRS pliku DEM, sekcja 1.3). Front stawia marker po tych polach, bo nie zna rzutu i nie przelicza `lat/lon`. Miejsca poza granicami rastrów (`layers.bounds_m`), np. Apollo, mają oba pola `null`; front nie rysuje ich na mapie, tylko pokazuje na liście.
 - Front pokazuje je jako osobną warstwę z etykietami. Po kliknięciu otwiera się panel najbliższego punktu siatki z dopiskiem o odległości.
 
@@ -323,12 +325,12 @@ Kontrola zdrowego rozsądku po stronie silnika:
 
 ## 7. Wydajność silnika (ważne przy ~23 h)
 
-Maski to ~18 tys. punktów × 720 azymutów × promień 150 km. W czystym NumPy w pętli to się nie skończy na czas.
+Maski to ~26 tys. punktów (siatka 2 km do 84°S) × 720 azymutów × promień 150 km. W czystym NumPy w pętli to się nie skończy na czas.
 
 - **Numba** (`@njit(parallel=True)`, `prange` po punktach) na pętlę promieni.
 - **Krok próbkowania rośnie z odległością:** np. 80 m do 5 km, 200 m do 30 km, 500 m dalej. Daleki teren zajmuje mały kąt, więc gęste próbkowanie tam nic nie daje.
 - Najpierw zmierz czas dla 100 punktów i dopiero wtedy przelicz, ile zajmie pełna siatka.
-- Plan awaryjny: najpierw 87–90°S, potem rozszerzenie do 85°S.
+- Plan awaryjny: najpierw 87–90°S, potem rozszerzenie do 84°S.
 - **Zagęszczenie 250 m (`level = 1`) jest opcjonalne.** Robimy je tylko wtedy, gdy pełna siatka 2 km jest gotowa i zwalidowana.
 
 ## 8. Kolejność dostaw
@@ -351,8 +353,17 @@ Ustalone:
 - [x] **`night_threshold = 0.01`.**
 - [x] **Konwencje (sekcja 1) i formaty binarne (sekcja 3) potwierdzone przez silnik.**
 - [x] **`observer_height_m = 2.0`, `mask_min_dist_m = 120`** (dopisane przez silnik, formaty binarne bez zmian).
+- [x] **Siatka sięga 84°S** (nie 85°S): regiony kandydackie Artemis leżą do ok. 6° od bieguna, więc 85° obcinałoby m.in. część Mons Mouton i lądowisko IM-2. Ok. 26 tys. punktów (siatka 2 km), `region.lat_max = −84`.
+- [x] **`layers.bounds_m` = ±185000 m na stałe**, PNG 4096 × 4096, granice = krawędzie pikseli, wiersz 0 = góra, kolumna 0 = lewa strona (5.2).
+- [x] **`sites.json`:** `nearest_candidate_id` wypełniany przy odległości ≤ 4 km, inaczej `null`; `nearest_candidate_dist_km` zawsze razem z nim (5.3).
 
 Do potwierdzenia:
 - [ ] Nagłówek pierwszej prawdziwej odpowiedzi Horizons: `MOON_ME`, długość wschodnia, użyta poprawka aberracji.
 - [ ] Źródło mapy PSR (pliki z product 90 albo inny produkt PGDA).
 - [ ] Lista miejsc do `sites.json` ze źródłami.
+
+---
+
+## 10. Historia zmian
+
+- **2026-11-14:** siatka do 84°S (było 85°S), `layers.bounds_m` ±185000 m na stałe, PNG 4096 × 4096 z konwencją krawędzi pikseli i orientacji wiersza/kolumny (5.2), próg 4 km dla `nearest_candidate_id` (5.3). Formaty binarne bez zmian, `contract_version` pozostaje 1.
