@@ -1,0 +1,21 @@
+# Surowe dane NASA (za duże na repo)
+data/raw/
+engine/vendor/
+engine/kernels/
+
+# Wyniki budowania silnika
+engine/*.o
+engine/engine
+engine/engine.exe
+
+# Node
+node_modules/
+web/node_modules/
+web/dist/
+
+# Vite
+web/.vite/
+
+# System
+.DS_Store
+Thumbs.db
