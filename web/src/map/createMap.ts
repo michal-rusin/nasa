@@ -9,6 +9,7 @@ import ImageStatic from 'ol/source/ImageStatic'
 import proj4 from 'proj4'
 import { dataUrl, getProjString } from '../data/load'
 import type { Candidates, Meta, Site } from '../data/types'
+import { METRIC_META } from '../rank/metrics'
 import { useStore, type AppState, type LayerKey } from '../store'
 import { nearestPoint } from './nearestPoint'
 import { createPointsLayer } from './PointsLayer'
@@ -99,7 +100,20 @@ export function createMap(
   function applyStyle(s: AppState): void {
     const range = s.ranges?.[s.colorBy]
     if (!range) return
-    points.setStyle({ values: candidates.col[s.colorBy], range, selectedIndex: s.selectedIndex })
+    points.setStyle({
+      values: candidates.col[s.colorBy],
+      range,
+      invert: METRIC_META[s.colorBy].direction === 'low',
+      mask: s.passMask,
+      top: s.top.map((p) => p.index),
+      selectedIndex: s.selectedIndex,
+    })
+  }
+  function focus(i: number): void {
+    const x = cx[i]
+    const y = cy[i]
+    if (x === undefined || y === undefined || Number.isNaN(x) || Number.isNaN(y)) return
+    view.animate({ center: [x, y], duration: 300 })
   }
   function applyLayers(s: AppState): void {
     for (const k of OVERLAY_KEYS) {
@@ -114,9 +128,11 @@ export function createMap(
   applyLayers(s0)
 
   const unsubscribe = useStore.subscribe((s, prev) => {
-    if (s.colorBy !== prev.colorBy || s.selectedIndex !== prev.selectedIndex || s.ranges !== prev.ranges) {
+    if (s.colorBy !== prev.colorBy || s.selectedIndex !== prev.selectedIndex || s.ranges !== prev.ranges
+      || s.passMask !== prev.passMask || s.top !== prev.top) {
       applyStyle(s)
     }
+    if (s.focusRequest && s.focusRequest !== prev.focusRequest) focus(s.focusRequest.index)
     if (s.layers !== prev.layers || s.overlayOpacity !== prev.overlayOpacity) applyLayers(s)
   })
 

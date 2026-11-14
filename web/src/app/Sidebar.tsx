@@ -1,7 +1,11 @@
 import { COLUMN_NAMES, METRIC_KEYS, type MetricKey } from '../data/types'
 import { rampCssGradient } from '../map/colors'
 import { categoryColor } from '../map/sitesLayer'
+import { METRIC_META } from '../rank/metrics'
 import { useStore, type LayerKey } from '../store'
+import { FiltersPanel } from './FiltersPanel'
+import { TopList } from './TopList'
+import { WeightsPanel } from './WeightsPanel'
 
 const METRIC_LABELS: Record<MetricKey, string> = {
   sun_pct: 'Nasłonecznienie [%]',
@@ -31,6 +35,7 @@ function ColorBy() {
   const colorBy = useStore((s) => s.colorBy)
   const setColorBy = useStore((s) => s.setColorBy)
   const range = useStore((s) => s.ranges?.[s.colorBy])
+  const low = METRIC_META[colorBy].direction === 'low'
   return (
     <section>
       <h2>Koloruj wg</h2>
@@ -41,10 +46,12 @@ function ColorBy() {
         {METRIC_KEYS.map((k) => <option key={k} value={k}>{METRIC_LABELS[k]}</option>)}
       </select>
       <div className="legend-bar" style={{ background: rampCssGradient() }} />
+      {/* Jasny = dobry: dla „mniej = lepiej” etykiety odwrócone (max po lewej). */}
       <div className="legend-labels">
-        <span>{range ? fmt(range.min) : '—'}</span>
-        <span>{range ? fmt(range.max) : '—'}</span>
+        <span>{range ? fmt(low ? range.max : range.min) : '—'}</span>
+        <span>{range ? fmt(low ? range.min : range.max) : '—'}</span>
       </div>
+      <div className="muted">{low ? '(mniej = lepiej)' : '(więcej = lepiej)'}</div>
     </section>
   )
 }
@@ -133,6 +140,9 @@ export function Sidebar() {
     <aside className="sidebar">
       {mock && <div className="mock-banner">DANE TESTOWE (mock)</div>}
       <ColorBy />
+      <TopList />
+      <FiltersPanel />
+      <WeightsPanel />
       <Layers />
       <SelectedPoint />
       <SitesList />

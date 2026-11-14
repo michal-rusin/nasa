@@ -5,12 +5,23 @@ import { NO_DATA_RGB, normalize, rampRgb, rgbCss, type Range } from './colors'
 /** Liczba kubełków koloru: punkty jednego kubełka rysujemy jedną ścieżką i jednym fill(). */
 const N_BINS = 64
 const NAN_BIN = N_BINS
+/** Punkty niespełniające filtrów: szare, przygaszone, rysowane pierwsze (pod resztą). */
+const DIM_BIN = N_BINS + 1
+const N_ALL_BINS = N_BINS + 2
+const DIM_COLOR = 'rgba(140, 140, 140, 0.18)'
 const RADIUS_PX = 2.5
 const SELECTED_RADIUS_PX = 5.5
+const TOP_RING_RADIUS_PX = 9
 
 export interface PointsStyle {
   values: Float32Array
   range: Range
+  /** true dla metryk „mniej = lepiej”: rampa odwrócona, jasny = dobry. */
+  invert: boolean
+  /** 1 = spełnia filtry; null = wszystkie spełniają. */
+  mask: Uint8Array | null
+  /** Indeksy top-N w kolejności rankingu (numerowane pierścienie). */
+  top: readonly number[]
   selectedIndex: number | null
 }
 
@@ -34,24 +45,36 @@ export function createPointsLayer(cx: Float32Array, cy: Float32Array): PointsLay
 
   // Punkty posortowane po kubełku koloru (sortowanie przez zliczanie).
   const order = new Int32Array(n)
-  const offsets = new Int32Array(N_BINS + 2)
+  const offsets = new Int32Array(N_ALL_BINS + 1)
   const binColors: string[] = []
   for (let b = 0; b < N_BINS; b++) binColors.push(rgbCss(rampRgb((b + 0.5) / N_BINS)))
   binColors.push(rgbCss(NO_DATA_RGB))
+  binColors.push(DIM_COLOR)
+  // Kolejność rysowania: przygaszone na spodzie.
+  const DRAW_ORDER = [DIM_BIN, NAN_BIN, ...Array.from({ length: N_BINS }, (_, b) => b)]
   let style: PointsStyle | null = null
+
+  function colorT(s: PointsStyle, i: number): number {
+    const t = normalize(s.values[i]!, s.range.min, s.range.max)
+    return s.invert && !Number.isNaN(t) ? 1 - t : t
+  }
 
   function rebin(s: PointsStyle): void {
     const bins = new Uint8Array(n)
-    const counts = new Int32Array(N_BINS + 1)
+    const counts = new Int32Array(N_ALL_BINS)
     for (let i = 0; i < n; i++) {
-      const t = normalize(s.values[i]!, s.range.min, s.range.max)
-      const b = Number.isNaN(t) ? NAN_BIN : Math.min(N_BINS - 1, Math.floor(t * N_BINS))
+      let b: number
+      if (s.mask && s.mask[i] === 0) b = DIM_BIN
+      else {
+        const t = colorT(s, i)
+        b = Number.isNaN(t) ? NAN_BIN : Math.min(N_BINS - 1, Math.floor(t * N_BINS))
+      }
       bins[i] = b
       counts[b]!++
     }
     offsets[0] = 0
-    for (let b = 0; b <= N_BINS; b++) offsets[b + 1] = offsets[b]! + counts[b]!
-    const fill = offsets.slice(0, N_BINS + 1)
+    for (let b = 0; b < N_ALL_BINS; b++) offsets[b + 1] = offsets[b]! + counts[b]!
+    const fill = offsets.slice(0, N_ALL_BINS)
     for (let i = 0; i < n; i++) order[fill[bins[i]!]!++] = i
   }
 
@@ -80,7 +103,7 @@ export function createPointsLayer(cx: Float32Array, cy: Float32Array): PointsLay
     const maxX = (ext ? ext[2]! : Infinity) + margin
     const maxY = (ext ? ext[3]! : Infinity) + margin
 
-    for (let bin = 0; bin <= N_BINS; bin++) {
+    for (const bin of DRAW_ORDER) {
       const from = offsets[bin]!
       const to = offsets[bin + 1]!
       if (from === to) continue
@@ -99,13 +122,41 @@ export function createPointsLayer(cx: Float32Array, cy: Float32Array): PointsLay
       ctx!.fill()
     }
 
+    // Top-N: numerowane pierścienie.
+    if (style.top.length > 0) {
+      const rr = TOP_RING_RADIUS_PX * pr
+      ctx!.font = `bold ${Math.round(10 * pr)}px sans-serif`
+      ctx!.textAlign = 'center'
+      ctx!.textBaseline = 'middle'
+      style.top.forEach((i, rank) => {
+        if (i < 0 || i >= n) return
+        const px = a * cx[i]! + c * cy[i]! + e
+        const py = b * cx[i]! + d * cy[i]! + f
+        ctx!.beginPath()
+        ctx!.arc(px, py, rr, 0, 2 * Math.PI)
+        ctx!.lineWidth = 3 * pr
+        ctx!.strokeStyle = '#000000'
+        ctx!.stroke()
+        ctx!.lineWidth = 1.5 * pr
+        ctx!.strokeStyle = '#00e5ff'
+        ctx!.stroke()
+        const label = String(rank + 1)
+        const ly = py - rr - 7 * pr
+        ctx!.lineWidth = 3 * pr
+        ctx!.strokeStyle = '#000000'
+        ctx!.strokeText(label, px, ly)
+        ctx!.fillStyle = '#ffffff'
+        ctx!.fillText(label, px, ly)
+      })
+    }
+
     const sel = style.selectedIndex
     if (sel !== null && sel >= 0 && sel < n) {
       const x = cx[sel]!
       const y = cy[sel]!
       const px = a * x + c * y + e
       const py = b * x + d * y + f
-      const tt = normalize(style.values[sel]!, style.range.min, style.range.max)
+      const tt = colorT(style, sel)
       ctx!.beginPath()
       ctx!.arc(px, py, SELECTED_RADIUS_PX * pr, 0, 2 * Math.PI)
       ctx!.fillStyle = rgbCss(Number.isNaN(tt) ? NO_DATA_RGB : rampRgb(tt))
@@ -127,7 +178,8 @@ export function createPointsLayer(cx: Float32Array, cy: Float32Array): PointsLay
   return {
     layer,
     setStyle(s) {
-      if (!style || style.values !== s.values || style.range !== s.range) rebin(s)
+      if (!style || style.values !== s.values || style.range !== s.range
+        || style.invert !== s.invert || style.mask !== s.mask) rebin(s)
       style = s
       layer.changed()
     },

@@ -1,7 +1,112 @@
 import { describe, expect, it } from 'vitest'
+import { COLUMN_NAMES, type Candidates, type ColumnName, type MetricKey } from '../data/types'
+import { passMask } from './filters'
+import { normalizeMetric, percentile } from './normalize'
+import { computeScore } from './score'
+import { topN } from './topN'
 
-describe('rank', () => {
-  it('szkielet testów działa', () => {
-    expect(1 + 1).toBe(2)
+function cands(cols: Partial<Record<ColumnName, number[]>>, n: number): Candidates {
+  const col = {} as Record<ColumnName, Float32Array>
+  for (const c of COLUMN_NAMES) col[c] = Float32Array.from(cols[c] ?? new Array<number>(n).fill(0))
+  return { n, col }
+}
+
+describe('normalize', () => {
+  const vals = Array.from({ length: 101 }, (_, i) => i) // 0..100, p2=2, p98=98
+
+  it('percentyl z interpolacją', () => {
+    expect(percentile([0, 10], 0.5)).toBe(5)
+    expect(percentile(Float64Array.from(vals), 0.02)).toBeCloseTo(2)
+  })
+
+  it('przycina do 0..1 między p2 a p98', () => {
+    const t = normalizeMetric(vals, 'high')
+    expect(t[0]).toBe(0)
+    expect(t[2]).toBe(0)
+    expect(t[50]).toBeCloseTo(0.5)
+    expect(t[98]).toBe(1)
+    expect(t[100]).toBe(1)
+  })
+
+  it('odwraca dla low (1 = najlepiej)', () => {
+    const t = normalizeMetric(vals, 'low')
+    expect(t[0]).toBe(1)
+    expect(t[100]).toBe(0)
+    expect(t[25]).toBeCloseTo(1 - 23 / 96, 5)
+  })
+
+  it('NaN → 0', () => {
+    const t = normalizeMetric([1, NaN, 3], 'high')
+    expect(t[1]).toBe(0)
+  })
+})
+
+describe('passMask', () => {
+  const c = cands({ sun_pct: [10, 50, 90, NaN], slope_deg: [1, 5, 20, 1] }, 4)
+
+  it('pusty filtr → wszystko przechodzi (także NaN)', () => {
+    expect(Array.from(passMask(c, {}))).toEqual([1, 1, 1, 1])
+    expect(Array.from(passMask(c, { sun_pct: {} }))).toEqual([1, 1, 1, 1])
+  })
+
+  it('min i max, granice włącznie, NaN odpada', () => {
+    expect(Array.from(passMask(c, { sun_pct: { min: 50 } }))).toEqual([0, 1, 1, 0])
+    expect(Array.from(passMask(c, { slope_deg: { max: 5 } }))).toEqual([1, 1, 0, 1])
+    expect(Array.from(passMask(c, { sun_pct: { min: 50 }, slope_deg: { max: 5 } }))).toEqual([0, 1, 0, 0])
+    expect(Array.from(passMask(c, { sun_pct: { min: 20, max: 60 } }))).toEqual([0, 1, 0, 0])
+  })
+})
+
+describe('score', () => {
+  const norms = {
+    sun_pct: Float32Array.from([1, 0]),
+    earth_pct: Float32Array.from([0, 1]),
+    longest_night_h: Float32Array.from([0, 0]),
+    longest_comm_gap_h: Float32Array.from([0, 0]),
+    slope_deg: Float32Array.from([0, 0]),
+    dist_psr_km: Float32Array.from([0, 0]),
+  } satisfies Record<MetricKey, Float32Array>
+
+  it('średnia ważona', () => {
+    const s = computeScore(norms, { sun_pct: 3, earth_pct: 1 }, 2)
+    expect(s[0]).toBeCloseTo(0.75)
+    expect(s[1]).toBeCloseTo(0.25)
+  })
+
+  it('wagi zerowe → same zera, ujemne ignorowane', () => {
+    expect(Array.from(computeScore(norms, {}, 2))).toEqual([0, 0])
+    const s = computeScore(norms, { sun_pct: 1, earth_pct: -5 }, 2)
+    expect(s[0]).toBeCloseTo(1)
+    expect(s[1]).toBeCloseTo(0)
+  })
+})
+
+describe('topN', () => {
+  it('NMS odrzuca sąsiada w promieniu', () => {
+    const score = [0.9, 0.8, 0.7]
+    const x = [0, 3000, 10000] // 3 km i 10 km od pierwszego
+    const y = [0, 0, 0]
+    const r = topN(score, [1, 1, 1], x, y, { radiusKm: 5 })
+    expect(r.map((p) => p.index)).toEqual([0, 2])
+    const noNms = topN(score, [1, 1, 1], x, y, { radiusKm: 0 })
+    expect(noNms.map((p) => p.index)).toEqual([0, 1, 2])
+  })
+
+  it('NMS działa przez granicę komórek siatki', () => {
+    const r = topN([1, 0.5], [1, 1], [4999, 5001], [0, 0], { radiusKm: 5 })
+    expect(r.map((p) => p.index)).toEqual([0])
+  })
+
+  it('remis → niższy indeks pierwszy', () => {
+    const r = topN([0.5, 0.5, 0.5], [1, 1, 1], [0, 1e5, 2e5], [0, 0, 0])
+    expect(r.map((p) => p.index)).toEqual([0, 1, 2])
+  })
+
+  it('odfiltrowane nie wchodzą, limit n', () => {
+    const score = [1, 0.9, 0.8, 0.7]
+    const x = [0, 1e5, 2e5, 3e5]
+    const y = [0, 0, 0, 0]
+    const r = topN(score, [0, 1, 1, 1], x, y, { n: 2 })
+    expect(r).toEqual([{ index: 1, score: 0.9 }, { index: 2, score: 0.8 }])
   })
 })
