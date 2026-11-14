@@ -6,21 +6,7 @@ import numpy as np
 from dem import Dem, DEM_NEAR, DEM_FAR, make_transformers, local_north_east
 from masks import compute_masks
 from metrics import compute_metrics
-
-
-def u(lat_deg, lon_deg):
-    la, lo = np.radians(lat_deg), np.radians(lon_deg)
-    return np.stack([np.cos(la) * np.cos(lo), np.cos(la) * np.sin(lo), np.sin(la)], -1)
-
-
-def fake_ephem(n_steps=8760):
-    """FAKE: simplified Sun/Earth motion in the ephem.bin layout. Testing only."""
-    d = np.arange(n_steps) / 24.0                                   # days
-    sun_lat = 1.54 * np.sin(2 * np.pi * d / 346.6)                  # seasons
-    sun_lon = (-360.0 * d / 29.53 + 180) % 360 - 180                # Sun moves west
-    earth_lat = 6.68 * np.sin(2 * np.pi * d / 27.21)                # libration up/down
-    earth_lon = 7.9 * np.sin(2 * np.pi * d / 27.55)                 # libration sideways
-    return np.hstack([u(sun_lat, sun_lon), 384_400.0 * u(earth_lat, earth_lon)]).astype(np.float32)
+from fake import fake_ephem
 
 
 near, far = Dem(DEM_NEAR), Dem(DEM_FAR)
@@ -65,10 +51,3 @@ mm, ee = compute_masks(np.array([lat_n]), np.array([lon_n]), near, far, fwd)
 print("near-side rim:", compute_metrics(np.array([lat_n]), np.array([lon_n]), ee, mm, ephem)[0])
 
 
-from validation import pick_validation_points, build_validation
-m100 = compute_metrics(lats, lons, elev, masks, ephem)
-idx = pick_validation_points(m100)
-recs = build_validation(idx, np.arange(100), lats, lons, elev, masks, ephem)
-for r, i in zip(recs, idx):
-    print(f"id {r['id']}: sun {r['sun_pct']} vs {m100[i, 0]:.2f}, "
-          f"earth {r['earth_pct']} vs {m100[i, 2]:.2f}, len {len(r['sun_f'])}")

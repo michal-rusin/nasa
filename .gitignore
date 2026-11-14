@@ -3,6 +3,8 @@ data/raw/*
 !data/raw/.gitkeep
 data/dem/*
 !data/dem/.gitkeep
+data/cache/
+data/mock/engine_fake/
 engine/vendor/
 engine/kernels/
 
