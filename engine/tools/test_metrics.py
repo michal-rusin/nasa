@@ -63,3 +63,12 @@ for t in range(0, 24 * 28, 24 * 2):       # every 2 days over one month
 lon_n, lat_n = inv.transform(x - 12_000 * n[0], y - 12_000 * n[1])
 mm, ee = compute_masks(np.array([lat_n]), np.array([lon_n]), near, far, fwd)
 print("near-side rim:", compute_metrics(np.array([lat_n]), np.array([lon_n]), ee, mm, ephem)[0])
+
+
+from validation import pick_validation_points, build_validation
+m100 = compute_metrics(lats, lons, elev, masks, ephem)
+idx = pick_validation_points(m100)
+recs = build_validation(idx, np.arange(100), lats, lons, elev, masks, ephem)
+for r, i in zip(recs, idx):
+    print(f"id {r['id']}: sun {r['sun_pct']} vs {m100[i, 0]:.2f}, "
+          f"earth {r['earth_pct']} vs {m100[i, 2]:.2f}, len {len(r['sun_f'])}")
