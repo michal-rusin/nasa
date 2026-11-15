@@ -45,7 +45,7 @@ export function registerMoonProjection(meta: Meta): Projection {
   proj4.defs(PROJ_CODE, getProjString(meta))
   register(proj4)
   const proj = getProjection(PROJ_CODE)
-  if (!proj) throw new Error(`Nie udało się zarejestrować układu ${PROJ_CODE}`)
+  if (!proj) throw new Error(`Failed to register coordinate system ${PROJ_CODE}`)
   proj.setExtent(boundsExtent(meta))
   return proj
 }

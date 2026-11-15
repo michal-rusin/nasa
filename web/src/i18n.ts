@@ -1,8 +1,8 @@
 import { useCallback } from 'react'
 import { useStore } from './store'
 
-export type Lang = 'en' | 'pl'
-export const LANGS: readonly Lang[] = ['en', 'pl']
+export type Lang = 'en'
+export const LANGS: readonly Lang[] = ['en']
 
 const en: Record<string, string> = {
   'app.name': 'Lunar Navigator',
@@ -153,173 +153,24 @@ const en: Record<string, string> = {
   'place.better': 'Better than the other place',
 }
 
-const pl: Record<string, string> = {
-  'app.name': 'Lunar Navigator',
-  'nav.home': 'Wróć do globusa',
-  'lang.switch': 'Język',
-  'home.title': 'Księżyc',
-  'home.hint': 'Przeciągnij, aby obrócić. Przewiń, aby przybliżyć',
-  'home.cta': 'Poznaj biegun południowy',
-  'home.southPole': 'Biegun południowy Księżyca – region Artemis',
-  'home.textureError': 'Nie udało się wczytać tekstury Księżyca. Pokazujemy gładką kulę.',
-  'home.webglError': 'Przeglądarka nie uruchomiła WebGL, więc globus 3D jest niedostępny.',
-  'home.loading': 'Wczytywanie…',
-  'nav.main': 'Główna',
-  'nav.moon': 'Księżyc',
-  'nav.southPole': 'Biegun południowy',
-  'home.titleA': 'Lunar Landing',
-  'home.titleB': 'Site Navigator',
-  'home.lead': 'Gdzie załoga może wylądować przy biegunie południowym Księżyca i nadal widzieć Słońce i Ziemię? Oceniamy każdy punkt kandydacki pod kątem nasłonecznienia, widoczności Ziemi i terenu.',
-  'home.missions': 'Miejsca lądowań Apollo',
-  'home.statsTitle': 'W skrócie',
-  'home.stat.apollo': 'Lądowania Apollo',
-  'home.stat.region': 'Obszar badań',
-  'home.stat.years': 'Lata lądowań',
-  'card.close': 'Zamknij',
-  'card.landed': 'Lądowanie',
-  'site.apollo11.desc': 'Pierwsze załogowe lądowanie. Mare Tranquillitatis, lipiec 1969.',
-  'site.apollo12.desc': 'Precyzyjne lądowanie na Oceanus Procellarum, tuż obok sondy Surveyor 3.',
-  'site.apollo14.desc': 'Wyżyna Fra Mauro, próbki materiału wyrzuconego przy powstaniu Mare Imbrium.',
-  'site.apollo15.desc': 'Rima Hadley u stóp Apeninów. Pierwsza misja z łazikiem księżycowym.',
-  'site.apollo16.desc': 'Wyżyna Descartes, jedyne lądowanie na centralnych wyżynach Księżyca.',
-  'site.apollo17.desc': 'Dolina Taurus–Littrow. Ostatnie jak dotąd załogowe lądowanie.',
+export const dictionary: Record<Lang, Record<string, string>> = { en }
 
-  // Widok bieguna
-  'stats.title': 'Obszar badań',
-  'stats.region': 'Obszar',
-  'stats.candidates': 'Kandydaci',
-  'stats.ephem': 'Efemerydy',
-  'stats.step': 'Krok czasu',
-  'sp.loading': 'Wczytywanie danych…',
-  'sp.loadError': 'Nie udało się wczytać danych.',
-  'sp.mock': 'DANE TESTOWE (mock)',
-  'sp.mapAria': 'Mapa bieguna południowego Księżyca. Strzałki przesuwają, plus i minus przybliżają.',
-  'na': 'b.d.',
-  'metric.score': 'Wynik rankingu',
-  'metric.sun_pct': 'Nasłonecznienie',
-  'metric.longest_night_h': 'Najdłuższa noc',
-  'metric.earth_pct': 'Widoczność Ziemi',
-  'metric.longest_comm_gap_h': 'Najdłuższa przerwa łączności',
-  'metric.slope_deg': 'Nachylenie',
-  'metric.dist_psr_km': 'Odległość do PSR',
-  'legend.lowBetter': 'mniej = lepiej, zielone',
-  'legend.highBetter': 'więcej = lepiej, zielone',
-  'search.label': 'Skocz do lat, lon',
-  'search.placeholder': '-89.5, 129',
-  'search.go': 'Idź',
-  'search.errFormat': 'Wpisz „lat, lon” w stopniach, np. -89.5, 129.',
-  'search.errRange': 'Szerokość musi być w zakresie od −90 do 90, długość od −180 do 360.',
-  'search.outside': 'Poza obszarem mapy. Mapa obejmuje od {min}°S do 90°S.',
-  'search.found': 'Najbliższy kandydat: {c}, {km} km dalej.',
-  'search.none': 'Żaden kandydat nie spełnia obecnych filtrów.',
-  'search.shortcuts': 'Znane miejsca',
-  'top.title': 'Top 10',
-  'top.toggle': 'Pokaż lub ukryj ranking',
-  'top.empty': 'Żaden punkt nie spełnia filtrów.',
-  'top.reset': 'Wyczyść filtry',
-  'top.pass': '{n} z {total} punktów spełnia filtry',
-  'top.score': 'wynik',
-  'adv.open': 'Zaawansowane',
-  'adv.title': 'Ustawienia zaawansowane',
-  'adv.close': 'Zamknij ustawienia zaawansowane',
-  'adv.colorBy': 'Koloruj punkty wg',
-  'adv.weights': 'Wagi rankingu',
-  'adv.weightsHint': '0 = pomiń, 5 = najważniejsze',
-  'adv.nms': 'Min. odstęp w top 10 [km]',
-  'adv.filters': 'Filtry',
-  'adv.layers': 'Warstwy',
-  'adv.pointsOpacity': 'Krycie punktów',
-  'adv.overlayOpacity': 'Krycie nakładek',
-  'adv.reset': 'Przywróć domyślne',
-  'adv.noOverlays': 'Rastry nachylenia, oświetlenia i PSR nie są jeszcze dostępne.',
-  'filter.off': 'wył.',
-  'filter.min': 'min',
-  'filter.max': 'maks',
-  'layer.points': 'Punkty kandydackie',
-  'layer.sites': 'Znane miejsca',
-  'layer.basemap': 'Rzeźba terenu (cieniowanie)',
-  'layer.slope': 'Nachylenie',
-  'layer.illumination': 'Oświetlenie',
-  'layer.psr': 'Wieczny cień (PSR)',
-  'panel.title': 'Punkt #{id}',
-  'panel.close': 'Zamknij panel punktu',
-  'panel.elev': 'Wysokość',
-  'panel.slope': 'Nachylenie',
-  'panel.score': 'Wynik',
-  'panel.rank': '#{r} w top 10',
-  'panel.time': 'Data i godzina (UTC)',
-  'panel.range': 'Efemerydy obejmują okres od {from} do {to} UTC, co godzinę.',
-  'panel.sunset': 'Najbliższy zachód Słońca',
-  'panel.earthset': 'Najbliższe zajście Ziemi',
-  'panel.duration': '{d} d {h} h',
-  'panel.inT': 'za {t}',
-  'panel.sunDown': 'Słońce pod horyzontem, wschód za {t}',
-  'panel.earthDown': 'Ziemia zasłonięta, wschód za {t}',
-  'panel.sunDownNever': 'Słońce pod horyzontem do końca efemeryd',
-  'panel.earthDownNever': 'Ziemia zasłonięta do końca efemeryd',
-  'panel.never': 'nie przed końcem efemeryd',
-  'panel.loading': 'Wczytuję maskę horyzontu i efemerydy…',
-  'panel.diag': 'Diagnostyka: przeliczone vs z pliku',
-  'panel.diagCheck': 'kontrola',
-  'panel.diagComputed': 'przeliczone',
-  'panel.diagFile': 'z pliku',
-  'tooltip': '{c} · wynik {s}',
-  'rank.title': 'Gdzie wylądować?',
-  'rank.lead': 'Pokoloruj mapę według oceny miejsc lądowania, od czerwonego (słabo) do zielonego (najlepiej), i zaznacz 10 najlepszych.',
-  'rank.show': 'Pokaż ranking',
-  'rank.hint': 'Albo kliknij dowolne miejsce na mapie, żeby zobaczyć stamtąd niebo.',
-  'rank.pill': 'Ranking',
-  'sites.pill': 'Nazwane miejsca',
-  'tooltip.top': 'wynik {s} · słońce {sun}% · najdłuższa noc {night} h',
-  'tooltip.open': 'Kliknij, żeby zobaczyć stąd niebo',
-  'dock.title': 'Panorama horyzontu',
-  'dock.help': 'Jak to czytać',
-  'dock.play': 'Odtwórz',
-  'dock.pause': 'Pauza',
-  'dock.sun': 'Słońce',
-  'dock.earth': 'Ziemia',
-  'dock.sunFull': 'cała tarcza',
-  'dock.sunPart': '{p}% tarczy',
-  'dock.sunDown': 'za horyzontem',
-  'dock.earthVis': 'widoczna',
-  'dock.earthHid': 'zasłonięta',
-  'dock.loading': 'Wczytuję maskę i efemerydy…',
-  'dock.unavailable': 'Panorama niedostępna (szczegóły w panelu punktu).',
-  'dock.note': 'Niebo jest narysowane w prawdziwych rozmiarach kątowych Słońca (0,53°) i Ziemi (ok. 1,9°). Ciemna sylwetka to horyzont z maski; jej krawędź łapie światło Słońca i światło popielate od Ziemi. Gwiazdy pochodzą z katalogu Hipparcos do 6 wielkości gwiazdowej, a ich orientacja jest przybliżona (ok. 1–2°). Faza Ziemi wynika z kąta Słońce–Ziemia–obserwator. Przeciągnij, aby się rozejrzeć, Ctrl + kółko lub +/−, aby przybliżyć, a suwakiem zmienisz chwilę.',
-  'sky.credit': 'Gwiazdy: katalog Hipparcos przez d3-celestial (BSD-3, O. Frohn).',
-  'sky.hint': 'Przeciągnij, aby się rozejrzeć · Ctrl + kółko, aby przybliżyć',
-  'sky.aria': 'Panorama nieba. Strzałki rozglądają się, plus i minus przybliżają.',
-  'sky.summary': 'Niebo z {c}: Słońce {sun}, Ziemia {earth}, oświetlona w {p}%.',
-  'sky.centerSun': 'Słońce',
-  'sky.centerEarth': 'Ziemia',
-  'sky.zoomIn': 'Przybliż',
-  'sky.zoomOut': 'Oddal',
-  'pick.banner': 'Wybierz drugie miejsce na mapie',
-  'pick.cancel': 'Anuluj',
-  'place.compare': 'Porównaj miejsce',
-  'place.change': 'Zmień miejsce',
-  'place.region': 'Wybrane miejsca',
-  'place.better': 'Lepsze niż drugie miejsce',
-}
-
-export const dictionary: Record<Lang, Record<string, string>> = { en, pl }
-
-/** Tłumaczenie dla podanego języka; brak w języku -> angielski -> sam klucz. */
+/** Look up a label, falling back to its key. */
 export function translate(lang: Lang, key: string): string {
   return dictionary[lang][key] ?? dictionary.en[key] ?? key
 }
 
-/** Podstawia {nazwa} w tekście tłumaczenia. Nieznane nazwy zostają bez zmian. */
+/** Substitute known placeholders; preserve unknown names. */
 export function fill(template: string, vars: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/g, (m: string, k: string) => (k in vars ? String(vars[k]) : m))
 }
 
-/** Tłumaczenie w bieżącym języku ze store. Poza renderem Reacta; w komponentach użyj `useT`. */
+/** Translation outside React rendering; use `useT` in components. */
 export function t(key: string): string {
   return translate(useStore.getState().lang, key)
 }
 
-/** Hook: zwraca `t`, a komponent przerysuje się po zmianie języka. */
+/** Hook returning the translation function. */
 export function useT(): (key: string) => string {
   const lang = useStore((s) => s.lang)
   return useCallback((key: string) => translate(lang, key), [lang])

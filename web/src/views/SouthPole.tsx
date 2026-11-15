@@ -14,7 +14,6 @@ import './south-pole.css'
 /** Prawy dolny róg: skrót danych z meta.json (monospace, jak panel statystyk). */
 function MapStats() {
   const t = useT()
-  const lang = useStore((s) => s.lang)
   const meta = useStore((s) => s.meta)
   if (!meta) return null
   const y0 = new Date(Date.parse(meta.t0_utc)).getUTCFullYear()
@@ -25,7 +24,7 @@ function MapStats() {
       <dt>{t('stats.region')}</dt>
       <dd>{Math.abs(meta.region.lat_max)}°S–{Math.abs(meta.region.lat_min)}°S</dd>
       <dt>{t('stats.candidates')}</dt>
-      <dd>{meta.candidates.count.toLocaleString(lang === 'pl' ? 'pl-PL' : 'en-US')}</dd>
+      <dd>{meta.candidates.count.toLocaleString('en-US')}</dd>
       <dt>{t('stats.ephem')}</dt>
       <dd>{Number.isFinite(y0) ? (y0 === y1 ? y0 : `${y0}–${y1}`) : '?'}</dd>
       <dt>{t('stats.step')}</dt>

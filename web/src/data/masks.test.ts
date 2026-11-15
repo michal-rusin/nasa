@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { MASK_RECORD_BYTES, MASK_SAMPLES, maskFromBuffer } from '../physics'
 import { _resetMasksForTests, getMask, StaleRequestError } from './masks'
 
-/** Kafelek z `n` rekordami; wartość próbki = r·1000 + k − 300 (są też ujemne). */
+/** Tile with `n` records; sample value = r·1000 + k − 300 (including negative values). */
 function tile(n: number): ArrayBuffer {
   const buf = new ArrayBuffer(n * MASK_RECORD_BYTES)
   const dv = new DataView(buf)
@@ -25,8 +25,8 @@ const INDEX = {
 
 afterEach(() => _resetMasksForTests())
 
-describe('wycinanie rekordu z kafelka', () => {
-  it('rekord 0 i ostatni, little-endian, ze znakiem', () => {
+describe('extracting a record from a tile', () => {
+  it('first and last records, signed little-endian', () => {
     const buf = tile(3)
     const first = maskFromBuffer(buf, 0)
     const last = maskFromBuffer(buf, 2)
@@ -38,7 +38,7 @@ describe('wycinanie rekordu z kafelka', () => {
     expect(() => maskFromBuffer(buf, 3)).toThrow()
   })
 
-  it('getMask bierze plik i rekord z index.json', async () => {
+  it('getMask reads file and record from index.json', async () => {
     _resetMasksForTests(async (path) => {
       if (path === 'masks/index.json') return new Response(JSON.stringify(INDEX))
       if (path === 'masks/tile_a.bin') return new Response(tile(3))
@@ -46,12 +46,12 @@ describe('wycinanie rekordu z kafelka', () => {
     })
     expect((await getMask(10))[0]).toBe(-300)
     expect((await getMask(11))[0]).toBe(1700)
-    await expect(getMask(999)).rejects.toThrow(/Brak maski dla punktu 999/)
+    await expect(getMask(999)).rejects.toThrow(/Missing mask for point 999/)
   })
 })
 
-describe('wyścig getMask', () => {
-  it('starszy wynik jest odrzucony, gdy nowszy już przyszedł', async () => {
+describe('getMask race handling', () => {
+  it('rejects an older result when a newer one has already arrived', async () => {
     const a = deferred<Response>()
     const b = deferred<Response>()
     _resetMasksForTests(async (path) => {

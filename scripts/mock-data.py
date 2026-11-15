@@ -424,14 +424,14 @@ def make_sites(terrain: Terrain, lat, lon, ids, rho_max):
     out_ang = math.atan2(cy, cx)                    # kierunek od bieguna na zewnątrz
     px_, py_ = terrain.cx[0], terrain.cy[0]
     defs = [
-        ("artemis", "Obok największego krateru", *at(cx, cy, r + 3000.0, out_ang)),
-        ("artemis", "Przy kraterze polarnym", *at(px_, py_, terrain.cr[0] + 2500.0, out_ang + 0.6)),
-        ("clps", "Równina A", *xy_to_latlon(0.6 * rho_max * math.cos(1.0), 0.6 * rho_max * math.sin(1.0))),
-        ("clps", "Równina B", *xy_to_latlon(0.8 * rho_max * math.cos(3.6), 0.8 * rho_max * math.sin(3.6))),
-        ("international", "Grzbiet", *xy_to_latlon(0.4 * rho_max * math.cos(5.0), 0.4 * rho_max * math.sin(5.0))),
-        ("apollo", "Kontekst historyczny", np.float64(-20.0), np.float64(30.0)),
-        ("reference", "Punkt kontrolny 1", *xy_to_latlon(0.9 * rho_max * math.cos(2.2), 0.9 * rho_max * math.sin(2.2))),
-        ("reference", "Punkt kontrolny 2", *xy_to_latlon(0.2 * rho_max * math.cos(0.2), 0.2 * rho_max * math.sin(0.2))),
+        ("artemis", "Near the largest crater", *at(cx, cy, r + 3000.0, out_ang)),
+        ("artemis", "Near the polar crater", *at(px_, py_, terrain.cr[0] + 2500.0, out_ang + 0.6)),
+        ("clps", "Plain A", *xy_to_latlon(0.6 * rho_max * math.cos(1.0), 0.6 * rho_max * math.sin(1.0))),
+        ("clps", "Plain B", *xy_to_latlon(0.8 * rho_max * math.cos(3.6), 0.8 * rho_max * math.sin(3.6))),
+        ("international", "Ridge", *xy_to_latlon(0.4 * rho_max * math.cos(5.0), 0.4 * rho_max * math.sin(5.0))),
+        ("apollo", "Historical context", np.float64(-20.0), np.float64(30.0)),
+        ("reference", "Reference point 1", *xy_to_latlon(0.9 * rho_max * math.cos(2.2), 0.9 * rho_max * math.sin(2.2))),
+        ("reference", "Reference point 2", *xy_to_latlon(0.2 * rho_max * math.cos(0.2), 0.2 * rho_max * math.sin(0.2))),
     ]
     sites = []
     for n, (cat, name, la, lo) in enumerate(defs, 1):
@@ -440,7 +440,7 @@ def make_sites(terrain: Terrain, lat, lon, ids, rho_max):
         item = {"id": f"mock-{cat}-{n}", "name": f"[MOCK] {name}", "category": cat,
                 "lat": round(la, 4), "lon": round(lo, 4),
                 "x_m": None, "y_m": None,
-                "note": "dane testowe, nie jest to prawdziwa lokalizacja",
+                "note": "test data, not a real location",
                 "nearest_candidate_id": None, "nearest_candidate_dist_km": None}
         # x_m, y_m w rzucie mocka (latlon_to_xy); null poza granicami rastrów.
         if abs(sx) <= LAYER_HALF_M and abs(sy) <= LAYER_HALF_M:

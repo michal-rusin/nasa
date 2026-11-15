@@ -1,4 +1,4 @@
-// Szeregi godzinowe dla jednego punktu z maski i ephem.bin (kontrakt 2, 3.3).
+// Hourly series for one point from its mask and ephem.bin (contract 2, 3.3).
 
 import { azimuthDeg, elevationDeg, enuBasis } from './enu'
 import { maskHeightDeg } from './mask'
@@ -12,7 +12,7 @@ export interface SeriesPoint {
   elevM: number
 }
 
-/** Parametry z meta.json (nie hardkodujemy). */
+/** Parameters from meta.json (never hardcoded). */
 export interface PhysicsParams {
   moonRadiusKm: number
   observerHeightM: number
@@ -28,11 +28,11 @@ export interface Series {
   g: Uint8Array
 }
 
-/** ephem.bin → Float32Array (nSteps × 6), jawnie little-endian. */
+/** ephem.bin → Float32Array (nSteps × 6), explicit little-endian. */
 export function ephemFromBuffer(buf: ArrayBuffer, nSteps: number): Float32Array {
   const expected = nSteps * EPHEM_COLS * 4
   if (buf.byteLength !== expected) {
-    throw new Error(`ephem.bin: rozmiar ${buf.byteLength} B, oczekiwano ${expected} B (${nSteps} kroków × 6 × 4 B)`)
+    throw new Error(`ephem.bin: size ${buf.byteLength} B, expected ${expected} B (${nSteps} steps × 6 × 4 B)`)
   }
   const dv = new DataView(buf)
   const out = new Float32Array(nSteps * EPHEM_COLS)
@@ -41,9 +41,9 @@ export function ephemFromBuffer(buf: ArrayBuffer, nSteps: number): Float32Array 
 }
 
 /**
- * Słońce: kierunek sun_dir ze środka Księżyca (bez paralaksy).
- * Ziemia: v = earth_xyz − P (z paralaksą); baza ENU jest ortonormalna, więc
- * P·E = P·N = 0, a P·U = |P|.
+ * Sun: sun_dir from the Moon's center (no parallax).
+ * Earth: v = earth_xyz − P (with parallax); the ENU basis is orthonormal, so
+ * P·E = P·N = 0, and P·U = |P|.
  */
 export function computeSeries(
   point: SeriesPoint,
@@ -52,7 +52,7 @@ export function computeSeries(
   nSteps: number,
   params: PhysicsParams,
 ): Series {
-  if (ephem.length < nSteps * EPHEM_COLS) throw new Error('ephem: za mało danych dla nSteps')
+  if (ephem.length < nSteps * EPHEM_COLS) throw new Error('ephem: insufficient data for nSteps')
   const { U, E, N } = enuBasis(point.latDeg, point.lonDeg)
   const r = observerRadiusKm(params.moonRadiusKm, point.elevM, params.observerHeightM)
   const s: Series = {

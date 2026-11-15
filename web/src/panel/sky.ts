@@ -55,7 +55,7 @@ export function equatorialToEcliptic(raDeg: number, decDeg: number): [number, nu
 /** public/assets/stars.json: { d: [ra, dec, mag, bv, ...] } (stopnie, J2000). */
 export function parseStarCatalog(json: unknown): StarCatalog {
   const d = typeof json === 'object' && json !== null ? (json as { d?: unknown }).d : undefined
-  if (!Array.isArray(d) || d.length % 4 !== 0) throw new Error('stars.json: oczekiwano tablicy d o długości 4·n')
+  if (!Array.isArray(d) || d.length % 4 !== 0) throw new Error('stars.json: expected array d with length 4·n')
   const n = d.length / 4
   const ecl = new Float32Array(n * 3)
   const mag = new Float32Array(n)

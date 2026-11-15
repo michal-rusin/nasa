@@ -1,55 +1,55 @@
-# Generator danych testowych (`scripts/mock-data.py`)
+# Test data generator (`scripts/mock-data.py`)
 
-Dokumentacja dla asystenta AI (Claude) pracującego nad frontem lub silnikiem. Nadrzędny jest `docs/contracts.md` (v1). Ten plik opisuje tylko generator i jego pułapki.
+Documentation for an AI assistant (Claude) working on the frontend or engine. `docs/contracts.md` (v1) takes precedence. This file describes only the generator and its pitfalls.
 
-## Do czego to służy
-Skrypt zapisuje komplet plików z kontraktu z danymi SYNTETYCZNYMI, ale wewnętrznie spójnymi. Metryki w `candidates.bin` i `validation.json` są policzone fizyką z sekcji 1.2 i 2 kontraktu, z syntetycznych masek i efemeryd. Dzięki temu:
-- front może pisać test „moja fizyka w JS == dane z generatora” (kryterium: różnica `sun_pct` ≤ 1 pp),
-- kod fizyki w skrypcie (`visibility`, `mask_height_deg`, `longest_run`, `enu_basis`) jest referencją do portu na TypeScript.
+## Purpose
+The script writes the complete set of contract files with SYNTHETIC but internally consistent data. Metrics in `candidates.bin` and `validation.json` use the physics in contract sections 1.2 and 2, with synthetic masks and ephemerides. This allows:
+- the frontend to test “my JS physics == generator data” (criterion: `sun_pct` difference ≤ 1 percentage point),
+- the script's physics code (`visibility`, `mask_height_deg`, `longest_run`, `enu_basis`) to serve as a reference for the TypeScript port.
 
-Dane NIE są prawdziwe. `meta.json` ma `"mock": true`, pola źródeł mają wartość `"MOCK"`, nazwy miejsc w `sites.json` zaczynają się od `[MOCK]`. Nigdy nie traktuj tych liczb jako wyników naukowych.
+The data is NOT real. `meta.json` contains `"mock": true`, source fields contain `"MOCK"`, and location names in `sites.json` begin with `[MOCK]`. Never treat these numbers as scientific results.
 
-## Uruchamianie
+## Running
 ```
 python scripts/mock-data.py [--out DIR] [--lat-min -84] [--seed 42] [--generated-utc ...]
 ```
-- Zależności: tylko `numpy` i `Pillow`. Nie dodawaj innych (scipy, numba, pyproj).
-- Nie używaj `python -I`: na tej maszynie numpy jest w katalogu użytkownika.
-- `--out`: domyślnie `web/public/data`. `--lat-min`: szerokość zewnętrznej krawędzi siatki (siatka obejmuje -90..lat_min). `-84` (domyślnie, jak w kontrakcie) = 26 045 punktów (ok. 50 s, ok. 42 MB), `-89` = 725 punktów (ok. 4 s, ok. 2,6 MB, nadaje się do repo).
-- Wynik jest deterministyczny bit w bit przy tym samym `--seed`. Dlatego `generated_utc` to stała (`2026-11-14T00:00:00Z`), a nie zegar. Nie zamieniaj jej na `datetime.now()`.
-- Kod wyjścia ≠ 0, gdy samokontrola wykryje błąd. Ostrzeżenia o rozrzucie i histogramie `sun_pct` nie są błędami.
+- Dependencies: only `numpy` and `Pillow`. Do not add others (scipy, numba, pyproj).
+- Do not use `python -I`: numpy is installed in the user directory on this machine.
+- `--out`: defaults to `web/public/data`. `--lat-min`: latitude of the grid's outer edge (the grid covers -90..lat_min). `-84` (default, as in the contract) = 26,045 points (about 50 s, about 42 MB); `-89` = 725 points (about 4 s, about 2.6 MB, suitable for the repository).
+- Output is bit-for-bit deterministic for the same `--seed`. Therefore `generated_utc` is a constant (`2026-11-14T00:00:00Z`), not the current time. Do not replace it with `datetime.now()`.
+- Exit code ≠ 0 if the self-check detects an error. Warnings about the range and histogram of `sun_pct` are not errors.
 
-## Konwencje, które łatwo zepsuć
-- **Rzut:** stereograficzny biegunowy południowy, `rho = 2R·tan(π/4 + lat/2)`, `x = rho·sin(lon)`, `y = rho·cos(lon)`. To konwencja TYLKO mocka. Prawdziwy silnik liczy `x_m, y_m` przez pyproj z CRS pliku DEM.
-- **Siatka:** co 2000 m w (x, y), z punktem (0, 0) na biegunie. `id` to indeks kolejny, kolejność po x, potem po y. `level = 0`.
-- **Azymut:** `atan2(v·E, v·N)`, 0° = lokalna północ, rośnie przez wschód (kontrakt 1.2). Maska: 720 próbek, `k·0.5°`, interpolacja liniowa, cyklicznie.
-- **Fizyka liczy z wartości po rzutowaniu na float32** (lat, lon, elev), czyli takich, jakie front odczyta z pliku. Maska jest kwantyzowana do `int16` (setne stopnia) PRZED fizyką.
-- **Słońce:** kierunek ze środka Księżyca, bez paralaksy. **Ziemia:** wektor `earth_pos − P` z paralaksą, `P = (R + elev_km + 0.002)·U`. Elewacja środka tarczy, bez promienia.
-- **Ciągi** (`longest_night_h`, `longest_comm_gap_h`) liczone jako odcinki, bez sklejania początku z końcem okresu.
-- **Czas:** `n_steps = 8784` (2028 przestępny), stała `N_STEPS` w jednym miejscu. Sekcja 1.4 kontraktu nadal mówi 8760, co jest nieaktualne.
-- **Rastry:** domyślnie 1024×1024 (`--layer-px`; kontrakt zaleca 4096 dla prawdziwych danych), wspólne `bounds_m` = ±185000 m (kontrakt 5.2), granice to krawędzie pikseli, wiersz 0 = górny = `max_y`. Warstwy tematyczne są przezroczyste poza regionem siatki. `illumination.png`: piksel → najbliższa komórka 2 km.
-- **Kafelki masek:** siatka 8×8 w kwadracie `±rho(lat_min)`, `i` po x, `j` po y, rekordy rosnąco po `id`, 1440 B na rekord, puste kafelki bez pliku.
-- **`sites.json`:** miejsce z `rho` większym niż promień siatki dostaje `nearest_candidate_id` i `nearest_candidate_dist_km` równe `null` (jak Apollo). Dlatego w próbce `-89` więcej miejsc ma `null`.
-- **`sites.json`, `x_m`/`y_m`:** położenie miejsca w metrach w rzucie mocka (`latlon_to_xy`, kontrakt 5.3), liczone z niezaokrąglonych `lat`/`lon`, zaokrąglone do 0,1 m. Miejsce poza granicami rastrów (`|x|` lub `|y|` > `LAYER_HALF_M`, np. Apollo na −20°) ma oba pola `null`. To niezależne od `nearest_candidate_*`, które zależy od promienia siatki (`--lat-min`), więc w małej próbce miejsce może mieć `x_m`/`y_m`, a `nearest_candidate_*` równe `null`.
+## Conventions that are easy to break
+- **Projection:** south polar stereographic, `rho = 2R·tan(π/4 + lat/2)`, `x = rho·sin(lon)`, `y = rho·cos(lon)`. This convention applies ONLY to mock data. The real engine computes `x_m, y_m` through pyproj using the DEM file's CRS.
+- **Grid:** every 2000 m in (x, y), with (0, 0) at the pole. `id` is a sequential index, ordered by x, then y. `level = 0`.
+- **Azimuth:** `atan2(v·E, v·N)`, 0° = local north, increasing through east (contract 1.2). Mask: 720 samples, `k·0.5°`, linear interpolation with wraparound.
+- **Physics uses values after casting to float32** (lat, lon, elev), exactly as the frontend reads them from the file. The mask is quantized to `int16` (hundredths of a degree) BEFORE the physics calculations.
+- **Sun:** direction from the Moon's center, without parallax. **Earth:** vector `earth_pos − P` with parallax, `P = (R + elev_km + 0.002)·U`. Elevation refers to the disk center, excluding its radius.
+- **Runs** (`longest_night_h`, `longest_comm_gap_h`) are treated as intervals without joining the start and end of the period.
+- **Time:** `n_steps = 8784` (2028 is a leap year), with the `N_STEPS` constant defined in one place. Contract section 1.4 still says 8760, which is outdated.
+- **Rasters:** default 1024×1024 (`--layer-px`; the contract recommends 4096 for real data), shared `bounds_m` = ±185000 m (contract 5.2); bounds refer to pixel edges, row 0 = top = `max_y`. Thematic layers are transparent outside the grid region. `illumination.png`: pixel → nearest 2 km cell.
+- **Mask tiles:** 8×8 grid in the square `±rho(lat_min)`, `i` along x, `j` along y, records sorted by increasing `id`, 1440 B per record; empty tiles have no file.
+- **`sites.json`:** a location with `rho` greater than the grid radius gets `null` for both `nearest_candidate_id` and `nearest_candidate_dist_km` (as with Apollo). Therefore more locations have `null` in the `-89` sample.
+- **`sites.json`, `x_m`/`y_m`:** location in meters in the mock projection (`latlon_to_xy`, contract 5.3), calculated from unrounded `lat`/`lon`, rounded to 0.1 m. Locations outside raster bounds (`|x|` or `|y|` > `LAYER_HALF_M`, e.g. Apollo at −20°) have both fields set to `null`. This is independent of `nearest_candidate_*`, which depends on the grid radius (`--lat-min`); in a small sample, a location may therefore have `x_m`/`y_m` while `nearest_candidate_*` is `null`.
 
-## Syntetyczny teren
-Klasa `Terrain`, wszystko to funkcje (x, y) z parametrami z seeda:
-- 5 kraterów (jeden ok. 89,7°S, promienie 3–15 km); PSR = wnętrze krateru, `dist_psr_km = max(0, d − r)/1000` (min po kraterach),
-- `elev_m`: tło ±1500 m + dna kraterów + wały + lekki szum,
-- `slope_deg` 0–25°, stromo przy wałach,
-- maska horyzontu: baza będąca CIĄGŁĄ funkcją położenia (`Terrain.horizon_base_deg`) + 3 składowe po azymucie z fazą zależną od punktu + szum, zakres [-3, 7]° (`MASK_MIN_DEG`, `MASK_MAX_DEG`), `int16` ze znakiem, kwantyzacja `round(deg·100)` bez zmian. Baza poza kraterami zależy od `t` (znormalizowane tło terenu, 1 = grzbiet): grzbiet ok. −2° (`RIDGE_DEG`), płaskie ok. 0°, zagłębienia tła do +5° (`FLOOR_DEG`); na stokach kraterów płynnie rośnie do `CRATER_DEG` = 6° (waga `crater_weight`). Ujemny horyzont oznacza punkt wyniesiony ponad otoczenie.
+## Synthetic terrain
+The `Terrain` class consists entirely of (x, y) functions with parameters derived from the seed:
+- 5 craters (one near 89.7°S, radii 3–15 km); PSR = crater interior, `dist_psr_km = max(0, d − r)/1000` (minimum over craters),
+- `elev_m`: background ±1500 m + crater floors + rims + slight noise,
+- `slope_deg` 0–25°, steep near rims,
+- horizon mask: a base that is a CONTINUOUS function of position (`Terrain.horizon_base_deg`) + 3 azimuth components with point-dependent phase + noise, range [-3, 7]° (`MASK_MIN_DEG`, `MASK_MAX_DEG`), signed `int16`, unchanged `round(deg·100)` quantization. Outside craters, the base depends on `t` (normalized background terrain, 1 = ridge): ridges around −2° (`RIDGE_DEG`), flat terrain around 0°, background depressions up to +5° (`FLOOR_DEG`); on crater slopes it smoothly rises to `CRATER_DEG` = 6° (weight `crater_weight`). A negative horizon means the point is elevated above its surroundings.
 
-## Rozkład `sun_pct` i strojenie
-Przy masce nieujemnej `sun_pct` nie przekraczało ok. 55% (Słońce przy biegunie ma wysokość ok. `−δ(t)`, δ = ±1,54°). Dlatego maski mają zakres [−3, 7]°: ujemny horyzont na grzbietach podnosi `sun_pct` do ok. 80%, a wysoki w kraterach daje 0.
+## `sun_pct` distribution and tuning
+With a nonnegative mask, `sun_pct` did not exceed about 55% (the Sun's elevation near the pole is about `−δ(t)`, δ = ±1.54°). Masks therefore span [−3, 7]°: a negative horizon on ridges raises `sun_pct` to about 80%, while a high horizon in craters yields 0.
 
-Obecny rozkład (pełna siatka, seed 42): `sun_pct` 0–79,9 (mediana 47,0), `earth_pct` 0–90,9. Histogram w 10-procentowych przedziałach rośnie od ok. 8% do szczytu ok. 26% w przedziale 50–60%, potem spada do ok. 5% w 70–80%. Przedział 0–10% mogą dominować kratery, ale żaden inny nie przekracza 35%.
+Current distribution (full grid, seed 42): `sun_pct` 0–79.9 (median 47.0), `earth_pct` 0–90.9. The histogram in 10-percentage-point bins rises from about 8% to a peak around 26% in the 50–60% bin, then drops to about 5% in 70–80%. Craters may dominate the 0–10% bin, but no other bin exceeds 35%.
 
-Strojenie: stałe `RIDGE_DEG`, `FLOOR_DEG`, `CRATER_DEG` oraz węzły `np.interp` w `horizon_base_deg`. Po zmianie sprawdź histogram wypisywany przez samokontrolę. Ostrzeżenie pojawia się, gdy nie jest `min(sun_pct) < 5` i `max(sun_pct) > 70` albo gdy jakikolwiek przedział poza 0–10% ma więcej niż 35% punktów. Mała próbka `-89` (725 punktów) przechodzi bez ostrzeżeń.
+Tuning: constants `RIDGE_DEG`, `FLOOR_DEG`, `CRATER_DEG` and `np.interp` nodes in `horizon_base_deg`. After a change, check the histogram printed by the self-check. A warning appears if the conditions `min(sun_pct) < 5` and `max(sun_pct) > 70` do not both hold, or if any bin other than 0–10% contains more than 35% of points. The small `-89` sample (725 points) passes without warnings.
 
-## Samokontrola (na końcu skryptu)
-Sprawdza: rozmiar `candidates.bin` = N·13·4 i odczyt zwrotny, wielokrotności 1440 B w kafelkach, liczbę rekordów w `index.json` i kafelkach, rozmiar `ephem.bin`, jednakowy rozmiar PNG-ów, brak NaN, zakresy [0, 100]. Drukuje tabelkę min/mediana/max, histogram `sun_pct`, czas i rozmiary plików.
+## Self-check (at the end of the script)
+Checks: `candidates.bin` size = N·13·4 and readback, multiples of 1440 B in tiles, record counts in `index.json` and tiles, `ephem.bin` size, identical PNG dimensions, absence of NaN, ranges [0, 100]. Prints a min/median/max table, the `sun_pct` histogram, execution time, and file sizes.
 
-## Jak go zmieniać
-- Zmiana fizyki lub formatu = zmiana kontraktu (`contract_version`) i informacja dla frontu. Nie zmieniaj kolejności kolumn ani endianness.
-- Po zmianie uruchom dwa razy z tym samym seedem i porównaj hashe (`sha256sum`), żeby nie stracić determinizmu.
-- `web/public/data` nie jest w `.gitignore`. Pełny komplet to ok. 30 MB, więc do repo wrzucaj wariant `-89` albo dopisz katalog do `.gitignore`.
+## Making changes
+- Changing physics or format requires a contract change (`contract_version`) and notification to the frontend. Do not change column order or endianness.
+- After a change, run twice with the same seed and compare hashes (`sha256sum`) to preserve determinism.
+- `web/public/data` is not in `.gitignore`. The full set is about 30 MB, so commit the `-89` variant or add the directory to `.gitignore`.

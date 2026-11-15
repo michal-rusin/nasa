@@ -2,7 +2,7 @@ import { COLUMN_NAMES, type Candidates, type ColumnName, type Meta, type Site } 
 
 export const DATA_BASE = import.meta.env.BASE_URL + 'data/'
 
-/** URL pliku danych względem katalogu data/ (np. 'layers/basemap.png'). */
+/** Data file URL relative to data/ (e.g. 'layers/basemap.png'). */
 export function dataUrl(path: string): string {
   return DATA_BASE + path
 }
@@ -12,11 +12,11 @@ export async function fetchOk(path: string): Promise<Response> {
   try {
     res = await fetch(dataUrl(path))
   } catch (e) {
-    throw new Error(`Nie udało się pobrać ${path}: ${e instanceof Error ? e.message : String(e)}`)
+    throw new Error(`Failed to fetch ${path}: ${e instanceof Error ? e.message : String(e)}`)
   }
   if (res.status === 404) throw new MissingDataFileError(path)
-  if (!res.ok) throw new Error(`Nie udało się pobrać ${path} (HTTP ${res.status})`)
-  // Serwer dev Vite na brakujący plik odpowiada 200 + index.html (fallback SPA).
+  if (!res.ok) throw new Error(`Failed to fetch ${path} (HTTP ${res.status})`)
+  // Vite returns 200 + index.html for missing files (SPA fallback).
   if ((res.headers.get('content-type') ?? '').includes('text/html')) throw new MissingDataFileError(path)
   return res
 }
@@ -24,7 +24,7 @@ export async function fetchOk(path: string): Promise<Response> {
 export class MissingDataFileError extends Error {
   readonly path: string
   constructor(path: string) {
-    super(`Brak pliku danych public/data/${path} (sprawdź npm run sync-data)`)
+    super(`Missing data file public/data/${path} (run npm run sync-data)`)
     this.name = 'MissingDataFileError'
     this.path = path
   }
@@ -34,39 +34,39 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v)
 }
 
-/** Sprawdza kluczowe pola meta.json. Reszta jest przyjmowana zgodnie z kontraktem. */
+/** Validate core meta.json fields; assume remaining fields follow the contract. */
 export function parseMeta(json: unknown): Meta {
-  if (!isRecord(json)) throw new Error('meta.json: oczekiwano obiektu JSON')
+  if (!isRecord(json)) throw new Error('meta.json: expected a JSON object')
   if (json.contract_version !== 1) {
-    throw new Error(`meta.json: nieobsługiwana wersja kontraktu ${String(json.contract_version)} (front obsługuje 1)`)
+    throw new Error(`meta.json: unsupported contract version ${String(json.contract_version)} (frontend supports 1)`)
   }
   const cand = json.candidates
   if (!isRecord(cand) || typeof cand.count !== 'number' || !Array.isArray(cand.columns)
     || !cand.columns.every((c) => typeof c === 'string')) {
-    throw new Error('meta.json: brak lub błędne pole candidates (count, columns)')
+    throw new Error('meta.json: missing or invalid field candidates (count, columns)')
   }
   const layers = json.layers
   if (!isRecord(layers) || !isRecord(layers.bounds_m) || !isRecord(layers.files)) {
-    throw new Error('meta.json: brak lub błędne pole layers (bounds_m, files)')
+    throw new Error('meta.json: missing or invalid field layers (bounds_m, files)')
   }
   for (const k of ['min_x', 'min_y', 'max_x', 'max_y']) {
-    if (typeof layers.bounds_m[k] !== 'number') throw new Error(`meta.json: brak layers.bounds_m.${k}`)
+    if (typeof layers.bounds_m[k] !== 'number') throw new Error(`meta.json: missing layers.bounds_m.${k}`)
   }
   return json as unknown as Meta
 }
 
-/** Ciąg PROJ rastrów: raster_proj4, a awaryjnie raster_crs_wkt, jeśli to ciąg PROJ. */
+/** Raster PROJ string: raster_proj4, falling back to raster_crs_wkt if it contains PROJ syntax. */
 export function getProjString(meta: Pick<Meta, 'raster_proj4' | 'raster_crs_wkt'>): string {
   if (typeof meta.raster_proj4 === 'string' && meta.raster_proj4.trim() !== '') return meta.raster_proj4
   if (typeof meta.raster_crs_wkt === 'string' && meta.raster_crs_wkt.trim().startsWith('+proj')) {
     return meta.raster_crs_wkt.trim()
   }
-  throw new Error('brak raster_proj4 w meta.json')
+  throw new Error('missing raster_proj4 in meta.json')
 }
 
 /**
- * Rozpakowuje candidates.bin (float32 LE, wiersze × kolumny) do tablic na kolumnę.
- * Kolejność kolumn wyłącznie z meta.candidates.columns.
+ * Unpack candidates.bin (float32 LE, rows × columns) into column arrays.
+ * Read column order exclusively from meta.candidates.columns.
  */
 export function parseCandidates(buf: ArrayBuffer, meta: Pick<Meta, 'candidates'>): Candidates {
   const columns = meta.candidates.columns
@@ -74,12 +74,12 @@ export function parseCandidates(buf: ArrayBuffer, meta: Pick<Meta, 'candidates'>
   const nc = columns.length
   const missing = COLUMN_NAMES.filter((c) => !columns.includes(c))
   if (missing.length > 0) {
-    throw new Error(`candidates: w meta.candidates.columns brakuje kolumn: ${missing.join(', ')}`)
+    throw new Error(`candidates: missing columns in meta.candidates.columns: ${missing.join(', ')}`)
   }
   const expected = n * nc * 4
   if (buf.byteLength !== expected) {
-    throw new Error(`candidates.bin: rozmiar ${buf.byteLength} B, oczekiwano ${expected} B `
-      + `(${n} punktów × ${nc} kolumn × 4 B)`)
+    throw new Error(`candidates.bin: size ${buf.byteLength} B, expected ${expected} B `
+      + `(${n} points × ${nc} columns × 4 B)`)
   }
   const dv = new DataView(buf)
   const col = {} as Record<ColumnName, Float32Array>
@@ -92,7 +92,7 @@ export function parseCandidates(buf: ArrayBuffer, meta: Pick<Meta, 'candidates'>
   return { n, col }
 }
 
-/** Mapa id → indeks wiersza (id nie musi być równe indeksowi). */
+/** Map ID → row index (IDs need not equal indices). */
 export function buildIdToIndex(c: Candidates): Map<number, number> {
   const m = new Map<number, number>()
   const ids = c.col.id
@@ -104,14 +104,14 @@ function numOrNull(v: unknown): number | null {
   return typeof v === 'number' && Number.isFinite(v) ? v : null
 }
 
-/** Normalizuje sites.json: brak pola liczbowego traktujemy jak null. */
+/** Normalize sites.json: treat missing numeric fields as null. */
 export function parseSites(json: unknown): Site[] {
-  if (!Array.isArray(json)) throw new Error('sites.json: oczekiwano tablicy')
+  if (!Array.isArray(json)) throw new Error('sites.json: expected an array')
   return json.map((raw, i): Site => {
-    if (!isRecord(raw)) throw new Error(`sites.json: pozycja ${i} nie jest obiektem`)
+    if (!isRecord(raw)) throw new Error(`sites.json: item ${i} is not an object`)
     return {
       id: typeof raw.id === 'string' ? raw.id : String(i),
-      name: typeof raw.name === 'string' ? raw.name : `miejsce ${i}`,
+      name: typeof raw.name === 'string' ? raw.name : `location ${i}`,
       category: typeof raw.category === 'string' ? raw.category : 'reference',
       lat: numOrNull(raw.lat),
       lon: numOrNull(raw.lon),
@@ -135,8 +135,8 @@ export async function loadCandidates(meta: Meta): Promise<Candidates> {
 }
 
 /**
- * Czy plik obrazu istnieje (HEAD). Serwer dev Vite na brakujący plik zwraca 200 + index.html,
- * więc sprawdzamy też content-type. Błąd sieci = brak (warstwę pomijamy bez błędu).
+ * Check image existence (HEAD). Vite returns 200 + index.html for missing files,
+ * so also check content-type. Treat network errors as missing layers and skip them.
  */
 export async function probeImage(path: string): Promise<boolean> {
   try {
@@ -147,14 +147,14 @@ export async function probeImage(path: string): Promise<boolean> {
   }
 }
 
-/** sites.json dostarcza zespół danych osobno; jego brak nie blokuje mapy (pusta lista + ostrzeżenie). */
+/** The data team supplies sites.json separately; if missing, use an empty list and warn. */
 export async function loadSites(): Promise<Site[]> {
   try {
     const res = await fetchOk('sites.json')
     return parseSites(await res.json())
   } catch (e) {
     if (e instanceof MissingDataFileError) {
-      console.warn(`${e.message}; lista miejsc będzie pusta.`)
+      console.warn(`${e.message}; the location list will be empty.`)
       return []
     }
     throw e

@@ -29,7 +29,7 @@ const LANG_STORAGE_KEY = 'lunar-navigator.lang'
 function readStoredLang(): Lang {
   try {
     const v = localStorage.getItem(LANG_STORAGE_KEY)
-    if (v === 'en' || v === 'pl') return v
+    if (v === 'en') return v
   } catch {
     // brak localStorage (tryb prywatny, testy w node): zostaje domyślny
   }
