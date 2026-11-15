@@ -24,6 +24,21 @@ export interface SkyDrawInput {
   view: SkyView
   stars: StarCatalog | null
   labels: { sun: string; earth: string }
+  /** Tory Słońca i Ziemi na niebie (z szeregów series), rysowane nad terenem. */
+  tracks?: readonly SkyTrack[]
+}
+
+/** Tor ciała na niebie w oknie kroków [from, to]; now = bieżący krok (przeszłość bledsza). */
+export interface SkyTrack {
+  az: ArrayLike<number>
+  el: ArrayLike<number>
+  from: number
+  to: number
+  now: number
+  stepH: number
+  rgb: readonly [number, number, number]
+  /** Co ile dób znacznik z podpisem (Ziemia porusza się wolno: co tydzień). */
+  tickDays: number
 }
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
@@ -206,6 +221,9 @@ export function drawSky(ctx: CanvasRenderingContext2D, inp: SkyDrawInput): void 
     ctx.stroke()
   }
 
+  // 6b. Tory Słońca i Ziemi: linia ciągła tam, gdzie ciało jest nad terenem, przerywana za górami.
+  if (inp.tracks) for (const tr of inp.tracks) drawTrack(ctx, tr, w, h, X, Y, mask)
+
   // 7. Etykiety Słońca i Ziemi nad terenem.
   ctx.font = `500 10px ${MONO}`
   ctx.textBaseline = 'alphabetic'
@@ -270,6 +288,63 @@ function drawEarth(
   ctx.lineWidth = 1
   ctx.strokeStyle = `rgba(150,200,255,${(0.25 + 0.3 * lit).toFixed(3)})`
   ctx.stroke()
+  ctx.restore()
+}
+
+function drawTrack(
+  ctx: CanvasRenderingContext2D, tr: SkyTrack, w: number, h: number,
+  X: (az: number) => number, Y: (el: number) => number, mask: Int16Array,
+): void {
+  const n = Math.min(tr.az.length, tr.el.length)
+  const from = Math.max(0, tr.from)
+  const to = Math.min(n - 1, tr.to)
+  if (to <= from) return
+  const stride = Math.max(1, Math.round(2 / tr.stepH)) // próbka co ~2 h
+  const [r, g, b] = tr.rgb
+  ctx.save()
+  ctx.lineCap = 'round'
+  let px = NaN, py = NaN, pVis = false
+  for (let i = from; i <= to; i += stride) {
+    const az = tr.az[i]!, el = tr.el[i]!
+    const x = X(az), y = Y(el)
+    const vis = el >= maskHeightDeg(mask, az)
+    // Przeskok przez krawędź panoramy (zawinięcie azymutu) albo daleko poza kadrem: przerwa.
+    const jump = Math.abs(x - px) > w / 2
+    const off = (y < -40 && py < -40) || (y > h + 40 && py > h + 40)
+    if (!Number.isNaN(px) && !jump && !off) {
+      const past = i <= tr.now
+      const both = vis && pVis
+      ctx.setLineDash(both ? [] : [2, 5])
+      ctx.lineWidth = both ? 1.6 : 1.2
+      ctx.strokeStyle = `rgba(${r},${g},${b},${(both ? 0.75 : 0.35) * (past ? 0.4 : 1)})`
+      ctx.beginPath()
+      ctx.moveTo(px, py)
+      ctx.lineTo(x, y)
+      ctx.stroke()
+    }
+    px = x; py = y; pVis = vis
+  }
+  ctx.setLineDash([])
+
+  // Znaczniki co dobę od teraz; podpis „+N d”, gdy jest dość miejsca od poprzedniego podpisu.
+  const day = Math.max(1, Math.round(24 / tr.stepH)) * tr.tickDays
+  ctx.font = `10px ${MONO}`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'bottom'
+  let lx = NaN, ly = NaN
+  for (let d = tr.tickDays, i = tr.now + day; i <= to; d += tr.tickDays, i += day) {
+    const x = X(tr.az[i]!), y = Y(tr.el[i]!)
+    if (x < 0 || x > w || y < 0 || y > h) continue
+    ctx.fillStyle = `rgba(${r},${g},${b},0.9)`
+    ctx.beginPath()
+    ctx.arc(x, y, 2.2, 0, TAU)
+    ctx.fill()
+    if (Number.isNaN(lx) || Math.hypot(x - lx, y - ly) >= 56) {
+      ctx.fillStyle = `rgba(${r},${g},${b},0.8)`
+      ctx.fillText(`+${d} d`, x, y - 6)
+      lx = x; ly = y
+    }
+  }
   ctx.restore()
 }
 

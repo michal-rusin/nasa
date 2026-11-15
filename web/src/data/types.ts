@@ -8,9 +8,17 @@ export const COLUMN_NAMES = [
 ] as const
 export type ColumnName = (typeof COLUMN_NAMES)[number]
 
-/** Metryki, po których można kolorować punkty. */
+/**
+ * Kolumny, które istnieją tylko w metrics_by_year.bin (kontrakt 3.4, Dostawa 7): moc z paneli.
+ * W candidates są NaN, dopóki nie podmieni ich wybrany rok.
+ */
+export const YEAR_ONLY_COLUMNS = ['power_track_wm2', 'power_fixed_wm2', 'power_fixed_az_deg'] as const
+export type YearOnlyColumn = (typeof YEAR_ONLY_COLUMNS)[number]
+
+/** Metryki, po których można kolorować, filtrować i rankować punkty. */
 export const METRIC_KEYS = [
   'sun_pct', 'longest_night_h', 'earth_pct', 'longest_comm_gap_h', 'slope_deg', 'dist_psr_km',
+  'power_track_wm2', 'power_fixed_wm2',
 ] as const
 export type MetricKey = (typeof METRIC_KEYS)[number]
 
@@ -43,6 +51,16 @@ export interface Meta {
   psr_source: string
   region: { lat_min: number; lat_max: number }
   candidates: { count: number; columns: string[] }
+  /** Rok, którego dotyczą candidates.bin i validation.json (np. "2028"); kontrakt 1.4. */
+  candidates_period?: string
+  /** metrics_by_year.bin (kontrakt 3.4); brak w starszych danych. */
+  metrics_by_year?: {
+    file: string
+    years: number[]
+    columns: string[]
+    dtype: string
+    layout: string
+  }
   raster_crs_wkt: string
   /** Obowiązkowe wg kontraktu 1.3; starsze pliki mogą go nie mieć (patrz getProjString). */
   raster_proj4?: string
@@ -69,5 +87,5 @@ export interface Site {
 /** candidates.bin rozpakowane do tablic na kolumnę (struct of arrays). */
 export interface Candidates {
   n: number
-  col: Record<ColumnName, Float32Array>
+  col: Record<ColumnName | YearOnlyColumn, Float32Array>
 }

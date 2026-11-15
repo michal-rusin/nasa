@@ -14,4 +14,5 @@ export function fmtVal(v: number | undefined | null, digits: number, na: string)
 /** Liczba cyfr po przecinku sensowna dla jednostki metryki. */
 export const METRIC_DIGITS: Record<MetricKey, number> = {
   sun_pct: 1, earth_pct: 1, longest_night_h: 0, longest_comm_gap_h: 0, slope_deg: 1, dist_psr_km: 2,
+  power_track_wm2: 0, power_fixed_wm2: 0,
 }

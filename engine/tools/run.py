@@ -125,16 +125,35 @@ by_year = np.stack([compute_metrics(grid["lat"], grid["lon"], grid["elev_m"], ma
                                     ephem_all[s:e], h_obs=H_OBS) for _, s, e in slices], axis=1)
 # longest_* (cols 1, 3): runs found on the full series, so a night across Jan 1 isn't cut in two
 runs = longest_by_year(grid["lat"], grid["lon"], grid["elev_m"], masks, ephem_all,
-                       [s for _, s, _ in slices], [e for _, _, e in slices], h_obs=H_OBS)
+                       [s for _, s, _ in slices], [e for _, _, e in slices], h_obs=H_OBS, t0=T0)
 year_h = np.array([e - s for _, s, e in slices], np.float64)   # 1 h steps: 8760 or 8784
 by_year[:, :, 1] = np.minimum(runs[:, :, 0], year_h)          # cap: = year length means dark all year
 by_year[:, :, 3] = np.minimum(runs[:, :, 1], year_h)
+# cols 4-6: power_track_wm2, power_fixed_wm2, power_fixed_az_deg (same pass as longest_*)
+by_year = np.concatenate([by_year, runs[:, :, 2:5]], axis=2)
 by_year.astype("<f4").tofile(out / "metrics_by_year.bin")
 years = [y for y, _, _ in slices]
 print(f"metrics_by_year: {by_year.shape}, max |2028 - candidates| (sun_pct, earth_pct) = "
       f"{np.nanmax(np.abs(by_year[:, 0, [0, 2]] - m[:, [0, 2]])):.2g}")
 for k, y in enumerate(years):
-    print(f"  {y}: median sun {np.nanmedian(by_year[:, k, 0]):.2f}%")
+    lit = by_year[:, k, 0] > 10
+    print(f"  {y}: median sun {np.nanmedian(by_year[:, k, 0]):.2f}%, "
+          f"median power_track {np.median(by_year[lit, k, 4]):.1f} W/m2 ({lit.sum()} points with sun > 10%)")
+b = int(np.argmax(by_year[:, 0, 0]))
+print(f"best 2028 point (id {grid['id'][b]}): track {by_year[b, 0, 4]:.1f} W/m2, "
+      f"fixed {by_year[b, 0, 5]:.1f} W/m2 facing A = {by_year[b, 0, 6]:.1f} deg")
+excess = by_year[:, :, 5] - by_year[:, :, 4]
+print(f"power_fixed <= power_track everywhere: {bool((excess <= 1e-9 * by_year[:, :, 4]).all())} "
+      f"(max fixed - track {excess.max():.3g} W/m2); "
+      f"az NaN exactly where fixed == 0: {bool((np.isnan(by_year[:, :, 6]) == (by_year[:, :, 5] == 0)).all())}")
+vtext = (out / "validation.json").read_text()
+vrec = json.loads(vtext, parse_constant=lambda c: (_ for _ in ()).throw(ValueError(c)))
+row = {int(g): i for i, g in enumerate(grid["id"])}
+vpw = np.array([[np.nan if r[c] is None else r[c] for c in
+                 ["power_track_wm2", "power_fixed_wm2", "power_fixed_az_deg"]] for r in vrec], np.float32)
+bpw = by_year[[row[r["id"]] for r in vrec], 0, 4:7].astype(np.float32)
+print(f"validation.json: no bare NaN: {'NaN' not in vtext}; power identical to metrics_by_year 2028: "
+      f"{np.array_equal(vpw, bpw, equal_nan=True)}")
 
 # Writers (friend). Skipped with a message until they exist.
 for name, call in [

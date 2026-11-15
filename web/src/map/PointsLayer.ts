@@ -2,6 +2,7 @@ import type { FrameState } from 'ol/Map'
 import Layer from 'ol/layer/Layer'
 import { NO_DATA_RGB, normalize, rampRgb, rgbCss, type Range, type RGB } from './colors'
 import { detectGrid } from './grid'
+import type { ModeTheme } from './themes'
 
 /** Liczba kubełków koloru (tryb punktowy): punkty jednego kubełka rysujemy jednym fill(). */
 const N_BINS = 64
@@ -55,6 +56,8 @@ export interface PointsStyle {
   /** Miejsce A (zaznaczone) i B (porównanie). */
   selectedIndex: number | null
   compareIndex: number | null
+  /** Skala kolorów i kolor plakietek wersji rankingu. */
+  theme: ModeTheme
 }
 
 export interface PointsLayerHandle {
@@ -111,9 +114,12 @@ export function createPointsLayer(
   // Tryb punktowy: punkty posortowane po kubełku koloru (sortowanie przez zliczanie).
   const order = new Int32Array(pointIdx.length)
   const offsets = new Int32Array(N_ALL_BINS + 1)
-  const binColors: string[] = []
-  for (let b = 0; b < N_BINS; b++) binColors.push(rgbCss(rampRgb((b + 0.5) / N_BINS)))
-  binColors.push(rgbCss(NO_DATA_RGB))
+  let binColors: string[] = []
+  const makeBinColors = (ramp: readonly RGB[]) => {
+    binColors = []
+    for (let b = 0; b < N_BINS; b++) binColors.push(rgbCss(rampRgb((b + 0.5) / N_BINS, ramp)))
+    binColors.push(rgbCss(NO_DATA_RGB))
+  }
   let style: PointsStyle | null = null
   let hover: number | null = null
   let highlight: number | null = null
@@ -185,10 +191,11 @@ export function createPointsLayer(
   }
   function rgbOf(s: PointsStyle, i: number): RGB {
     const t = colorT(s, i)
-    return Number.isNaN(t) ? NO_DATA_RGB : rampRgb(t)
+    return Number.isNaN(t) ? NO_DATA_RGB : rampRgb(t, s.theme.ramp)
   }
 
   function rebuild(s: PointsStyle): void {
+    makeBinColors(s.theme.ramp)
     if (grid && fctx && field) {
       const img = fctx.createImageData(grid.nx, grid.ny)
       const d = img.data
@@ -324,25 +331,26 @@ export function createPointsLayer(
         if (i === hotI) {
           // Miękka aureola wokół wskazanej plakietki.
           const g = ctx!.createRadialGradient(0, 0, r, 0, 0, r * 2.4)
-          g.addColorStop(0, rank === 0 ? 'rgba(255, 216, 107, 0.45)' : 'rgba(255, 255, 255, 0.35)')
-          g.addColorStop(1, 'rgba(255, 255, 255, 0)')
+          g.addColorStop(0, `${s.theme.accent}88`)
+          g.addColorStop(1, `${s.theme.accent}00`)
           ctx!.fillStyle = g
           ctx!.beginPath()
           ctx!.arc(0, 0, r * 2.4, 0, 2 * Math.PI)
           ctx!.fill()
         }
+        // Plakietka w kolorze wersji rankingu; #1 z białą obwódką.
         ctx!.save()
         ctx!.shadowColor = 'rgba(0, 0, 0, 0.9)'
         ctx!.shadowBlur = 9 * pr
         ctx!.beginPath()
         ctx!.arc(0, 0, r, 0, 2 * Math.PI)
-        ctx!.fillStyle = rank === 0 ? '#ffd86b' : '#ffffff'
+        ctx!.fillStyle = s.theme.accent
         ctx!.fill()
         ctx!.restore()
-        ctx!.lineWidth = 1.5 * pr
-        ctx!.strokeStyle = 'rgba(2, 3, 6, 0.95)'
+        ctx!.lineWidth = (rank === 0 ? 2.5 : 1.5) * pr
+        ctx!.strokeStyle = rank === 0 ? '#ffffff' : 'rgba(2, 3, 6, 0.95)'
         ctx!.stroke()
-        ctx!.fillStyle = '#05070c'
+        ctx!.fillStyle = s.theme.onAccent
         ctx!.font = `600 ${Math.round((rank >= 9 ? 9.5 : 11.5) * pr)}px ${MONO}`
         ctx!.fillText(String(rank + 1), 0, 0.5 * pr)
         ctx!.restore()
@@ -399,8 +407,16 @@ export function createPointsLayer(
     layer,
     setStyle(s) {
       if (!style || style.values !== s.values || style.range !== s.range
-        || style.invert !== s.invert || style.mask !== s.mask) rebuild(s)
+        || style.invert !== s.invert || style.mask !== s.mask || style.theme !== s.theme) rebuild(s)
+      // Nowe Top 10 (inna wersja rankingu, wagi, filtry): plakietki wskakują od nowa.
+      const newTop = !!style && revealed && (style.top.length !== s.top.length || style.top.some((v, i) => v !== s.top[i]))
       style = s
+      if (newTop) {
+        bScale.fill(0)
+        bVel.fill(0)
+        revealedAt = performance.now() - BADGE_DELAY_MS * 0.6
+        kick()
+      }
       layer.changed()
     },
     setOpacity(v) {

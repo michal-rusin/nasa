@@ -9,7 +9,8 @@ export function MapView() {
   const t = useT()
   const ref = useRef<HTMLDivElement>(null)
   const meta = useStore((s) => s.meta)
-  const candidates = useStore((s) => s.candidates)
+  // Pozycje punktów nie zależą od roku: mapa nie powstaje od nowa przy zmianie roku.
+  const candidates = useStore((s) => s.baseCandidates)
   const allSites = useStore((s) => s.sites)
   // Wpisy testowe „[MOCK]” nie trafiają na mapę produktu.
   const sites = useMemo(() => allSites.filter((s) => !isMockSite(s)), [allSites])

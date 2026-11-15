@@ -1,13 +1,16 @@
+<<<<<<< HEAD
 import { useCallback } from 'react'
 import { useStore } from './store'
 
 export type Lang = 'en'
 export const LANGS: readonly Lang[] = ['en']
+=======
+// Teksty interfejsu (tylko angielski). Wszystkie napisy UI idą przez t()/useT().
+>>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
 
 const en: Record<string, string> = {
   'app.name': 'Lunar Navigator',
   'nav.home': 'Back to the globe',
-  'lang.switch': 'Language',
   'home.title': 'The Moon',
   'home.hint': 'Drag to rotate, scroll to zoom',
   'home.cta': 'Explore the South Pole',
@@ -53,8 +56,37 @@ const en: Record<string, string> = {
   'metric.longest_comm_gap_h': 'Longest comms gap',
   'metric.slope_deg': 'Slope',
   'metric.dist_psr_km': 'Distance to PSR',
+  'metric.power_track_wm2': 'Solar power, tracking panel',
+  'metric.power_fixed_wm2': 'Solar power, fixed panel',
   'legend.lowBetter': 'lower is better, shown green',
   'legend.highBetter': 'higher is better, shown green',
+  'legend.highBetterBright': 'higher is better, shown bright',
+  'legend.lowBetterBright': 'lower is better, shown bright',
+  'mode.aria': 'Ranking version',
+  'year.aria': 'Year',
+  'year.prev': 'Previous year',
+  'year.next': 'Next year',
+  'shadow.badge': 'Eternal shadow in {y}',
+  'shadow.title': 'No sunlight at all that year, or a night that lasts the whole year',
+  'shadow.short': 'eternal shadow',
+  'mode.score': 'Overall',
+  'mode.sun_pct': 'Most sun',
+  'mode.earth_pct': 'Most Earth',
+  'mode.longest_night_h': 'Short night',
+  'mode.longest_comm_gap_h': 'Short gap',
+  'mode.slope_deg': 'Flat',
+  'mode.dist_psr_km': 'Near PSR',
+  'mode.power_track_wm2': 'Power',
+  'mode.power_fixed_wm2': 'Fixed panel',
+  'modeFull.score': 'best overall',
+  'modeFull.sun_pct': 'most sunlight',
+  'modeFull.earth_pct': 'most Earth visibility',
+  'modeFull.longest_night_h': 'shortest night',
+  'modeFull.longest_comm_gap_h': 'shortest comms gap',
+  'modeFull.slope_deg': 'flattest ground',
+  'modeFull.dist_psr_km': 'closest to a PSR',
+  'modeFull.power_track_wm2': 'most solar power, tracking panel',
+  'modeFull.power_fixed_wm2': 'most solar power, fixed panel',
   'search.label': 'Jump to lat, lon',
   'search.placeholder': '-89.5, 129',
   'search.go': 'Go',
@@ -101,6 +133,8 @@ const en: Record<string, string> = {
   'panel.time': 'Date and time (UTC)',
   'panel.range': 'Ephemeris covers {from} to {to} UTC, hourly.',
   'panel.sunset': 'Next sunset',
+  'power.faces': 'faces {az}°',
+  'power.note': 'Average sunlight reaching 1 m² of a vertical panel over the selected year, before cell efficiency (a typical cell turns about 30% of it into electricity). Tracking: the panel turns to face the Sun. Fixed: it never moves and points at the best azimuth for this spot. Counts partial blocking of the Sun by terrain and the changing Sun distance; the panel stands 2 m above the ground.',
   'panel.earthset': 'Next Earth-set',
   'panel.duration': '{d} d {h} h',
   'panel.inT': 'in {t}',
@@ -110,7 +144,7 @@ const en: Record<string, string> = {
   'panel.earthDownNever': 'Earth stays hidden until the end of the ephemeris',
   'panel.never': 'not before the end of the ephemeris',
   'panel.loading': 'Loading horizon mask and ephemeris…',
-  'panel.diag': 'Diagnostics: recomputed vs file',
+  'panel.diag': 'Diagnostics for {y}: recomputed vs file',
   'panel.diagCheck': 'check',
   'panel.diagComputed': 'recomputed',
   'panel.diagFile': 'file',
@@ -119,7 +153,7 @@ const en: Record<string, string> = {
   'rank.lead': 'Colour the map by landing-site score, from red (poor) to green (best), and mark the 10 best places.',
   'rank.show': 'Show ranking',
   'rank.hint': 'Or click anywhere on the map to see the sky from that spot.',
-  'rank.pill': 'Ranking',
+  'top.close': 'Hide ranking',
   'sites.pill': 'Named sites',
   'tooltip.top': 'score {s} · sunlight {sun}% · longest night {night} h',
   'tooltip.open': 'Click to see the sky from here',
@@ -138,13 +172,14 @@ const en: Record<string, string> = {
   'dock.unavailable': 'Panorama unavailable (see the point panel).',
   'dock.note': 'The sky is drawn with the real angular sizes of the Sun (0.53°) and the Earth (about 1.9°). The dark silhouette is the horizon from the mask; its edge catches sunlight and earthshine. Stars are the Hipparcos catalogue down to magnitude 6; their orientation is approximate (about 1–2°). The Earth’s phase follows the Sun–Earth–observer angle. Drag to look around, Ctrl + scroll or +/− to zoom, and move the slider to change the moment.',
   'sky.credit': 'Stars: Hipparcos catalogue via d3-celestial (BSD-3, O. Frohn).',
-  'sky.hint': 'Drag to look around · Ctrl + scroll to zoom',
+  'sky.hint': 'You are looking around from this spot · drag to turn · Ctrl + scroll to zoom',
   'sky.aria': 'Sky panorama. Arrow keys look around, plus and minus zoom.',
   'sky.summary': 'Sky from {c}: Sun {sun}, Earth {earth}, {p}% lit.',
-  'sky.centerSun': 'Sun',
-  'sky.centerEarth': 'Earth',
   'sky.zoomIn': 'Zoom in',
   'sky.zoomOut': 'Zoom out',
+  'sky.minimap': 'Compass: the cone shows where you are looking, dots mark the Sun and Earth. Click or drag to turn.',
+  'sky.trackSun': 'Sun path',
+  'sky.trackEarth': 'Earth path',
   'pick.banner': 'Pick a second place on the map',
   'pick.cancel': 'Cancel',
   'place.compare': 'Compare place',
@@ -153,11 +188,19 @@ const en: Record<string, string> = {
   'place.better': 'Better than the other place',
 }
 
+<<<<<<< HEAD
 export const dictionary: Record<Lang, Record<string, string>> = { en }
 
 /** Look up a label, falling back to its key. */
 export function translate(lang: Lang, key: string): string {
   return dictionary[lang][key] ?? dictionary.en[key] ?? key
+=======
+export const dictionary: Record<string, string> = en
+
+/** Tekst dla klucza; brak klucza = sam klucz (widać go w UI, łatwo wyłapać). */
+export function t(key: string): string {
+  return dictionary[key] ?? key
+>>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
 }
 
 /** Substitute known placeholders; preserve unknown names. */
@@ -165,13 +208,16 @@ export function fill(template: string, vars: Record<string, string | number>): s
   return template.replace(/\{(\w+)\}/g, (m: string, k: string) => (k in vars ? String(vars[k]) : m))
 }
 
+<<<<<<< HEAD
 /** Translation outside React rendering; use `useT` in components. */
 export function t(key: string): string {
   return translate(useStore.getState().lang, key)
 }
 
 /** Hook returning the translation function. */
+=======
+/** Hook zostawiony dla komponentów (jedno miejsce, gdyby wrócił drugi język). */
+>>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
 export function useT(): (key: string) => string {
-  const lang = useStore((s) => s.lang)
-  return useCallback((key: string) => translate(lang, key), [lang])
+  return t
 }

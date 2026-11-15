@@ -35,7 +35,33 @@ export function longestRunSpan(n: number, pred: (i: number) => boolean): Span {
   return best
 }
 
-const MONTHS_PL = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru']
+/**
+ * Najdłuższy ciąg spełniający warunek, który nakłada się na okno [from, to) (kontrakt 3.4:
+ * noc na przełomie lat liczy się w całości). Zwraca cały ciąg, także jego część poza oknem.
+ */
+export function longestRunOverlapping(n: number, pred: (i: number) => boolean, from: number, to: number): Span {
+  let best: Span = { start: 0, len: 0 }
+  if (to <= from) return best
+  // Cofamy się do początku ciągu, który trwa w chwili `from`.
+  let i = Math.max(0, Math.min(n, from))
+  if (i < n && pred(i)) while (i > 0 && pred(i - 1)) i--
+  let start = -1
+  for (; i <= n; i++) {
+    const ok = i < n && pred(i)
+    if (ok && start < 0) {
+      if (i >= to) break
+      start = i
+    }
+    if (!ok && start >= 0) {
+      if (i - start > best.len) best = { start, len: i - start }
+      start = -1
+      if (i >= to) break
+    }
+  }
+  return best
+}
+
+const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 export interface MonthTick {
   /** Ułamek osi 0..1. */
@@ -45,7 +71,7 @@ export interface MonthTick {
 
 /** Granice miesięcy (UTC) w okresie [t0, t0 + nSteps·stepS). */
 export function monthTicks(
-  t0Utc: string, stepS: number, nSteps: number, names: readonly string[] = MONTHS_PL,
+  t0Utc: string, stepS: number, nSteps: number, names: readonly string[] = MONTHS_EN,
 ): MonthTick[] {
   const t0 = Date.parse(t0Utc)
   const span = nSteps * stepS * 1000
@@ -56,7 +82,7 @@ export function monthTicks(
   for (let guard = 0; guard < 1000; guard++) {
     const t = Date.UTC(y, m, 1)
     if (t >= t0 + span) break
-    if (t >= t0) ticks.push({ pos: (t - t0) / span, label: names[m] ?? MONTHS_PL[m]! })
+    if (t >= t0) ticks.push({ pos: (t - t0) / span, label: names[m] ?? MONTHS_EN[m]! })
     m++
     if (m === 12) { m = 0; y++ }
   }

@@ -4,7 +4,8 @@ export type DrawFn = (ctx: CanvasRenderingContext2D, w: number, h: number) => vo
 
 /**
  * Canvas w rozmiarze rodzica (CSS px), ostry na HiDPI. Rysuje w requestAnimationFrame
- * tylko gdy zmieni się `draw` (czyli dane) albo rozmiar / devicePixelRatio.
+ * tylko gdy zmieni się `draw` (czyli dane) albo rozmiar / devicePixelRatio; najwyżej raz na
+ * klatkę i zawsze najnowszym `draw` (bez anulowania, które przy odtwarzaniu głodziło rysowanie).
  */
 export function useCanvas(draw: DrawFn, height: number) {
   const ref = useRef<HTMLCanvasElement>(null)
@@ -24,23 +25,29 @@ export function useCanvas(draw: DrawFn, height: number) {
     return () => ro.disconnect()
   }, [])
 
+  const latest = useRef({ draw, size, height })
+  const rafId = useRef(0)
   useEffect(() => {
-    const canvas = ref.current
-    if (!canvas || size.w <= 0) return
-    const id = requestAnimationFrame(() => {
-      const { w, dpr } = size
-      canvas.width = Math.round(w * dpr)
-      canvas.height = Math.round(height * dpr)
+    latest.current = { draw, size, height }
+    if (rafId.current) return
+    rafId.current = requestAnimationFrame(() => {
+      rafId.current = 0
+      const canvas = ref.current
+      const { draw: d, size: { w, dpr }, height: h } = latest.current
+      if (!canvas || w <= 0) return
+      const cw = Math.round(w * dpr), ch = Math.round(h * dpr)
+      if (canvas.width !== cw) canvas.width = cw
+      if (canvas.height !== ch) canvas.height = ch
       canvas.style.width = `${w}px`
-      canvas.style.height = `${height}px`
+      canvas.style.height = `${h}px`
       const ctx = canvas.getContext('2d')
       if (!ctx) return
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      ctx.clearRect(0, 0, w, height)
-      draw(ctx, w, height)
+      ctx.clearRect(0, 0, w, h)
+      d(ctx, w, h)
     })
-    return () => cancelAnimationFrame(id)
   }, [draw, size, height])
+  useEffect(() => () => { cancelAnimationFrame(rafId.current); rafId.current = 0 }, [])
 
   return ref
 }

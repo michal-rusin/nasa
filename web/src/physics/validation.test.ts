@@ -6,8 +6,10 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { buildIdToIndex, parseCandidates, parseMeta } from '../data/load'
+import { candidatesRange } from '../data/years'
 import { earthPct, longestCommGapH, longestNightH, sunPct } from './aggregates'
 import { maskFromBuffer } from './mask'
+import { solarPower } from './solarPower'
 import { computeSeries, ephemFromBuffer } from './series'
 
 const DATA_ROOT = fileURLToPath(new URL('../../public/data/', import.meta.url))
@@ -20,6 +22,10 @@ interface ValidationEntry {
   earth_g: number[]
   sun_pct: number
   earth_pct: number
+  /** Dostawa 7 (kontrakt 6): moc dla candidates_period; null = brak kierunku (brak słońca). */
+  power_track_wm2?: number
+  power_fixed_wm2?: number
+  power_fixed_az_deg?: number | null
 }
 
 function readBuf(path: string): ArrayBuffer {
@@ -41,7 +47,10 @@ describe.skipIf(DATASETS.length === 0)('validation.json', () => {
       const index = readJson(join(dir, 'masks', 'index.json')) as { records: Record<string, [string, number]> }
       const validation = readJson(join(dir, 'validation.json')) as ValidationEntry[]
       const stepH = meta.step_s / 3600
-      const nSteps = meta.n_steps
+      // candidates.bin i validation.json dotyczą tylko candidates_period (2028 = kroki 0..8783),
+      // a ephem.bin może obejmować więcej lat (kontrakt 1.4).
+      const period = candidatesRange(meta)
+      const nSteps = period.len
       const sunTol = meta.mock === true ? 0.01 : 1
       const earthTol = Math.max(0.05, (2 / nSteps) * 100)
       const params = {
@@ -65,10 +74,11 @@ describe.skipIf(DATASETS.length === 0)('validation.json', () => {
           tiles.set(file, tile)
         }
         const mask = maskFromBuffer(tile, recNo)
-        const s = computeSeries(
+        const full = computeSeries(
           { latDeg: cand.col.lat[row]!, lonDeg: cand.col.lon[row]!, elevM: cand.col.elev_m[row]! },
-          mask, ephem, nSteps, params,
+          mask, ephem, period.start + nSteps, params,
         )
+        const s = { f: full.f.subarray(period.start), g: full.g.subarray(period.start) }
 
         const dSun = Math.abs(sunPct(s.f) - v.sun_pct)
         const dEarth = Math.abs(earthPct(s.g) - v.earth_pct)
@@ -82,6 +92,16 @@ describe.skipIf(DATASETS.length === 0)('validation.json', () => {
         }
         console.log(`[validation] id=${v.id} Δsun=${dSun.toFixed(5)} pp Δearth=${dEarth.toFixed(5)} pp `
           + `Δnight=${dNight} h Δgap=${dGap} h max|Δf|=${maxDf.toExponential(2)} g≠=${gMismatch}`)
+
+        if (v.power_track_wm2 !== undefined && v.power_fixed_wm2 !== undefined) {
+          const pw = solarPower(full, period.start, nSteps, Date.parse(meta.t0_utc), meta.step_s)
+          console.log(`[validation] id=${v.id} power track ${pw.trackingWm2.toFixed(2)} vs ${v.power_track_wm2}, `
+            + `fixed ${pw.fixedWm2.toFixed(2)} vs ${v.power_fixed_wm2} @ ${pw.fixedAzDeg} vs ${String(v.power_fixed_az_deg)}`)
+          expect(Math.abs(pw.trackingWm2 - v.power_track_wm2), `power_track_wm2 id ${v.id}`).toBeLessThanOrEqual(1)
+          expect(Math.abs(pw.fixedWm2 - v.power_fixed_wm2), `power_fixed_wm2 id ${v.id}`).toBeLessThanOrEqual(2)
+          if (v.power_fixed_wm2 > 0) expect(pw.fixedAzDeg, `power_fixed_az_deg id ${v.id}`).toBe(v.power_fixed_az_deg)
+          else expect(v.power_fixed_az_deg ?? null).toBeNull()
+        }
 
         expect(dSun, `sun_pct id ${v.id}`).toBeLessThanOrEqual(sunTol)
         expect(dEarth, `earth_pct id ${v.id}`).toBeLessThanOrEqual(earthTol)
