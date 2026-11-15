@@ -38,6 +38,8 @@ export function SearchBox() {
       setMsg({ kind: 'error', text: t(p.reason === 'range' ? 'search.errRange' : 'search.errFormat') })
       return
     }
+    // The map covers only the south pole: a positive latitude without an explicit "N" means south (88, 44 -> 88°S).
+    if (p.lat > 0 && !/n/i.test(value)) p.lat = -p.lat
     if (p.lat > latMax) {
       setMsg({ kind: 'error', text: fill(t('search.outside'), { min: Math.abs(latMax) }) })
       return
