@@ -5,11 +5,7 @@
     "category": "reference",
     "lat": -88.1,
     "lon": 47,
-<<<<<<< HEAD
     "note": "Crater with permanently shadowed regions. Source: https://doi.org/10.1029/2011JE003913 (table 1; feature coordinates used in the PSR study).",
-=======
-    "note": "Krater z obszarami permanentnego cienia. Źródło: https://doi.org/10.1029/2011JE003913 (tabela 1; współrzędne obiektu użyte w badaniu PSR).",
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
     "nearest_candidate_id": 1388488,
     "nearest_candidate_dist_km": 0.125,
     "x_m": 42140.34,
@@ -21,11 +17,7 @@
     "category": "reference",
     "lat": -87.2,
     "lon": 84.8,
-<<<<<<< HEAD
     "note": "Crater with permanently shadowed regions. Source: https://doi.org/10.1029/2011JE003913 (table 1; feature coordinates used in the PSR study).",
-=======
-    "note": "Krater z obszarami permanentnego cienia. Źródło: https://doi.org/10.1029/2011JE003913 (tabela 1; współrzędne obiektu użyte w badaniu PSR).",
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
     "nearest_candidate_id": 1203482,
     "nearest_candidate_dist_km": 0.09,
     "x_m": 84572.78,
@@ -37,11 +29,7 @@
     "category": "reference",
     "lat": -87.4,
     "lon": -4.6,
-<<<<<<< HEAD
     "note": "Crater studied for permanent shadow. Source: https://doi.org/10.1029/2011JE003913 (table 1; feature coordinates used in the PSR study).",
-=======
-    "note": "Krater badany pod kątem permanentnego cienia. Źródło: https://doi.org/10.1029/2011JE003913 (tabela 1; współrzędne obiektu użyte w badaniu PSR).",
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
     "nearest_candidate_id": 1619831,
     "nearest_candidate_dist_km": 0.123,
     "x_m": -6324.03,
@@ -53,11 +41,7 @@
     "category": "reference",
     "lat": -85.3,
     "lon": -41.8,
-<<<<<<< HEAD
     "note": "Crater associated with the discovery of water by LCROSS. Source: https://doi.org/10.1029/2011JE003913 (table 1; feature coordinates used in the PSR study).",
-=======
-    "note": "Krater związany z odkryciem wody przez LCROSS. Źródło: https://doi.org/10.1029/2011JE003913 (tabela 1; współrzędne obiektu użyte w badaniu PSR).",
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
     "nearest_candidate_id": 1780076,
     "nearest_candidate_dist_km": 0.075,
     "x_m": -95047.34,
@@ -69,11 +53,7 @@
     "category": "reference",
     "lat": -88.3,
     "lon": -153.5,
-<<<<<<< HEAD
     "note": "Crater with permanently shadowed regions. Source: https://doi.org/10.1029/2011JE003913 (table 1; feature coordinates used in the PSR study).",
-=======
-    "note": "Krater z obszarami permanentnego cienia. Źródło: https://doi.org/10.1029/2011JE003913 (tabela 1; współrzędne obiektu użyte w badaniu PSR).",
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
     "nearest_candidate_id": 885532,
     "nearest_candidate_dist_km": 0.097,
     "x_m": -23003.05,
@@ -85,11 +65,7 @@
     "category": "reference",
     "lat": -85.2,
     "lon": -177,
-<<<<<<< HEAD
     "note": "Satellite crater with permanently shadowed regions. Source: https://doi.org/10.1029/2011JE003913 (table 1; feature coordinates used in the PSR study).",
-=======
-    "note": "Krater satelitarny z obszarami permanentnego cienia. Źródło: https://doi.org/10.1029/2011JE003913 (tabela 1; współrzędne obiektu użyte w badaniu PSR).",
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
     "nearest_candidate_id": 315249,
     "nearest_candidate_dist_km": 0.118,
     "x_m": -7622.07,
@@ -101,11 +77,7 @@
     "category": "reference",
     "lat": -89.67,
     "lon": 129.78,
-<<<<<<< HEAD
     "note": "Center of a named geographic feature, not a landing site. Source: IAU/USGS Gazetteer, https://planetarynames.wr.usgs.gov/Feature/5450",
-=======
-    "note": "Środek nazwanego obiektu geograficznego, nie miejsce lądowania. Źródło: IAU/USGS Gazetteer, https://planetarynames.wr.usgs.gov/Feature/5450",
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
     "nearest_candidate_id": 1119447,
     "nearest_candidate_dist_km": 0.111,
     "x_m": 7690.24,
@@ -117,11 +89,7 @@
     "category": "reference",
     "lat": -88.48,
     "lon": -88.34,
-<<<<<<< HEAD
     "note": "Center of a named geographic feature, not a landing site. Source: IAU/USGS Gazetteer, https://planetarynames.wr.usgs.gov/Feature/1439",
-=======
-    "note": "Środek nazwanego obiektu geograficznego, nie miejsce lądowania. Źródło: IAU/USGS Gazetteer, https://planetarynames.wr.usgs.gov/Feature/1439",
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
     "nearest_candidate_id": 1164360,
     "nearest_candidate_dist_km": 0.115,
     "x_m": -46074.85,
@@ -133,11 +101,7 @@
     "category": "reference",
     "lat": -85,
     "lon": 11.4,
-<<<<<<< HEAD
     "note": "Center of a named geographic feature, not a landing site. Source: IAU/USGS Gazetteer, https://planetarynames.wr.usgs.gov/Feature/3603",
-=======
-    "note": "Środek nazwanego obiektu geograficznego, nie miejsce lądowania. Źródło: IAU/USGS Gazetteer, https://planetarynames.wr.usgs.gov/Feature/3603",
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
     "nearest_candidate_id": 2028728,
     "nearest_candidate_dist_km": 0.058,
     "x_m": 29987.2,
@@ -149,11 +113,7 @@
     "category": "reference",
     "lat": -85.98,
     "lon": -1.67,
-<<<<<<< HEAD
     "note": "Center of a named geographic feature, not a landing site. Source: IAU/USGS Gazetteer, https://planetarynames.wr.usgs.gov/Feature/16338",
-=======
-    "note": "Środek nazwanego obiektu geograficznego, nie miejsce lądowania. Źródło: IAU/USGS Gazetteer, https://planetarynames.wr.usgs.gov/Feature/16338",
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
     "nearest_candidate_id": 1876194,
     "nearest_candidate_dist_km": 0.14,
     "x_m": -3553.97,
@@ -165,11 +125,7 @@
     "category": "reference",
     "lat": -84.3,
     "lon": 85.6,
-<<<<<<< HEAD
     "note": "Crater in the south polar region. Coordinates from a historical JPL table. Source: https://ipnpr.jpl.nasa.gov/progress_report/42-176/176C.pdf (table 1).",
-=======
-    "note": "Krater południowego regionu polarnego. Współrzędne z historycznej tabeli JPL. Źródło: https://ipnpr.jpl.nasa.gov/progress_report/42-176/176C.pdf (tabela 1).",
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
     "nearest_candidate_id": 1241226,
     "nearest_candidate_dist_km": 0.043,
     "x_m": 172475.96,
@@ -181,11 +137,7 @@
     "category": "reference",
     "lat": -85.2,
     "lon": 53.5,
-<<<<<<< HEAD
     "note": "Crater in the south polar region. Coordinates from a historical JPL table. Source: https://ipnpr.jpl.nasa.gov/progress_report/42-176/176C.pdf (table 1).",
-=======
-    "note": "Krater południowego regionu polarnego. Współrzędne z historycznej tabeli JPL. Źródło: https://ipnpr.jpl.nasa.gov/progress_report/42-176/176C.pdf (tabela 1).",
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
     "nearest_candidate_id": 1670388,
     "nearest_candidate_dist_km": 0.122,
     "x_m": 117071.52,
@@ -197,11 +149,7 @@
     "category": "reference",
     "lat": -90,
     "lon": 0,
-<<<<<<< HEAD
     "note": "Geographic south pole; longitude 0° adopted by convention. Source: NASA Lunar Surface Data Book, https://ntrs.nasa.gov/citations/20250002845 (polar region maps).",
-=======
-    "note": "Geograficzny biegun południowy; długość 0° przyjęta umownie. Źródło: NASA Lunar Surface Data Book, https://ntrs.nasa.gov/citations/20250002845 (mapy regionu polarnego).",
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
     "nearest_candidate_id": 1165792,
     "nearest_candidate_dist_km": 0.026,
     "x_m": 0.0,
@@ -213,11 +161,7 @@
     "category": "artemis",
     "lat": -89.4632,
     "lon": -137.49,
-<<<<<<< HEAD
     "note": "NASA candidate region listed in 2022. Representative point from a NASA table, not an approved landing site. Not included in the 2024 list. Source: NASA Lunar Surface Data Book (2025), table A2.1-1, p. 75, https://ntrs.nasa.gov/citations/20250002845; list: https://www.nasa.gov/news-release/nasa-identifies-candidate-regions-for-landing-next-americans-on-moon/",
-=======
-    "note": "Region kandydacki NASA z listy 2022. Punkt reprezentatywny z tabeli NASA, nie zatwierdzone miejsce lądowania. Nieobecny na liście z 2024 r. Źródło: NASA Lunar Surface Data Book (2025), tabela A2.1-1, s. 75, https://ntrs.nasa.gov/citations/20250002845; lista: https://www.nasa.gov/news-release/nasa-identifies-candidate-regions-for-landing-next-americans-on-moon/",
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
     "nearest_candidate_id": 1095524,
     "nearest_candidate_dist_km": 0.025,
     "x_m": -10999.14,
@@ -229,11 +173,7 @@
     "category": "artemis",
     "lat": -89.0324,
     "lon": -101.999,
-<<<<<<< HEAD
     "note": "NASA candidate region listed in 2022. Representative point from a NASA table, not an approved landing site. Not included in the 2024 list. Source: NASA Lunar Surface Data Book (2025), table A2.1-1, p. 75, https://ntrs.nasa.gov/citations/20250002845; list: https://www.nasa.gov/news-release/nasa-identifies-candidate-regions-for-landing-next-americans-on-moon/",
-=======
-    "note": "Region kandydacki NASA z listy 2022. Punkt reprezentatywny z tabeli NASA, nie zatwierdzone miejsce lądowania. Nieobecny na liście z 2024 r. Źródło: NASA Lunar Surface Data Book (2025), tabela A2.1-1, s. 75, https://ntrs.nasa.gov/citations/20250002845; lista: https://www.nasa.gov/news-release/nasa-identifies-candidate-regions-for-landing-next-americans-on-moon/",
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
     "nearest_candidate_id": 1129893,
     "nearest_candidate_dist_km": 0.122,
     "x_m": -28700.49,
@@ -245,11 +185,7 @@
     "category": "artemis",
     "lat": -88.811,
     "lon": 123.6901,
-<<<<<<< HEAD
     "note": "NASA candidate region listed in 2022. Representative point from a NASA table, not an approved landing site. Not included in the 2024 list. Source: NASA Lunar Surface Data Book (2025), table A2.1-1, p. 75, https://ntrs.nasa.gov/citations/20250002845; list: https://www.nasa.gov/news-release/nasa-identifies-candidate-regions-for-landing-next-americans-on-moon/",
-=======
-    "note": "Region kandydacki NASA z listy 2022. Punkt reprezentatywny z tabeli NASA, nie zatwierdzone miejsce lądowania. Nieobecny na liście z 2024 r. Źródło: NASA Lunar Surface Data Book (2025), tabela A2.1-1, s. 75, https://ntrs.nasa.gov/citations/20250002845; lista: https://www.nasa.gov/news-release/nasa-identifies-candidate-regions-for-landing-next-americans-on-moon/",
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
     "nearest_candidate_id": 1050272,
     "nearest_candidate_dist_km": 0.026,
     "x_m": 30000.19,
@@ -261,11 +197,7 @@
     "category": "artemis",
     "lat": -87.8897,
     "lon": 90,
-<<<<<<< HEAD
     "note": "NASA candidate region listed in 2022. Representative point from a NASA table, not an approved landing site. Not included in the 2024 list. Source: NASA Lunar Surface Data Book (2025), table A2.1-1, p. 75, https://ntrs.nasa.gov/citations/20250002845; list: https://www.nasa.gov/news-release/nasa-identifies-candidate-regions-for-landing-next-americans-on-moon/",
-=======
-    "note": "Region kandydacki NASA z listy 2022. Punkt reprezentatywny z tabeli NASA, nie zatwierdzone miejsce lądowania. Nieobecny na liście z 2024 r. Źródło: NASA Lunar Surface Data Book (2025), tabela A2.1-1, s. 75, https://ntrs.nasa.gov/citations/20250002845; lista: https://www.nasa.gov/news-release/nasa-identifies-candidate-regions-for-landing-next-americans-on-moon/",
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
     "nearest_candidate_id": 1167840,
     "nearest_candidate_dist_km": 0.027,
     "x_m": 63998.6,
@@ -289,11 +221,7 @@
     "category": "artemis",
     "lat": -85.8296,
     "lon": -116.322,
-<<<<<<< HEAD
     "note": "NASA candidate region listed in 2022. Representative point from a NASA table, not an approved landing site. Not included in the 2024 list. Source: NASA Lunar Surface Data Book (2025), table A2.1-1, p. 75, https://ntrs.nasa.gov/citations/20250002845; list: https://www.nasa.gov/news-release/nasa-identifies-candidate-regions-for-landing-next-americans-on-moon/",
-=======
-    "note": "Region kandydacki NASA z listy 2022. Punkt reprezentatywny z tabeli NASA, nie zatwierdzone miejsce lądowania. Nieobecny na liście z 2024 r. Źródło: NASA Lunar Surface Data Book (2025), tabela A2.1-1, s. 75, https://ntrs.nasa.gov/citations/20250002845; lista: https://www.nasa.gov/news-release/nasa-identifies-candidate-regions-for-landing-next-americans-on-moon/",
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
     "nearest_candidate_id": 836002,
     "nearest_candidate_dist_km": 0.144,
     "x_m": -113398.67,
@@ -305,11 +233,7 @@
     "category": "artemis",
     "lat": -84.2287,
     "lon": 69.44396,
-<<<<<<< HEAD
     "note": "NASA candidate region listed in 2022. Representative point from a NASA table, not an approved landing site. Not included in the 2024 list. Source: NASA Lunar Surface Data Book (2025), table A2.1-1, p. 75, https://ntrs.nasa.gov/citations/20250002845; list: https://www.nasa.gov/news-release/nasa-identifies-candidate-regions-for-landing-next-americans-on-moon/",
-=======
-    "note": "Region kandydacki NASA z listy 2022. Punkt reprezentatywny z tabeli NASA, nie zatwierdzone miejsce lądowania. Nieobecny na liście z 2024 r. Źródło: NASA Lunar Surface Data Book (2025), tabela A2.1-1, s. 75, https://ntrs.nasa.gov/citations/20250002845; lista: https://www.nasa.gov/news-release/nasa-identifies-candidate-regions-for-landing-next-americans-on-moon/",
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
     "nearest_candidate_id": 1520528,
     "nearest_candidate_dist_km": 0.025,
     "x_m": 164001.12,
@@ -321,11 +245,7 @@
     "category": "artemis",
     "lat": -86.7639,
     "lon": -22.777,
-<<<<<<< HEAD
     "note": "NASA candidate region listed in 2022 and 2024. Representative point from a NASA table, not an approved landing site. Source: NASA Lunar Surface Data Book (2025), table A2.1-1, p. 75, https://ntrs.nasa.gov/citations/20250002845; list: https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/",
-=======
-    "note": "Region kandydacki NASA z listy 2022 i 2024. Punkt reprezentatywny z tabeli NASA, nie zatwierdzone miejsce lądowania. Źródło: NASA Lunar Surface Data Book (2025), tabela A2.1-1, s. 75, https://ntrs.nasa.gov/citations/20250002845; lista: https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/",
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
     "nearest_candidate_id": 1688752,
     "nearest_candidate_dist_km": 0.026,
     "x_m": -38000.46,
@@ -337,11 +257,7 @@
     "category": "artemis",
     "lat": -85.9948,
     "lon": -0.23578,
-<<<<<<< HEAD
     "note": "NASA candidate region listed in 2022 and 2024. Representative point from a NASA table, not an approved landing site. Source: NASA Lunar Surface Data Book (2025), table A2.1-1, p. 75, https://ntrs.nasa.gov/citations/20250002845; list: https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/",
-=======
-    "note": "Region kandydacki NASA z listy 2022 i 2024. Punkt reprezentatywny z tabeli NASA, nie zatwierdzone miejsce lądowania. Źródło: NASA Lunar Surface Data Book (2025), tabela A2.1-1, s. 75, https://ntrs.nasa.gov/citations/20250002845; lista: https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/",
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
     "nearest_candidate_id": 1864662,
     "nearest_candidate_dist_km": 0.026,
     "x_m": -499.99,
@@ -353,11 +269,7 @@
     "category": "artemis",
     "lat": -85.4381,
     "lon": 37.36667,
-<<<<<<< HEAD
     "note": "NASA candidate region listed in 2022 and 2024. Representative point from a NASA table, not an approved landing site. Source: NASA Lunar Surface Data Book (2025), table A2.1-1, p. 75, https://ntrs.nasa.gov/citations/20250002845; list: https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/",
-=======
-    "note": "Region kandydacki NASA z listy 2022 i 2024. Punkt reprezentatywny z tabeli NASA, nie zatwierdzone miejsce lądowania. Źródło: NASA Lunar Surface Data Book (2025), tabela A2.1-1, s. 75, https://ntrs.nasa.gov/citations/20250002845; lista: https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/",
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
     "nearest_candidate_id": 1809120,
     "nearest_candidate_dist_km": 0.026,
     "x_m": 84000.01,
@@ -369,11 +281,7 @@
     "category": "artemis",
     "lat": -83.954,
     "lon": 58.82206,
-<<<<<<< HEAD
     "note": "NASA candidate region listed in 2022 and 2024. Representative point from a NASA table, not an approved landing site. Source: NASA Lunar Surface Data Book (2025), table A2.1-1, p. 75, https://ntrs.nasa.gov/citations/20250002845; list: https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/",
-=======
-    "note": "Region kandydacki NASA z listy 2022 i 2024. Punkt reprezentatywny z tabeli NASA, nie zatwierdzone miejsce lądowania. Źródło: NASA Lunar Surface Data Book (2025), tabela A2.1-1, s. 75, https://ntrs.nasa.gov/citations/20250002845; lista: https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/",
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
     "nearest_candidate_id": 1718215,
     "nearest_candidate_dist_km": 1.232,
     "x_m": 157000.45,
@@ -385,11 +293,7 @@
     "category": "artemis",
     "lat": -88.23,
     "lon": -64.6284,
-<<<<<<< HEAD
     "note": "NASA candidate region listed in 2022 and 2024. Representative point from a NASA table, not an approved landing site. Source: NASA Lunar Surface Data Book (2025), table A2.1-1, p. 75, https://ntrs.nasa.gov/citations/20250002845; list: https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/",
-=======
-    "note": "Region kandydacki NASA z listy 2022 i 2024. Punkt reprezentatywny z tabeli NASA, nie zatwierdzone miejsce lądowania. Źródło: NASA Lunar Surface Data Book (2025), tabela A2.1-1, s. 75, https://ntrs.nasa.gov/citations/20250002845; lista: https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/",
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
     "nearest_candidate_id": 1292358,
     "nearest_candidate_dist_km": 0.026,
     "x_m": -48499.37,
@@ -401,11 +305,7 @@
     "category": "artemis",
     "lat": -84.3,
     "lon": 30.6,
-<<<<<<< HEAD
     "note": "NASA candidate region listed in 2024. Approximate representative point from Lunar Planner; not an approved landing site. Source: Ohio University Lunar Planner, https://www.its.ohio.edu/foundations/lunar/ ; NASA list: https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/",
-=======
-    "note": "Region kandydacki NASA z listy 2024. Przybliżony punkt reprezentatywny z Lunar Planner; nie zatwierdzone miejsce lądowania. Źródło: Ohio University Lunar Planner, https://www.its.ohio.edu/foundations/lunar/ ; lista NASA: https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/",
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
     "nearest_candidate_id": 2030592,
     "nearest_candidate_dist_km": 0.128,
     "x_m": 88056.93,
@@ -417,11 +317,7 @@
     "category": "artemis",
     "lat": -85.4,
     "lon": 31.7,
-<<<<<<< HEAD
     "note": "NASA candidate region listed in 2024. Approximate representative point from Lunar Planner; not an approved landing site. Source: Ohio University Lunar Planner, https://www.its.ohio.edu/foundations/lunar/ ; NASA list: https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/ Formerly Leibnitz Beta (renamed by NASA in 2022).",
-=======
-    "note": "Region kandydacki NASA z listy 2024. Przybliżony punkt reprezentatywny z Lunar Planner; nie zatwierdzone miejsce lądowania. Źródło: Ohio University Lunar Planner, https://www.its.ohio.edu/foundations/lunar/ ; lista NASA: https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/ Dawniej Leibnitz Beta (nazwa zmieniona przez NASA w 2022).",
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
     "nearest_candidate_id": 1855357,
     "nearest_candidate_dist_km": 0.073,
     "x_m": 73336.08,
@@ -433,11 +329,7 @@
     "category": "artemis",
     "lat": -87.2,
     "lon": 125.5,
-<<<<<<< HEAD
     "note": "NASA candidate region listed in 2024. Approximate representative point from Lunar Planner; not an approved landing site. Source: Ohio University Lunar Planner, https://www.its.ohio.edu/foundations/lunar/ ; NASA list: https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/",
-=======
-    "note": "Region kandydacki NASA z listy 2024. Przybliżony punkt reprezentatywny z Lunar Planner; nie zatwierdzone miejsce lądowania. Źródło: Ohio University Lunar Planner, https://www.its.ohio.edu/foundations/lunar/ ; lista NASA: https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/",
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
     "nearest_candidate_id": 876796,
     "nearest_candidate_dist_km": 0.144,
     "x_m": 69136.55,
@@ -449,11 +341,7 @@
     "category": "clps",
     "lat": -84.7906,
     "lon": 29.1957,
-<<<<<<< HEAD
     "note": "Actual landing site on March 6, 2025, on Mons Mouton; the lander came to rest on its side. Source: LROC, https://lroc.im-ldi.com/images/1408",
-=======
-    "note": "Rzeczywiste miejsce lądowania 6 marca 2025 r. na Mons Mouton; lądownik spoczął na boku. Źródło: LROC, https://lroc.im-ldi.com/images/1408",
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
     "nearest_candidate_id": 1971940,
     "nearest_candidate_dist_km": 0.093,
     "x_m": 77108.24,

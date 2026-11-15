@@ -1,12 +1,4 @@
-<<<<<<< HEAD
-import { useCallback } from 'react'
-import { useStore } from './store'
-
-export type Lang = 'en'
-export const LANGS: readonly Lang[] = ['en']
-=======
 // Teksty interfejsu (tylko angielski). Wszystkie napisy UI idą przez t()/useT().
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
 
 const en: Record<string, string> = {
   'app.name': 'Lunar Navigator',
@@ -249,36 +241,19 @@ const en: Record<string, string> = {
   'gloss.dist_psr_km': 'PSR stands for permanently shadowed region: a crater floor the Sun never reaches. Water ice may survive there, so a base wants one within driving distance.',
 }
 
-<<<<<<< HEAD
-export const dictionary: Record<Lang, Record<string, string>> = { en }
-
-/** Look up a label, falling back to its key. */
-export function translate(lang: Lang, key: string): string {
-  return dictionary[lang][key] ?? dictionary.en[key] ?? key
-=======
 export const dictionary: Record<string, string> = en
 
 /** Tekst dla klucza; brak klucza = sam klucz (widać go w UI, łatwo wyłapać). */
 export function t(key: string): string {
   return dictionary[key] ?? key
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
 }
 
-/** Substitute known placeholders; preserve unknown names. */
+/** Podstawia {nazwa} w tekście tłumaczenia. Nieznane nazwy zostają bez zmian. */
 export function fill(template: string, vars: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/g, (m: string, k: string) => (k in vars ? String(vars[k]) : m))
 }
 
-<<<<<<< HEAD
-/** Translation outside React rendering; use `useT` in components. */
-export function t(key: string): string {
-  return translate(useStore.getState().lang, key)
-}
-
-/** Hook returning the translation function. */
-=======
 /** Hook zostawiony dla komponentów (jedno miejsce, gdyby wrócił drugi język). */
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
 export function useT(): (key: string) => string {
   return t
 }

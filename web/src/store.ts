@@ -25,21 +25,6 @@ const DEFAULT_OVERLAY_OPACITY = 0.7
 /** Pole wartości półprzezroczyste: rzeźba terenu prześwituje. */
 const DEFAULT_POINTS_OPACITY = 0.72
 
-<<<<<<< HEAD
-const LANG_STORAGE_KEY = 'lunar-navigator.lang'
-
-function readStoredLang(): Lang {
-  try {
-    const v = localStorage.getItem(LANG_STORAGE_KEY)
-    if (v === 'en') return v
-  } catch {
-    // brak localStorage (tryb prywatny, testy w node): zostaje domyślny
-  }
-  return 'en'
-}
-
-=======
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
 export const TOP_N = 10
 export const DEFAULT_NMS_RADIUS_KM = 5
 
