@@ -74,7 +74,6 @@ function Explorer() {
   const compare = useStore((s) => s.compareIndex)
   const picking = useStore((s) => s.picking)
   const rankingShown = useStore((s) => s.rankingShown)
-  const setRankingShown = useStore((s) => s.setRankingShown)
   const sitesShown = useStore((s) => s.layers.sites)
   const hasSites = useStore((s) => s.sites.some((x) => x.x_m !== null && !isMockSite(x)))
   const setLayerVisible = useStore((s) => s.setLayerVisible)
@@ -131,9 +130,6 @@ function Explorer() {
           </div>
           <div className="ui-right">
             {mock && <div className="mock-banner">{t('sp.mock')}</div>}
-            {rankingShown && (
-              <TogglePill on label={t('rank.pill')} onClick={() => setRankingShown(false)} />
-            )}
             {hasSites && (
               <TogglePill on={sitesShown} label={t('sites.pill')} onClick={() => setLayerVisible('sites', !sitesShown)} />
             )}

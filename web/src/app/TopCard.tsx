@@ -21,6 +21,7 @@ export function TopCard() {
   const focusIndex = useStore((s) => s.focusIndex)
   const setHoverIndex = useStore((s) => s.setHoverIndex)
   const clearFilters = useStore((s) => s.clearFilters)
+  const setRankingShown = useStore((s) => s.setRankingShown)
   const passCount = useStore((s) => s.passCount)
   const filtered = useStore((s) => Object.keys(s.filters).length > 0)
   // Na telefonie karta startuje zwinięta, żeby nie zasłaniać mapy.
@@ -31,11 +32,16 @@ export function TopCard() {
   return (
     <section className={`top-card glass${open ? ' open' : ''}`} aria-labelledby="top-card-title"
       style={{ '--mode': MODE_THEMES[colorBy].accent } as CSSProperties}>
-      <button type="button" className="top-head" aria-expanded={open} aria-controls="top-card-body"
-        title={t('top.toggle')} onClick={() => setOpen(!open)}>
-        <h2 id="top-card-title">{t('top.title')} <span className="top-mode">{t(`modeFull.${colorBy}`)}{year !== null && ` · ${year}`}</span></h2>
-        <span className="chev" aria-hidden="true">{open ? '▾' : '▸'}</span>
-      </button>
+      <div className="top-headrow">
+        <button type="button" className="top-head" aria-expanded={open} aria-controls="top-card-body"
+          title={t('top.toggle')} onClick={() => setOpen(!open)}>
+          <h2 id="top-card-title">{t('top.title')} <span className="top-mode">{t(`modeFull.${colorBy}`)}{year !== null && ` · ${year}`}</span></h2>
+          <span className="chev" aria-hidden="true">{open ? '▾' : '▸'}</span>
+        </button>
+        {/* Zamyka ranking: mapa wraca do samej rzeźby terenu, wraca karta „Gdzie wylądować?”. */}
+        <button type="button" className="icon-btn top-close" aria-label={t('top.close')} title={t('top.close')}
+          onClick={() => setRankingShown(false)}>×</button>
+      </div>
       <div id="top-card-body" className="top-body" hidden={!open}>
         {filtered && <p className="top-pass">{fill(t('top.pass'), { n: passCount, total: candidates.n })}</p>}
         {top.length === 0 ? (

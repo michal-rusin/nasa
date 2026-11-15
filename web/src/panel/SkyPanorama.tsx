@@ -92,27 +92,37 @@ export function SkyPanorama({ slot, index }: Props) {
     ]
   }, [data, meta, k])
 
+  // Rysowanie: najwyżej raz na klatkę, zawsze z najnowszym stanem. Zaplanowanej klatki nie
+  // anulujemy przy każdej zmianie: przy odtwarzaniu kursor zmienia się co klatkę i anulowanie
+  // zagłodziłoby rysowanie (obrót widoku pojawiał się dopiero po zatrzymaniu).
+  const frame = useRef({ size, data, sky, basis, meta, sunFraction, view, stars, labels, tracks })
+  const rafId = useRef(0)
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas || size.w <= 0 || size.h <= 0) return
-    const id = requestAnimationFrame(() => {
-      canvas.width = Math.round(size.w * size.dpr)
-      canvas.height = Math.round(size.h * size.dpr)
+    frame.current = { size, data, sky, basis, meta, sunFraction, view, stars, labels, tracks }
+    if (rafId.current) return
+    rafId.current = requestAnimationFrame(() => {
+      rafId.current = 0
+      const canvas = canvasRef.current
+      const f = frame.current
+      if (!canvas || f.size.w <= 0 || f.size.h <= 0) return
+      const cw = Math.round(f.size.w * f.size.dpr), ch = Math.round(f.size.h * f.size.dpr)
+      if (canvas.width !== cw) canvas.width = cw
+      if (canvas.height !== ch) canvas.height = ch
       const ctx = canvas.getContext('2d')
       if (!ctx) return
-      ctx.setTransform(size.dpr, 0, 0, size.dpr, 0, 0)
-      if (!data || !sky || !basis || !meta) {
+      ctx.setTransform(f.size.dpr, 0, 0, f.size.dpr, 0, 0)
+      if (!f.data || !f.sky || !f.basis || !f.meta) {
         ctx.fillStyle = '#02030a'
-        ctx.fillRect(0, 0, size.w, size.h)
+        ctx.fillRect(0, 0, f.size.w, f.size.h)
         return
       }
       drawSky(ctx, {
-        w: size.w, h: size.h, mask: data.mask, sky, sunFraction,
-        sunRadiusDeg: meta.sun_radius_deg, basis, view, stars, labels, tracks,
+        w: f.size.w, h: f.size.h, mask: f.data.mask, sky: f.sky, sunFraction: f.sunFraction,
+        sunRadiusDeg: f.meta.sun_radius_deg, basis: f.basis, view: f.view, stars: f.stars, labels: f.labels, tracks: f.tracks,
       })
     })
-    return () => cancelAnimationFrame(id)
   }, [size, data, sky, basis, meta, sunFraction, view, stars, labels, tracks])
+  useEffect(() => () => { cancelAnimationFrame(rafId.current); rafId.current = 0 }, [])
 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
     if ((e.target as HTMLElement).closest('button')) return
