@@ -1,4 +1,7 @@
-"""Check sites.json and dist_psr_km in the delivered files. Run: python engine/tools/check_sites.py"""
+"""Check sites.json and dist_psr_km in the delivered files. Run: python engine/tools/check_sites.py
+
+Written with AI assistance (Claude Code and other AI assistants);
+reviewed and tested by the team. NASA Space Apps Challenge 2026."""
 import sys, json
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))

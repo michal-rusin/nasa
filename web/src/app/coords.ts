@@ -1,3 +1,6 @@
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
+
 /** Display selenographic coordinates: “89.53°S 129.89°E”. NaN/missing → `na`. */
 export function fmtCoord(lat: number | undefined, lon: number | undefined, digits = 2, na = 'n/a'): string {
   if (lat === undefined || lon === undefined || !Number.isFinite(lat) || !Number.isFinite(lon)) return na

@@ -1,4 +1,7 @@
-"""Sample slope_deg (LDSM) and dist_psr_km rasters at candidate grid points (Task 10)."""
+"""Sample slope_deg (LDSM) and dist_psr_km rasters at candidate grid points (Task 10).
+
+Written with AI assistance (Claude Code and other AI assistants);
+reviewed and tested by the team. NASA Space Apps Challenge 2026."""
 from pathlib import Path
 import numpy as np
 import rasterio

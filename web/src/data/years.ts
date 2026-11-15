@@ -1,5 +1,8 @@
 // Years in the data (contract 1.4 and 3.4): ephem.bin spans multiple years; candidates.bin and
 // validation.json cover only `candidates_period`; metrics_by_year.bin contains metrics for each year.
+//
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
 
 import type { Candidates, Meta } from './types'
 

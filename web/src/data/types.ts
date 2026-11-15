@@ -1,4 +1,7 @@
 // Data types from docs/contracts.md (v1). Field names match the contract exactly.
+//
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
 
 /** candidates.bin columns (contract 3.1). Read FILE order from metadata, not here. */
 export const COLUMN_NAMES = [

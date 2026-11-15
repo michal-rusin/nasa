@@ -1,4 +1,7 @@
 // Time-to-state-change counters on hourly physics/series data (no additional physics).
+//
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
 
 export interface Transition {
   /** State at step `from`. */

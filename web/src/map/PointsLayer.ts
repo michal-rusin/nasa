@@ -1,3 +1,6 @@
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
+
 import type { FrameState } from 'ol/Map'
 import Layer from 'ol/layer/Layer'
 import { NO_DATA_RGB, normalize, rampRgb, rgbCss, type Range, type RGB } from './colors'

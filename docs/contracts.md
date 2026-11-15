@@ -3,6 +3,7 @@
 **Project:** Lunar Landing Site Navigator (NASA Space Apps 2026)
 **Audience:** engine developer (Python) and their AI assistant
 **Frontend owner:** Michał
+**Use of AI:** this document and the code were written with AI assistance (Claude Code and other AI assistants) and reviewed by the team.
 
 This document specifies **exactly** which files the engine must produce, their formats, and the conventions they follow. The frontend is a static website without a backend: it only reads these files. Every format change requires incrementing `contract_version` in `meta.json` and notifying the frontend.
 

@@ -1,4 +1,7 @@
 // Pure timeline helpers.
+//
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
 
 /** Bucket means: compress n samples into `width` columns (aggregation, not sampling). */
 export function bucketMean(a: ArrayLike<number>, width: number): Float32Array {

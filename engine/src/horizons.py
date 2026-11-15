@@ -1,4 +1,7 @@
-"""Horizons query -> ephem.bin (owner: friend)."""
+"""Horizons query -> ephem.bin (owner: friend).
+
+Written with AI assistance (Claude Code and other AI assistants);
+reviewed and tested by the team. NASA Space Apps Challenge 2026."""
 import calendar
 from pathlib import Path
 import numpy as np

@@ -1,3 +1,6 @@
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
+
 import { describe, expect, it } from 'vitest'
 import { COLUMN_NAMES, YEAR_ONLY_COLUMNS, type Candidates, type ColumnName, type MetricKey } from '../data/types'
 import { passMask } from './filters'

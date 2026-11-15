@@ -1,4 +1,7 @@
 // Local ENU frame at a point on a sphere (contract 1.2). Vectors in MOON_ME.
+//
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
 
 export type Vec3 = readonly [number, number, number]
 

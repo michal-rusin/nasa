@@ -1,3 +1,6 @@
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
+
 /** Apollo landing sites. lat: N+, lon: E+ (degrees). */
 // source: LROC, to be verified by the data team
 export interface ApolloSite {

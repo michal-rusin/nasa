@@ -1,4 +1,7 @@
 // Stan samouczka: który krok, w którą stronę weszliśmy i sygnały z widoków (np. „globus obrócony”).
+//
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
 
 import { create } from 'zustand'
 

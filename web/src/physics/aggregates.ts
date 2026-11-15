@@ -1,4 +1,7 @@
 // Series metrics (contract 2.3). Runs are intervals without wraparound.
+//
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
 
 export const DEFAULT_NIGHT_THRESHOLD = 0.01
 

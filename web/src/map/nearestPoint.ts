@@ -1,3 +1,6 @@
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
+
 /**
  * Index of the point (cx[i], cy[i]) nearest to (x, y), within maxDistM.
  * Returns −1 if no point is within the radius. Points containing NaN are skipped.

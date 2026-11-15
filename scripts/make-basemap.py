@@ -5,6 +5,9 @@ averages to --px × --px, computes visual hillshade, and saves an 8-bit grayscal
 PNG. Also saves basemap_check.png with random candidates and the 84°S circle.
 
 Run:  python scripts/make-basemap.py [--dem FILE] [--out PNG] [--px 4096]
+
+Written with AI assistance (Claude Code and other AI assistants);
+reviewed and tested by the team. NASA Space Apps Challenge 2026.
 """
 from __future__ import annotations
 

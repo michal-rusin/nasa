@@ -1,4 +1,7 @@
 /// <reference types="node" />
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
+
 // Check TS physics against validation.json and candidates.bin (contract 6).
 // Read data from disk: web/public/data and web/public/data/sample (if present).
 import { existsSync, readFileSync } from 'node:fs'

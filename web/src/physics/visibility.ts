@@ -1,4 +1,7 @@
 // Sun and Earth visibility at one step (contract 2.1, 2.2).
+//
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
 
 /** Default solar angular radius (contract 2.1); use the actual value from meta.sun_radius_deg. */
 export const DEFAULT_SUN_RADIUS_DEG = 0.2666

@@ -1,3 +1,6 @@
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
+
 import { afterEach, describe, expect, it } from 'vitest'
 import { MASK_RECORD_BYTES, MASK_SAMPLES, maskFromBuffer } from '../physics'
 import { _resetMasksForTests, getMask, StaleRequestError } from './masks'

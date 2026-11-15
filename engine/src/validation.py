@@ -1,4 +1,7 @@
-"""validation.json (contract section 6). Owner: Jacob."""
+"""validation.json (contract section 6). Owner: Jacob.
+
+Written with AI assistance (Claude Code and other AI assistants);
+reviewed and tested by the team. NASA Space Apps Challenge 2026."""
 import json
 import numpy as np
 from metrics import series_one, enu, longest_by_year

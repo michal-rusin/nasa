@@ -1,5 +1,8 @@
 // Point color scale: like a hypsometric map, from red (worst) through orange
 // and yellow to green (best). Pure functions, no DOM.
+//
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
 
 export type RGB = readonly [number, number, number]
 

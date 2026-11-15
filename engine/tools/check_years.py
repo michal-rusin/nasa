@@ -1,4 +1,7 @@
-"""How much do individual points change between years? Run: python engine/tools/check_years.py"""
+"""How much do individual points change between years? Run: python engine/tools/check_years.py
+
+Written with AI assistance (Claude Code and other AI assistants);
+reviewed and tested by the team. NASA Space Apps Challenge 2026."""
 import json
 from pathlib import Path
 import numpy as np

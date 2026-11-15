@@ -1,3 +1,6 @@
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
+
 import { describe, expect, it } from 'vitest'
 import { fill, t } from './i18n'
 

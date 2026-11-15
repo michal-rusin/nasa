@@ -1,3 +1,6 @@
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
+
 import { useEffect, useMemo, useRef, type PointerEvent } from 'react'
 import { getProjString } from '../data/load'
 import { useT } from '../i18n'

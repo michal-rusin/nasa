@@ -1,3 +1,6 @@
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
+
 import 'ol/ol.css'
 import { useEffect, useMemo, useRef } from 'react'
 import { isMockSite } from '../app/sites'

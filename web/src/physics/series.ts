@@ -1,4 +1,7 @@
 // Hourly series for one point from its mask and ephem.bin (contract 2, 3.3).
+//
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
 
 import { azimuthDeg, elevationDeg, enuBasis } from './enu'
 import { maskHeightDeg } from './mask'

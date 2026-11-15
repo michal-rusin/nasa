@@ -1,4 +1,7 @@
-"""Print DEM CRS and run the Shackleton test (to be written)."""
+"""Print DEM CRS and run the Shackleton test (to be written).
+
+Written with AI assistance (Claude Code and other AI assistants);
+reviewed and tested by the team. NASA Space Apps Challenge 2026."""
 """Sanity checks for the DEMs. Run: python engine/tools/check_dem.py"""
 import sys
 from pathlib import Path

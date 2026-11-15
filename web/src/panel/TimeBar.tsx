@@ -1,3 +1,6 @@
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
+
 import { useId } from 'react'
 import { YearPicker } from '../app/YearPicker'
 import { fill, useT } from '../i18n'

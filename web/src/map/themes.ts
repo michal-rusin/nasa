@@ -1,5 +1,8 @@
 // Each ranking mode (combined score or single metric) has its own map color scale
 // and accent color for Top 10 badges, list, and legend. Pure data, no DOM.
+//
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
 
 import type { ColorKey } from '../store'
 import { RAMP_STOPS, type RGB } from './colors'
