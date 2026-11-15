@@ -209,7 +209,6 @@ Notes:
 - `sun_pct`, `earth_pct`: definitions from 2.3, averaged over that year's steps.
 - `longest_night_h`, `longest_comm_gap_h`: **the longest run overlapping that year, calculated over the entire 10-year series (a night crossing a year boundary counts in full)**, thus counting in both overlapping years. Reason: lunar seasons (eclipse year of 346.6 days) shift relative to the calendar, so cutting at January 1 would split long nights into two shorter ones. Cap the value at the year's duration (8760 h, or 8784 h in leap years 2028, 2032, 2036); a value equal to the year's duration means darkness/no communication throughout the year.
 - `candidates.bin` retains the original definition from 2.3: only 2028, with runs clipped at year boundaries. Thus `sun_pct` and `earth_pct` for 2028 equal those in `candidates.bin`, while `longest_*` for 2028 may be **larger** here.
-<<<<<<< HEAD
 - **Panel power** (`power_*`, W/m²). For every point and hourly step `k`:
   - `f`, `el`, `az`: as in 2.1 (Sun direction from the Moon's center, disk-center `el`/`az` in the point's ENU frame, and `f` as the visible fraction of the disk).
   - `d` = number of days since 2000-01-03 00:00 UTC at the step time (`t0 + k · 1 h`); `r = 1 − 0.0167 · cos(2π·d / 365.256)`; `S = 1361 / r²`.
@@ -222,9 +221,6 @@ Notes:
   - All sums (`w`, `hist`, means) use `float64`; values are stored as `float32`, like the rest of the file. `power_fixed_wm2 ≤ power_track_wm2` always holds.
   - Calculated in the same pass over the 10-year series as `longest_*`. `validation.json` contains the same three fields for 2028 (section 6).
 - Size: `n_points · 10 · 7 · 4 B` (~11.3 MB for ~40,000 points).
-=======
-- Size: `n_points · 10 · 4 · 4 B` (~6.5 MB for ~40,000 points).
->>>>>>> ebd988437cabbdb109387620dcf14406595144d9
 
 ```python
 mby = np.fromfile('metrics_by_year.bin', '<f4').reshape(n_points, len(years), len(columns))
@@ -359,11 +355,8 @@ Full hourly series for 3–5 points of different types: a well-lit ridge, a crat
 ]
 ```
 
-<<<<<<< HEAD
 `power_*` follows 3.4 and is identical to `metrics_by_year.bin` for 2028 (`float32` values). `NaN` is stored as `null` because `JSON.parse` does not accept `NaN`.
 
-=======
->>>>>>> ebd988437cabbdb109387620dcf14406595144d9
 Series and values cover 2028 (`candidates_period`), i.e. 8784 steps. The frontend calculates the same values from the mask and first 8784 steps of `ephem.bin`, then checks agreement (target: `sun_pct` difference ≤ 1 percentage point). This is the only safeguard against the Python and JS visibility logic silently diverging.
 
 Engine sanity checks:
@@ -418,7 +411,4 @@ To confirm:
 
 - **2026-11-14:** grid extended to 84°S (previously 85°S), fixed `layers.bounds_m` ±185000 m, PNG 4096 × 4096 with pixel-edge bounds and row/column orientation (5.2), 4 km threshold for `nearest_candidate_id` (5.3). Binary formats unchanged; `contract_version` remains 1.
 - **2026-11-15:** `ephem.bin` extended to 10 years, 2028–2037 (`n_steps = 87672`), new `metrics_by_year.bin` file (3.4), new metadata fields: `candidates_period`, `metrics_by_year`. `candidates.bin` and `validation.json` unchanged (year 2028). The frontend must calculate comparisons over steps `0..8783` (1.4). `contract_version` remains 1.
-<<<<<<< HEAD
 - **2026-11-15:** `metrics_by_year.bin` expanded from 4 to 7 columns with `power_track_wm2`, `power_fixed_wm2`, and `power_fixed_az_deg` (3.4), layout `[n_points, 10, 7]`, ~11.3 MB. `longest_*` values are capped at the year's duration. `validation.json` contains the same three fields for 2028, with `NaN` stored as `null` (6). `meta.metrics_by_year.columns` was updated. `contract_version` remains 1.
-=======
->>>>>>> ebd988437cabbdb109387620dcf14406595144d9

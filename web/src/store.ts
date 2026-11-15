@@ -25,24 +25,6 @@ const DEFAULT_OVERLAY_OPACITY = 0.7
 /** Translucent value field: terrain shows through. */
 const DEFAULT_POINTS_OPACITY = 0.72
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-const LANG_STORAGE_KEY = 'lunar-navigator.lang'
-
-function readStoredLang(): Lang {
-  try {
-    const v = localStorage.getItem(LANG_STORAGE_KEY)
-    if (v === 'en') return v
-  } catch {
-    // localStorage unavailable (private mode, Node tests): keep the default
-  }
-  return 'en'
-}
-
-=======
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
-=======
->>>>>>> ebd988437cabbdb109387620dcf14406595144d9
 export const TOP_N = 10
 export const DEFAULT_NMS_RADIUS_KM = 5
 
