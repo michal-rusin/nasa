@@ -1,6 +1,6 @@
-// Rysowanie panoramy nieba na canvasie 2D. Rzut równoprostokątny w oknie fov × (fov·h/w):
-// x = środek + Δaz·k, y = środek − (el − el₀)·k, k = w/fov px na stopień.
-// Czarne niebo (brak atmosfery), gwiazdy z katalogu, Słońce 0,53°, Ziemia ≈1,9° z fazą, teren z maski.
+// Draw the sky panorama on a 2D canvas. Equirectangular projection in a fov × (fov·h/w) window:
+// x = center + Δaz·k, y = center − (el − el₀)·k, k = w/fov px per degree.
+// Black sky (no atmosphere), catalog stars, Sun 0.53°, phased Earth ≈1.9°, terrain from mask.
 
 import { maskHeightDeg, type EnuBasis } from '../physics'
 import { earthLitFraction, starEnu, wrapDeg, type SkyState, type StarCatalog } from './sky'
@@ -17,18 +17,18 @@ export interface SkyDrawInput {
   h: number
   mask: Int16Array
   sky: SkyState
-  /** Ułamek tarczy Słońca nad horyzontem (series.f). */
+  /** Solar disk fraction above the horizon (series.f). */
   sunFraction: number
   sunRadiusDeg: number
   basis: EnuBasis
   view: SkyView
   stars: StarCatalog | null
   labels: { sun: string; earth: string }
-  /** Tory Słońca i Ziemi na niebie (z szeregów series), rysowane nad terenem. */
+  /** Sun and Earth sky tracks (from series), drawn over terrain. */
   tracks?: readonly SkyTrack[]
 }
 
-/** Tor ciała na niebie w oknie kroków [from, to]; now = bieżący krok (przeszłość bledsza). */
+/** Body sky track over steps [from, to]; now = current step (past is fainter). */
 export interface SkyTrack {
   az: ArrayLike<number>
   el: ArrayLike<number>
@@ -37,13 +37,13 @@ export interface SkyTrack {
   now: number
   stepH: number
   rgb: readonly [number, number, number]
-  /** Co ile dób znacznik z podpisem (Ziemia porusza się wolno: co tydzień). */
+  /** Days between labeled markers (Earth moves slowly: weekly). */
   tickDays: number
 }
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
 
-/** Kolor gwiazdy z indeksu B–V (niebieskie → białe → pomarańczowe). */
+/** Star color from B–V index (blue → white → orange). */
 function starRgb(bv: number): [number, number, number] {
   if (bv < 0.0) return [170, 195, 255]
   if (bv < 0.4) return [205, 220, 255]
@@ -60,7 +60,7 @@ export function drawSky(ctx: CanvasRenderingContext2D, inp: SkyDrawInput): void 
   const sunUp = clamp01((sky.sunEl + 0.8) / 2.5)
   const sunVis = Math.sqrt(clamp01(inp.sunFraction))
 
-  // 1. Tło: prawie czarne, z ledwo zaznaczoną poświatą przy horyzoncie.
+  // 1. Background: nearly black, with a faint horizon glow.
   const horizonY = Y(0)
   const bg = ctx.createLinearGradient(0, 0, 0, Math.max(h, horizonY))
   bg.addColorStop(0, '#000104')
@@ -68,11 +68,11 @@ export function drawSky(ctx: CanvasRenderingContext2D, inp: SkyDrawInput): void 
   ctx.fillStyle = bg
   ctx.fillRect(0, 0, w, h)
 
-  // 2. Skala elewacji: delikatne linie co 5° z opisem po lewej.
+  // 2. Elevation scale: subtle lines every 5° with labels on the left.
   ctx.font = `10px ${MONO}`
   ctx.textBaseline = 'middle'
   ctx.textAlign = 'left'
-  // Linie co 5°, a przy małej skali rzadziej, żeby odstęp między nimi był ≥ 26 px.
+  // Lines every 5°, less often at small scales to keep spacing ≥ 26 px.
   const elStep = k * 5 >= 26 ? 5 : k * 10 >= 26 ? 10 : 15
   for (let e = elStep; e <= 85; e += elStep) {
     const y = Y(e)
@@ -83,7 +83,7 @@ export function drawSky(ctx: CanvasRenderingContext2D, inp: SkyDrawInput): void 
     ctx.fillText(`${e}°`, 10, y - 8)
   }
 
-  // 3. Gwiazdy: kolor z B–V, wielkość z jasności; zalewane blaskiem Słońca w jego pobliżu.
+  // 3. Stars: color from B–V, size from brightness; washed out near the Sun.
   const cat = inp.stars
   if (cat && cat.n > 0) {
     const cd = Math.cos(sky.starDeltaDeg / RAD)
@@ -114,7 +114,7 @@ export function drawSky(ctx: CanvasRenderingContext2D, inp: SkyDrawInput): void 
       ctx.arc(x, y, r, 0, TAU)
       ctx.fill()
       if (mag < 1.5) {
-        // Najjaśniejsze: miękki halo.
+        // Brightest stars: soft halo.
         const g = ctx.createRadialGradient(x, y, 0, x, y, r * 5)
         g.addColorStop(0, `rgba(${cr},${cg},${cb},${(alpha * 0.35).toFixed(3)})`)
         g.addColorStop(1, `rgba(${cr},${cg},${cb},0)`)
@@ -124,13 +124,13 @@ export function drawSky(ctx: CanvasRenderingContext2D, inp: SkyDrawInput): void 
     }
   }
 
-  // 4. Ziemia: prawdziwy rozmiar kątowy, faza i jasny limb zwrócony ku Słońcu.
+  // 4. Earth: true angular size, phase, and bright limb facing the Sun.
   const ex = X(sky.earthAz)
   const ey = Y(sky.earthEl)
   const er = Math.max(5, (sky.earthDiamDeg / 2) * k)
   if (ex > -er * 4 && ex < w + er * 4) drawEarth(ctx, ex, ey, er, sky.earthPhaseDeg, sky.earthLimbRad)
 
-  // 5. Słońce: tarcza 0,53°, poświata addytywna (nad terenem, więc ją przycina sylwetka).
+  // 5. Sun: 0.53° disk, additive glow (behind terrain, clipped by the silhouette).
   const sx = X(sky.sunAz)
   const sy = Y(sky.sunEl)
   const sr = Math.max(3, inp.sunRadiusDeg * k)
@@ -153,7 +153,7 @@ export function drawSky(ctx: CanvasRenderingContext2D, inp: SkyDrawInput): void 
     ctx.fill()
   }
 
-  // 6. Teren: sylwetka z maski, gradient wg wysokości, światło Słońca i Ziemi na grzbiecie.
+  // 6. Terrain: mask silhouette, height gradient, sunlight and earthlight on the ridge.
   const xs: number[] = []
   const ys: number[] = []
   let yTop = h
@@ -211,7 +211,7 @@ export function drawSky(ctx: CanvasRenderingContext2D, inp: SkyDrawInput): void 
       ctx.fillRect(xs[i]!, 0, COLUMN_STEP_PX, LIT_DEPTH_PX * 0.6)
     }
     ctx.restore()
-    // Jasna krawędź grzbietu.
+    // Bright ridge edge.
     ctx.beginPath()
     ctx.moveTo(xs[i]!, y0)
     ctx.lineTo(xs[i + 1]!, ys[i + 1]!)
@@ -221,10 +221,10 @@ export function drawSky(ctx: CanvasRenderingContext2D, inp: SkyDrawInput): void 
     ctx.stroke()
   }
 
-  // 6b. Tory Słońca i Ziemi: linia ciągła tam, gdzie ciało jest nad terenem, przerywana za górami.
+  // 6b. Sun and Earth tracks: solid above terrain, dashed behind mountains.
   if (inp.tracks) for (const tr of inp.tracks) drawTrack(ctx, tr, w, h, X, Y, mask)
 
-  // 7. Etykiety Słońca i Ziemi nad terenem.
+  // 7. Sun and Earth labels above terrain.
   ctx.font = `500 10px ${MONO}`
   ctx.textBaseline = 'alphabetic'
   ctx.textAlign = 'left'
@@ -237,7 +237,7 @@ export function drawSky(ctx: CanvasRenderingContext2D, inp: SkyDrawInput): void 
   label(inp.labels.sun, sx, sy, sr, 'rgba(255,235,200,0.85)')
   label(inp.labels.earth, ex, ey, er, 'rgba(170,205,255,0.9)')
 
-  // 8. Kompas przy dolnej krawędzi.
+  // 8. Compass at the bottom edge.
   drawCompass(ctx, w, h, view, k)
 }
 
@@ -246,7 +246,7 @@ function drawEarth(
 ): void {
   const lit = earthLitFraction(phaseDeg)
   ctx.save()
-  // Poświata atmosfery.
+  // Atmospheric glow.
   ctx.globalCompositeOperation = 'lighter'
   const halo = ctx.createRadialGradient(x, y, r * 0.9, x, y, r * 3.2)
   halo.addColorStop(0, `rgba(110,165,255,${(0.22 * lit + 0.03).toFixed(3)})`)
@@ -257,7 +257,7 @@ function drawEarth(
 
   ctx.save()
   ctx.translate(x, y)
-  // Strona nocna: światło popielate.
+  // Night side: reflected light.
   const night = ctx.createRadialGradient(0, 0, 0, 0, 0, r)
   night.addColorStop(0, '#0f1c33')
   night.addColorStop(1, '#070f1e')
@@ -266,7 +266,7 @@ function drawEarth(
   ctx.arc(0, 0, r, 0, TAU)
   ctx.fill()
 
-  // Strona dzienna: półkole + połowa elipsy terminatora; jasny limb po +x po obrocie.
+  // Day side: semicircle + half terminator ellipse; bright limb along +x after rotation.
   ctx.rotate(limbRad)
   const c = Math.cos((phaseDeg * Math.PI) / 180)
   ctx.beginPath()
@@ -281,7 +281,7 @@ function drawEarth(
   ctx.fill()
   ctx.restore()
 
-  // Cienki rąbek atmosfery.
+  // Thin atmospheric rim.
   ctx.save()
   ctx.beginPath()
   ctx.arc(x, y, r, 0, TAU)
@@ -299,7 +299,7 @@ function drawTrack(
   const from = Math.max(0, tr.from)
   const to = Math.min(n - 1, tr.to)
   if (to <= from) return
-  const stride = Math.max(1, Math.round(2 / tr.stepH)) // próbka co ~2 h
+  const stride = Math.max(1, Math.round(2 / tr.stepH)) // sample every ~2 h
   const [r, g, b] = tr.rgb
   ctx.save()
   ctx.lineCap = 'round'
@@ -308,7 +308,7 @@ function drawTrack(
     const az = tr.az[i]!, el = tr.el[i]!
     const x = X(az), y = Y(el)
     const vis = el >= maskHeightDeg(mask, az)
-    // Przeskok przez krawędź panoramy (zawinięcie azymutu) albo daleko poza kadrem: przerwa.
+    // Break at panorama-edge crossings (azimuth wrap) or far outside the frame.
     const jump = Math.abs(x - px) > w / 2
     const off = (y < -40 && py < -40) || (y > h + 40 && py > h + 40)
     if (!Number.isNaN(px) && !jump && !off) {
@@ -326,7 +326,7 @@ function drawTrack(
   }
   ctx.setLineDash([])
 
-  // Znaczniki co dobę od teraz; podpis „+N d”, gdy jest dość miejsca od poprzedniego podpisu.
+  // Daily markers from now; label “+N d” when sufficiently separated from the previous label.
   const day = Math.max(1, Math.round(24 / tr.stepH)) * tr.tickDays
   ctx.font = `10px ${MONO}`
   ctx.textAlign = 'center'

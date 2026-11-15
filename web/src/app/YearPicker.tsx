@@ -2,8 +2,8 @@ import { useT } from '../i18n'
 import { useStore } from '../store'
 
 /**
- * Wybór roku (metrics_by_year): ‹ 2028 ›. Jeden stan dla rankingu na mapie i osi czasu,
- * więc kontrolka może stać w kilku miejscach. Dane jednoroczne = nic nie renderuje.
+ * Year selection (metrics_by_year): ‹ 2028 ›. Shared state for map ranking and timeline,
+ * so the control can appear in multiple places. Single-year data renders nothing.
  */
 export function YearPicker({ className = '' }: { className?: string }) {
   const t = useT()

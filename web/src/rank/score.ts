@@ -1,6 +1,6 @@
 import { METRIC_KEYS, type MetricKey } from '../data/types'
 
-/** score[i] = Σ w_k · norm_k[i] / Σ w_k. Wagi ujemne traktujemy jak 0; suma 0 → same zera. */
+/** score[i] = Σ w_k · norm_k[i] / Σ w_k. Treat negative weights as 0; zero sum → all zeros. */
 export function computeScore(
   norms: Record<MetricKey, Float32Array>,
   weights: Partial<Record<MetricKey, number>>,

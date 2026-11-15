@@ -5,7 +5,7 @@ import { useStore } from '../store'
 import { useActiveRange, useAnalysis } from './analysis'
 import { stepToUtc } from './timelineMath'
 
-/** Odtwarzanie i suwak daty w wybranym roku (wspólny kursor czasu dla wszystkich panoram). */
+/** Playback and date slider for the selected year (shared time cursor for all panoramas). */
 export function TimeBar() {
   const t = useT()
   const meta = useStore((s) => s.meta)

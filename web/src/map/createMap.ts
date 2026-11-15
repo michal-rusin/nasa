@@ -26,22 +26,22 @@ import { MODE_THEMES } from './themes'
 import { candidatesRange, isEternalShadow, yearHours } from '../data/years'
 
 export const PROJ_CODE = 'MOON_SP'
-/** Najmocniejsze przybliżenie (m/px); basemapa ma ~90 m/px, DEM bliski 80 m/px. */
+/** Maximum zoom (m/px); basemap resolution is ~90 m/px, DEM close to 80 m/px. */
 const MIN_RESOLUTION_M = 15
-/** Przy skoku do punktu przybliżamy co najmniej do tej rozdzielczości. */
+/** Jumping to a point zooms in to at least this resolution. */
 const FOCUS_RESOLUTION_M = 180
 const CLICK_RADIUS_PX = 10
 const HOVER_RADIUS_PX = 8
 const SITE_HIT_TOLERANCE_PX = 6
-/** Plakietki Top 10 łapią kursor z niewielkim zapasem poza swoim kołem. */
+/** Top 10 badges capture the cursor slightly beyond their circle. */
 const BADGE_HIT_PAD_PX = 3
-/** Przy rozdzielczości ≥ maxResolution × to mapa jest „oddalona”: nie da się jej przesuwać. */
+/** At resolution ≥ maxResolution × this factor, the map is zoomed out and cannot be panned. */
 const ZOOMED_OUT = 0.985
 const OVERLAY_KEYS = ['slope', 'illumination', 'psr'] as const satisfies readonly RasterKey[]
 
 /**
- * Rejestruje CRS rastrów w proj4 i OpenLayers. Dane (x_m, y_m) są już
- * w metrach tego CRS, więc niczego nie przeliczamy z lat/lon.
+ * Registers the raster CRS in proj4 and OpenLayers. Data (x_m, y_m) are already
+ * in meters in this CRS, so no lat/lon conversion is needed.
  */
 export function registerMoonProjection(meta: Meta): Projection {
   proj4.defs(PROJ_CODE, getProjString(meta))
@@ -57,7 +57,7 @@ export function boundsExtent(meta: Meta): Extent {
   return [b.min_x, b.min_y, b.max_x, b.max_y]
 }
 
-/** Szybki start, długie miękkie hamowanie (jak przewijanie w iOS). */
+/** Fast start, long smooth deceleration (like iOS scrolling). */
 function easeOutQuint(t: number): number {
   return 1 - Math.pow(1 - t, 5)
 }
@@ -66,7 +66,7 @@ function prefersReducedMotion(): boolean {
   return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
-/** Tworzy mapę w kontenerze i podpina ją pod store. Zwraca funkcję sprzątającą. */
+/** Creates a map in the container and connects it to the store. Returns a cleanup function. */
 export function createMap(
   target: HTMLElement,
   meta: Meta,
@@ -77,7 +77,7 @@ export function createMap(
   const extent = boundsExtent(meta)
   const regionR = latitudeRadiusM(getProjString(meta), meta.moon_radius_km * 1000, meta.region.lat_max)
 
-  // Cały okrąg obszaru mieści się w widoku z niewielkim zapasem.
+  // The entire region circle fits in the view with a small margin.
   const pad = regionR * 0.08
   const fitResolution = () => {
     const cw = Math.max(1, target.clientWidth)
@@ -85,8 +85,8 @@ export function createMap(
     return ((2 * regionR) / Math.min(cw, ch)) * 1.08
   }
   let maxResolution = fitResolution()
-  // Ograniczamy cały widoczny prostokąt (nie tylko środek) do kwadratu wokół okręgu:
-  // przy pełnym oddaleniu mapa stoi w miejscu, przesuwać można dopiero po przybliżeniu.
+  // Constrain the entire viewport (not just its center) to the square around the circle:
+  // the fully zoomed-out map stays fixed; panning becomes available after zooming in.
   const makeView = (maxRes: number, center: number[], resolution: number) => new View({
     projection,
     center,
@@ -111,16 +111,16 @@ export function createMap(
       opacity,
     })
 
-  // Rastry przycinamy do okręgu obszaru na canvasie (clip w prerender, restore w postrender).
-  // Wcześniej zasłaniał je wektorowy wielokąt z dziurą, ale warstwa wektorowa nie przerysowuje
-  // się w trakcie animacji, więc przy przesuwaniu odsłaniała pas basemapy poza okręgiem.
+  // Clip rasters to the region circle on the canvas (clip in prerender, restore in postrender).
+  // Previously a vector polygon with a hole masked them, but the vector layer does not redraw
+  // during animations, exposing a strip of basemap outside the circle when panning.
   const clipToRegion = (e: RenderEvent) => {
     const c = e.context
     if (!(c instanceof CanvasRenderingContext2D)) return
-    // getRenderPixel przyjmuje piksel CSS widoku, nie współrzędną mapy.
+    // getRenderPixel takes a viewport CSS pixel, not a map coordinate.
     const po = map.getPixelFromCoordinate([0, 0])
     const pe = map.getPixelFromCoordinate([regionR, 0])
-    c.save() // zawsze, żeby postrender miał co przywrócić
+    c.save() // always save so postrender has a state to restore
     if (!po || !pe) return
     const o = getRenderPixel(e, po)
     const edge = getRenderPixel(e, pe)
@@ -137,7 +137,7 @@ export function createMap(
     return layer
   }
 
-  // Brakujący plik (np. dev serwer zwraca HTML) = warstwy nie tworzymy wcale.
+  // Missing file (e.g. dev server returns HTML): do not create the layer.
   const basemap = avail.basemap ? clipped(imageLayer(files.basemap, 0, s0.layers.basemap)) : null
   const overlays: Partial<Record<(typeof OVERLAY_KEYS)[number], ImageLayer<ImageStatic>>> = {}
   OVERLAY_KEYS.forEach((k, i) => {
@@ -149,15 +149,15 @@ export function createMap(
   const points = createPointsLayer(cx, cy, regionR, candidates.col.level)
   const sitesLayer = createSitesLayer(sites)
 
-  // Kółko myszy: przybliża mapę, ale gdy mapa jest już całkiem oddalona (albo strona jest
-  // przewinięta w dół), kółko przewija stronę, zamiast blokować się na mapie.
+  // Mouse wheel zooms the map, but when fully zoomed out (or the page is
+  // scrolled down), it scrolls the page instead of getting trapped on the map.
   const page = target.closest<HTMLElement>('.sp-page')
   const isZoomedOut = () => (map.getView().getResolution() ?? maxResolution) >= maxResolution * ZOOMED_OUT
   const wheelZoom = new MouseWheelZoom({
     condition: (e) => {
       const we = e.originalEvent
       if (!(we instanceof WheelEvent)) return true
-      if (we.ctrlKey || we.metaKey) return true // gest szczypania na touchpadzie
+      if (we.ctrlKey || we.metaKey) return true // touchpad pinch gesture
       if (page && page.scrollTop > 4) return false
       return !(we.deltaY > 0 && isZoomedOut())
     },
@@ -179,7 +179,7 @@ export function createMap(
     interactions,
   })
 
-  // Tooltip nad punktem (HTML, nie canvas: czytelny tekst, nie przechwytuje myszy).
+  // Point tooltip (HTML rather than canvas: readable text, does not capture pointer events).
   const tooltip = document.createElement('div')
   tooltip.className = 'map-tooltip'
   tooltip.setAttribute('aria-hidden', 'true')
@@ -189,7 +189,7 @@ export function createMap(
   const viewport: HTMLElement = vp
   viewport.appendChild(tooltip)
 
-  // Oddalona mapa: bez przeciągania; na dotyku palec przewija stronę zamiast „kręcić” mapą.
+  // Zoomed-out map: no dragging; touch gestures scroll the page instead of panning the map.
   function syncPan(): void {
     const out = isZoomedOut()
     dragPan.setActive(!out)
@@ -255,16 +255,16 @@ export function createMap(
     if (s.picking !== prev.picking) target.classList.toggle('picking', s.picking)
     if (s.rankingShown !== prev.rankingShown) points.setRevealed(s.rankingShown)
     if (s.hoverIndex !== prev.hoverIndex) points.setHighlight(s.hoverIndex)
-    // Odfiltrowany punkt pod kursorem znika, więc chowamy też jego tooltip.
+    // A filtered-out point under the cursor disappears, so hide its tooltip too.
     if (s.passMask !== prev.passMask) setHover(null)
   })
 
-  /** Indeks widocznego (spełniającego filtry) punktu w promieniu radiusPx od piksela. */
+  /** Index of a visible point passing filters within radiusPx of the pixel. */
   function pick(coordinate: number[], radiusPx: number, pixel?: number[]): number {
     const store = useStore.getState()
     if (!store.layers.points) return -1
     const res = map.getView().getResolution() ?? maxResolution
-    // Plakietki Top 10 są większe niż oczko siatki: najpierw trafienie w plakietkę.
+    // Top 10 badges are larger than grid cells: test badge hits first.
     if (pixel && store.rankingShown) {
       let best = -1
       let bestD = Infinity
@@ -301,7 +301,7 @@ export function createMap(
     tooltip.replaceChildren()
     tooltip.classList.toggle('rich', rank >= 0)
     if (rank >= 0) {
-      // Najlepsze miejsca: karta z numerem i kluczowymi liczbami.
+      // Top locations: a card with rank and key figures.
       const head = document.createElement('div')
       head.className = 'tt-head'
       const r = document.createElement('span')
@@ -336,7 +336,7 @@ export function createMap(
   map.on('pointermove', (evt) => {
     const oe = evt.originalEvent
     if (evt.dragging || ('pointerType' in oe && oe.pointerType === 'touch')) {
-      // W trakcie przeciągania dymek nie może zostać przy starym punkcie.
+      // While dragging, the tooltip must not remain attached to the old point.
       cancelAnimationFrame(hoverRaf)
       setHover(null)
       return
@@ -356,7 +356,7 @@ export function createMap(
 
   map.on('singleclick', (evt) => {
     const store = useStore.getState()
-    // 1) Miejsca (markery) mają pierwszeństwo.
+    // 1) Sites (markers) take priority.
     let siteIndex: number | null = null
     map.forEachFeatureAtPixel(evt.pixel, (f) => {
       const v: unknown = f.get(SITE_INDEX_PROP)
@@ -371,8 +371,8 @@ export function createMap(
       if (site && site.nearest_candidate_id !== null) store.selectById(site.nearest_candidate_id)
       return
     }
-    // 2) Najbliższy widoczny punkt siatki w promieniu 10 px. Puste miejsce niczego nie zamyka:
-    // boxy z miejscami są pod mapą i zamyka się je krzyżykiem albo klawiszem Esc.
+    // 2) Nearest visible grid point within 10 px. Clicking empty space closes nothing:
+    // site cards sit below the map and are closed with the X button or Esc.
     const i = pick(evt.coordinate, CLICK_RADIUS_PX, evt.pixel)
     if (i >= 0) {
       setHover(null)
@@ -380,7 +380,7 @@ export function createMap(
     }
   })
 
-  // Zmiana rozmiaru okna: nowa granica oddalenia (cały okrąg zawsze mieści się w kadrze).
+  // Window resize: update the zoom-out limit so the entire circle always fits in view.
   const resizeObserver = new ResizeObserver(() => {
     map.updateSize()
     const next = fitResolution()

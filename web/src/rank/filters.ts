@@ -6,7 +6,7 @@ export interface Bound {
 }
 export type Filters = Partial<Record<MetricKey, Bound>>
 
-/** 1 = punkt spełnia wszystkie aktywne filtry. NaN nie spełnia aktywnego filtra. */
+/** 1 = point passes all active filters. NaN fails active filters. */
 export function passMask(candidates: Candidates, filters: Filters): Uint8Array {
   const n = candidates.n
   const mask = new Uint8Array(n).fill(1)
@@ -22,7 +22,7 @@ export function passMask(candidates: Candidates, filters: Filters): Uint8Array {
     for (let i = 0; i < n; i++) {
       if (mask[i] === 0) continue
       const v = col[i]!
-      // NaN: oba porównania fałszywe → odpada.
+      // NaN: both comparisons are false → rejected.
       if (!(v >= min && v <= max)) mask[i] = 0
     }
   }

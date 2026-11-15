@@ -1,13 +1,13 @@
-// Roczna obwiednia Słońca w panoramie: min/max elewacji w przedziałach azymutu.
+// Annual solar envelope in the panorama: min/max elevation per azimuth bin.
 
 export interface Envelope {
   binDeg: number
-  /** NaN = brak próbek w przedziale. */
+  /** NaN = no samples in the bin. */
   min: Float32Array
   max: Float32Array
 }
 
-/** Przedział azymutu (cyklicznie, 360° i -0.1° wpadają poprawnie). */
+/** Azimuth bin (cyclic, correctly handles 360° and -0.1°). */
 export function azBin(azDeg: number, binDeg: number, nBins: number): number {
   const a = ((azDeg % 360) + 360) % 360
   return Math.min(nBins - 1, Math.floor(a / binDeg))

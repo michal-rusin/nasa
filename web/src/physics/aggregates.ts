@@ -1,4 +1,4 @@
-// Metryki z szeregów (kontrakt 2.3). Ciągi liczone jako odcinki, bez zawijania.
+// Series metrics (contract 2.3). Runs are intervals without wraparound.
 
 export const DEFAULT_NIGHT_THRESHOLD = 0.01
 
@@ -9,7 +9,7 @@ function mean(a: ArrayLike<number>): number {
   return s / a.length
 }
 
-/** Najdłuższy ciąg kolejnych indeksów spełniających warunek (w krokach). */
+/** Longest run of consecutive indices satisfying the condition (in steps). */
 export function longestRun(n: number, pred: (i: number) => boolean): number {
   let best = 0
   let cur = 0
@@ -32,12 +32,12 @@ export function earthPct(g: ArrayLike<number>): number {
   return 100 * mean(g)
 }
 
-/** Najdłuższy ciąg f < próg × krok w godzinach. */
+/** Longest run of f < threshold × step size in hours. */
 export function longestNightH(f: ArrayLike<number>, stepS: number, threshold = DEFAULT_NIGHT_THRESHOLD): number {
   return longestRun(f.length, (i) => f[i]! < threshold) * (stepS / 3600)
 }
 
-/** Najdłuższy ciąg g = 0 × krok w godzinach. */
+/** Longest run of g = 0 × step size in hours. */
 export function longestCommGapH(g: ArrayLike<number>, stepS: number): number {
   return longestRun(g.length, (i) => g[i] === 0) * (stepS / 3600)
 }

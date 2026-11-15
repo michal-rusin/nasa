@@ -10,14 +10,14 @@ import { isMockSite } from './sites'
 
 type Msg = { kind: 'ok' | 'error'; text: string } | null
 
-/** „Skocz do lat, lon”: centruje na najbliższym widocznym kandydacie i otwiera jego panel. */
+/** “Jump to lat, lon”: center on the nearest visible candidate and open its panel. */
 export function SearchBox() {
   const t = useT()
   const meta = useStore((s) => s.meta)
   const candidates = useStore((s) => s.candidates)
   const sites = useStore((s) => s.sites)
   const focusIndex = useStore((s) => s.focusIndex)
-  // Skróty do nazwanych miejsc tylko wtedy, gdy ich warstwa jest włączona.
+  // Named-site shortcuts are available only when their layer is enabled.
   const sitesShown = useStore((s) => s.layers.sites)
   const [value, setValue] = useState('')
   const [msg, setMsg] = useState<Msg>(null)

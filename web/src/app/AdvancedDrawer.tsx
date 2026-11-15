@@ -6,11 +6,11 @@ import { COLOR_KEYS, RASTER_KEYS, useStore, type LayerKey } from '../store'
 import { fmtVal, METRIC_DIGITS } from './format'
 import { isMockSite } from './sites'
 
-/** Opóźnienie zapisu suwaka do store: ranking i kolory liczą się po chwili bezruchu. */
+/** Debounce slider writes to the store: recalculate ranking and colors after a short pause. */
 const COMMIT_DELAY_MS = 120
 const SLIDER_STEPS = 200
 
-/** Filtry w kolejności z briefu: nachylenie, sun_pct min, noc max, łączność, reszta. */
+/** Filters in brief order: slope, sun_pct min, night max, communication, others. */
 const FILTER_DEFS: readonly { key: MetricKey; bound: 'min' | 'max' }[] = [
   { key: 'slope_deg', bound: 'max' },
   { key: 'sun_pct', bound: 'min' },
@@ -33,12 +33,12 @@ interface RangeProps {
   muted?: boolean
 }
 
-/** Suwak z lokalnym stanem: płynny pod palcem, zapis do store z opóźnieniem. */
+/** Slider with local state: smooth interaction with debounced store writes. */
 function DebouncedRange({ label, value, min, max, step, display, onCommit, muted }: RangeProps) {
   const [local, setLocal] = useState(value)
   const timer = useRef<number | undefined>(undefined)
   const id = useId()
-  // Zmiana z zewnątrz (reset) nadpisuje lokalny stan, o ile nic nie czeka na zapis.
+  // External changes (reset) overwrite local state unless a write is pending.
   useEffect(() => { if (timer.current === undefined) setLocal(value) }, [value])
   useEffect(() => () => window.clearTimeout(timer.current), [])
   return (
@@ -65,7 +65,7 @@ function FilterRange({ k, bound }: { k: MetricKey; bound: 'min' | 'max' }) {
   const range = useStore((s) => s.ranges?.[k])
   const value = useStore((s) => s.filters[k]?.[bound])
   const setFilter = useStore((s) => s.setFilter)
-  // Metryka bez danych (same NaN) nie ma czego filtrować.
+  // A metric without data (all NaN) has nothing to filter.
   if (!range || !(range.max > range.min)) return null
   const neutral = bound === 'min' ? range.min : range.max
   const isNeutral = (v: number) => (bound === 'min' ? v <= range.min : v >= range.max)
@@ -77,7 +77,7 @@ function FilterRange({ k, bound }: { k: MetricKey; bound: 'min' | 'max' }) {
       step={(range.max - range.min) / SLIDER_STEPS}
       display={(v) => (isNeutral(v) ? t('filter.off') : `${fmtVal(v, METRIC_DIGITS[k], t('na'))} ${unit}`)}
       muted={value === undefined}
-      // Suwak na skraju = filtr wyłączony (nie odrzuca też punktów bez danych).
+      // Slider at its endpoint = filter disabled (also preserves points with missing data).
       onCommit={(v) => setFilter(k, isNeutral(v) ? undefined : { [bound]: v })} />
   )
 }

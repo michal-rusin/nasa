@@ -16,13 +16,13 @@ interface Props {
 }
 
 const ZOOM_STEP = 1.25
-/** Tory na niebie: 2 doby wstecz i prawie pełna doba księżycowa naprzód. */
+/** Sky tracks: 2 days back and almost a full lunar day ahead. */
 const TRACK_BACK_H = 48
 const TRACK_AHEAD_H = 27 * 24
 const SUN_RGB = [255, 200, 90] as const
 const EARTH_RGB = [120, 175, 255] as const
 
-/** Panorama nieba z punktu: czarne niebo, gwiazdy, Słońce, Ziemia z fazą i sylwetka terenu. */
+/** Sky panorama from a location: black sky, stars, Sun, phased Earth, and terrain silhouette. */
 export function SkyPanorama({ slot, index }: Props) {
   const t = useT()
   const meta = useStore((s) => s.meta)
@@ -41,7 +41,7 @@ export function SkyPanorama({ slot, index }: Props) {
   const dragged = useRef(false)
   const setView = (v: Partial<SkyView>) => setSlotView(slot, v)
 
-  // Rozmiar canvasa = rozmiar kontenera (CSS ustala wysokość, np. 50vh).
+  // Canvas size = container size (CSS sets height, e.g. 50vh).
   useEffect(() => {
     const el = wrapRef.current
     if (!el) return
@@ -56,7 +56,7 @@ export function SkyPanorama({ slot, index }: Props) {
     return () => ro.disconnect()
   }, [])
 
-  // Ctrl/⌘ + kółko (też gest „pinch” na gładziku) przybliża; zwykłe kółko przewija stronę.
+  // Ctrl/⌘ + wheel (including trackpad pinch) zooms; plain wheel scrolls the page.
   useEffect(() => {
     const el = wrapRef.current
     if (!el) return
@@ -94,9 +94,9 @@ export function SkyPanorama({ slot, index }: Props) {
     ]
   }, [data, meta, k])
 
-  // Rysowanie: najwyżej raz na klatkę, zawsze z najnowszym stanem. Zaplanowanej klatki nie
-  // anulujemy przy każdej zmianie: przy odtwarzaniu kursor zmienia się co klatkę i anulowanie
-  // zagłodziłoby rysowanie (obrót widoku pojawiał się dopiero po zatrzymaniu).
+  // Draw at most once per frame, always using the latest state. Do not
+  // cancel the scheduled frame on each change: playback updates the cursor every frame,
+  // so cancellation would starve rendering (view rotation previously appeared only after stopping).
   const frame = useRef({ size, data, sky, basis, meta, sunFraction, view, stars, labels, tracks })
   const rafId = useRef(0)
   useEffect(() => {

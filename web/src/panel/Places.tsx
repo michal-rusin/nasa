@@ -5,7 +5,7 @@ import { PlaceBox } from './PlaceBox'
 import { PlaceTimeline } from './PlaceTimeline'
 import { TimeBar } from './TimeBar'
 
-/** Oś czasu jednego miejsca w pasku wspólnym (z literą A/B przy wierszach). */
+/** One location timeline in the shared bar (A/B label on rows). */
 function SlotTimeline({ slot }: { slot: SlotKey }) {
   const data = useAnalysis((s) => s[slot].data)
   if (!data) return <div className="shared-tl-empty" />
@@ -13,9 +13,9 @@ function SlotTimeline({ slot }: { slot: SlotKey }) {
 }
 
 /**
- * Sekcja pod mapą: jeden box (A) albo dwa po 50% szerokości (A i B).
- * W porównaniu suwak czasu i osie czasu nie powielają się w boxach: jeden wspólny pasek
- * stoi pod nimi w zwykłym układzie strony.
+ * Section below the map: one card (A) or two at 50% width each (A and B).
+ * In comparison mode, time controls and timelines are not duplicated in cards: one shared bar
+ * sits below them in normal page flow.
  */
 export function Places() {
   const t = useT()

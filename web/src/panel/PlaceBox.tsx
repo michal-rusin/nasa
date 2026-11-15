@@ -22,7 +22,7 @@ const PANEL_METRICS: readonly MetricKey[] = [
 
 interface Check { label: string; computed: number; file: number; unit: string; tol: number }
 
-/** Porównanie z candidates.bin: tylko na krokach jego roku (candidates_period), nie na całym ephem.bin. */
+/** Compare with candidates.bin only over its year (candidates_period), not all of ephem.bin. */
 function CheckTable({ meta, c, cPeriod, i, a }: {
   meta: Meta; c: Candidates; cPeriod: Candidates; i: number; a: Analysis
 }) {
@@ -45,7 +45,7 @@ function CheckTable({ meta, c, cPeriod, i, a }: {
         label: 'longest_comm_gap_h', unit: 'h', tol: stepH,
         computed: longestCommGapH(s.g, stepS), file: c.col.longest_comm_gap_h[i]!,
       },
-      // Moc (kontrakt 3.4): z metrics_by_year dla roku candidates.bin; brak kolumn = wiersze pominięte.
+      // Power (contract 3.4): metrics_by_year for the candidates.bin year; missing columns = omitted rows.
       ...(() => {
         const file = cPeriod.col
         if (!Number.isFinite(file.power_track_wm2[i]!)) return []
@@ -88,7 +88,7 @@ function CheckTable({ meta, c, cPeriod, i, a }: {
   )
 }
 
-/** Średnia moc z paneli w wybranym roku (null, dopóki szeregi się liczą). */
+/** Mean panel power in the selected year (null while series are being computed). */
 function usePower(a: Analysis | null, meta: Meta | null): SolarPower | null {
   const { start, len } = useActiveRange()
   return useMemo(() => (a && meta && len > 0
@@ -97,11 +97,11 @@ function usePower(a: Analysis | null, meta: Meta | null): SolarPower | null {
 
 interface Props {
   slot: SlotKey
-  /** Tryb porównania: dwa boxy obok siebie, niższa panorama, odznaki A/B. */
+  /** Comparison mode: side-by-side cards, shorter panorama, A/B badges. */
   compare: boolean
 }
 
-/** Szklany box miejsca: panorama nieba, czas, wskaźniki i liczniki zachodów. */
+/** Glass-style location card: sky panorama, time, indicators, and setting countdowns. */
 export function PlaceBox({ slot, compare }: Props) {
   const t = useT()
   const meta = useStore((s) => s.meta)
@@ -196,7 +196,7 @@ export function PlaceBox({ slot, compare }: Props) {
 
       <SkyPanorama slot={slot} index={index} />
 
-      {/* W porównaniu czas i oś są we wspólnym pasku pod boxami (Places). */}
+      {/* In comparison mode, time and timeline share a bar below the cards (Places). */}
       {!compare && <TimeBar />}
       {!compare && status === 'ready' && data && <PlaceTimeline data={data} />}
       {status === 'error' && <p className="pp-error">{error}</p>}
@@ -225,8 +225,8 @@ export function PlaceBox({ slot, compare }: Props) {
               </div>
             )
           })}
-          {/* Moc z paneli pionowych w wybranym roku: z metrics_by_year (to samo co filtr i ranking),
-              a przy starszych danych liczona tu z szeregów (physics/solarPower). */}
+          {/* Vertical panel power for the selected year: from metrics_by_year (matching filters and ranking),
+              or computed here from series for older data (physics/solarPower). */}
           {([
             ['power_track_wm2', 'trackingWm2'],
             ['power_fixed_wm2', 'fixedWm2'],

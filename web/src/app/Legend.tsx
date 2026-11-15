@@ -6,7 +6,7 @@ import { useStore } from '../store'
 import { Term } from '../tour/Term'
 import { fmtVal, METRIC_DIGITS } from './format'
 
-/** Legenda kolorów punktów: nazwa, gradient i liczby na końcach (kolor nie jest jedynym nośnikiem). */
+/** Point color legend: name, gradient, and endpoint values (information is not conveyed by color alone). */
 export function Legend() {
   const t = useT()
   const colorBy = useStore((s) => s.colorBy)
@@ -20,7 +20,7 @@ export function Legend() {
   const digits = isScore ? 2 : METRIC_DIGITS[colorBy]
   const na = t('na')
   const title = t(`metric.${colorBy}`)
-  // Jasny = dobry: dla „mniej = lepiej” max po lewej.
+  // Bright = good: for “lower is better”, max is on the left.
   const left = range ? fmtVal(low ? range.max : range.min, digits, na) + unit : na
   const right = range ? fmtVal(low ? range.min : range.max, digits, na) + unit : na
   return (

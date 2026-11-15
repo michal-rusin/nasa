@@ -10,10 +10,10 @@ import {
 
 
 export type LayerKey = 'points' | 'sites' | 'basemap' | 'slope' | 'illumination' | 'psr'
-/** Warstwy rastrowe z meta.layers.files; pokazujemy tylko te, których pliki istnieją. */
+/** Raster layers from meta.layers.files; show only those whose files exist. */
 export type RasterKey = 'basemap' | 'slope' | 'illumination' | 'psr'
 export const RASTER_KEYS: readonly RasterKey[] = ['basemap', 'slope', 'illumination', 'psr']
-/** Wersja rankingu (kolorowanie mapy i Top 10): wynik łączny albo jedna z metryk. */
+/** Ranking mode (map colors and Top 10): combined score or a single metric. */
 export type ColorKey = MetricKey | 'score'
 export const COLOR_KEYS: readonly ColorKey[] = ['score', ...METRIC_KEYS]
 
@@ -22,7 +22,7 @@ const DEFAULT_LAYERS: Record<LayerKey, boolean> = {
 }
 const DEFAULT_COLOR_BY: ColorKey = 'score'
 const DEFAULT_OVERLAY_OPACITY = 0.7
-/** Pole wartości półprzezroczyste: rzeźba terenu prześwituje. */
+/** Translucent value field: terrain shows through. */
 const DEFAULT_POINTS_OPACITY = 0.72
 
 <<<<<<< HEAD
@@ -33,7 +33,7 @@ function readStoredLang(): Lang {
     const v = localStorage.getItem(LANG_STORAGE_KEY)
     if (v === 'en') return v
   } catch {
-    // brak localStorage (tryb prywatny, testy w node): zostaje domyślny
+    // localStorage unavailable (private mode, Node tests): keep the default
   }
   return 'en'
 }
@@ -47,59 +47,59 @@ export interface AppState {
   status: 'loading' | 'ready' | 'error'
   error: string | null
   meta: Meta | null
-  /** Kandydaci z metrykami wybranego roku (`year`); to czyta cały interfejs. */
+  /** Candidates with metrics for the selected `year`; used throughout the interface. */
   candidates: Candidates | null
-  /** candidates.bin bez podmian (rok `candidates_period`): walidacja i mapa (pozycje). */
+  /** Unmodified candidates.bin (`candidates_period` year): validation and map positions. */
   baseCandidates: Candidates | null
-  /** metrics_by_year.bin; null = dane jednoroczne, bez selektora roku. */
+  /** metrics_by_year.bin; null = single-year data, without a year selector. */
   byYear: MetricsByYear | null
-  /** Metryki z danymi (moc tylko z metrics_by_year z Dostawy 7+); reszta UI je pomija. */
+  /** Metrics with data (power only from metrics_by_year Delivery 7+); other UI omits unavailable metrics. */
   metricKeys: readonly MetricKey[]
-  /** Wybrany rok (ranking, mapa, oś czasu); null = dane bez lat. */
+  /** Selected year (ranking, map, timeline); null = data without years. */
   year: number | null
   setYear: (year: number) => void
   sites: Site[]
   idToIndex: Map<number, number>
-  /** min/max każdej metryki, liczone raz po wczytaniu. */
+  /** Min/max for each metric, calculated once after loading. */
   ranges: Record<MetricKey, Range> | null
-  /** Miejsce A (pierwsze zaznaczone). */
+  /** Location A (first selected). */
   selectedIndex: number | null
-  /** Miejsce B do porównania; null = brak porównania. */
+  /** Location B for comparison; null = no comparison. */
   compareIndex: number | null
-  /** Czekamy na wybór miejsca B na mapie. */
+  /** Waiting for location B to be selected on the map. */
   picking: boolean
-  /** Czy mapa pokazuje kolory rankingu (na starcie sama rzeźba terenu, ranking po kliknięciu). */
+  /** Whether ranking colors are visible (initially terrain only; ranking appears after clicking). */
   rankingShown: boolean
   setRankingShown: (v: boolean) => void
-  /** Punkt podświetlony z listy Top 10 (najechanie kursorem), null = brak. */
+  /** Point highlighted by hovering over Top 10; null = none. */
   hoverIndex: number | null
   setHoverIndex: (i: number | null) => void
   colorBy: ColorKey
   layers: Record<LayerKey, boolean>
   overlayOpacity: number
   pointsOpacity: number
-  /** Które pliki rastrów faktycznie istnieją (sprawdzane po wczytaniu meta). */
+  /** Raster files that exist (checked after loading metadata). */
   availableLayers: Record<RasterKey, boolean>
 
   // Ranking
-  /** Metryki znormalizowane 0..1 (1 = najlepiej), liczone raz po wczytaniu. */
+  /** Metrics normalized to 0..1 (1 = best), calculated once after loading. */
   norms: Norms | null
   filters: Filters
   weights: Weights
   nmsRadiusKm: number
   score: Float32Array | null
-  /** min/max wyniku (do skali kolorów przy colorBy = 'score'). */
+  /** Score min/max (for the color scale when colorBy = 'score'). */
   scoreRange: Range | null
   passMask: Uint8Array | null
   passCount: number
   top: RankedPoint[]
-  /** Prośba o wycentrowanie mapy; seq rośnie przy każdej prośbie. */
+  /** Map centering request; seq increases with each request. */
   focusRequest: { index: number; seq: number } | null
 
   load: () => Promise<void>
-  /** null zamyka wszystko (A, B i tryb wyboru). */
+  /** null closes everything (A, B, and selection mode). */
   setSelectedIndex: (i: number | null) => void
-  /** Wybór punktu na mapie / z listy: w trybie `picking` ustawia B, inaczej A. */
+  /** Select a point on the map/list: sets B in `picking` mode, otherwise A. */
   pickPoint: (i: number) => void
   startCompare: () => void
   cancelCompare: () => void
@@ -109,13 +109,13 @@ export interface AppState {
   setLayerVisible: (k: LayerKey, visible: boolean) => void
   setOverlayOpacity: (v: number) => void
   setPointsOpacity: (v: number) => void
-  /** Przywraca domyślne wagi, filtry, warstwy, kolorowanie i przezroczystości. */
+  /** Restore default weights, filters, layers, coloring, and opacity. */
   resetAdvanced: () => void
   setFilter: (k: MetricKey, bound: Bound | undefined) => void
   clearFilters: () => void
   setWeight: (k: MetricKey, w: number) => void
   setNmsRadius: (km: number) => void
-  /** Zaznacza punkt i centruje na nim mapę. */
+  /** Select a point and center the map on it. */
   focusIndex: (i: number) => void
 }
 
@@ -123,21 +123,21 @@ type RankInput = Pick<AppState,
   'candidates' | 'norms' | 'filters' | 'weights' | 'nmsRadiusKm' | 'score' | 'scoreRange' | 'passMask' | 'colorBy'>
 type RankOutput = Pick<AppState, 'score' | 'scoreRange' | 'passMask' | 'passCount' | 'top'>
 
-/** Przelicza tylko to, co zależy od zmienionych wejść. */
+/** Recalculate only values affected by changed inputs. */
 function recompute(s: RankInput, what: { score?: boolean; mask?: boolean }): RankOutput {
   const c = s.candidates
   if (!c || !s.norms) return { score: null, scoreRange: null, passMask: null, passCount: 0, top: [] }
   const fresh = what.score || !s.score
   const score = fresh ? computeScore(s.norms, s.weights, c.n) : s.score!
   const mask = what.mask || !s.passMask ? computePassMask(c, s.filters) : s.passMask
-  // Top 10 według wybranej wersji: wynik łączny albo sama metryka (znormalizowana, 1 = najlepiej).
+  // Top 10 for the selected mode: combined score or a single metric (normalized, 1 = best).
   const rankBy = s.colorBy === 'score' ? score : s.norms[s.colorBy]
   const top = topN(rankBy, mask, c.col.x_m, c.col.y_m, { n: TOP_N, radiusKm: s.nmsRadiusKm })
   const scoreRange = fresh || !s.scoreRange ? computeRange(score) : s.scoreRange
   return { score, scoreRange, passMask: mask, passCount: countPass(mask), top }
 }
 
-/** min/max metryk; roczne liczone po wszystkich latach, żeby kolory dało się porównać między latami. */
+/** Metric min/max; annual metrics span all years so colors remain comparable across years. */
 function metricRanges(c: Candidates, mby: MetricsByYear | null): Record<MetricKey, Range> {
   const ranges = {} as Record<MetricKey, Range>
   for (const k of METRIC_KEYS) ranges[k] = computeRange(c.col[k])
@@ -152,7 +152,7 @@ function metricRanges(c: Candidates, mby: MetricsByYear | null): Record<MetricKe
   return ranges
 }
 
-/** Gdzie trafia wybrany punkt: w trybie wyboru do B (nigdy tożsamy z A), inaczej do A. */
+/** Selected point destination: B in selection mode (never identical to A), otherwise A. */
 function pickInto(s: Pick<AppState, 'picking' | 'selectedIndex'>, i: number): Partial<AppState> {
   if (!s.picking) return { selectedIndex: i }
   return i === s.selectedIndex ? { picking: false } : { compareIndex: i, picking: false }
@@ -209,7 +209,7 @@ export const useStore = create<AppState>()((set, get) => ({
       const [baseCandidates, byYear, sites, ...avail] = await Promise.all([
         loadCandidates(meta), loadMetricsByYear(meta), loadSites(), ...RASTER_KEYS.map((k) => probeImage(files[k])),
       ])
-      // Start: pierwszy rok z metrics_by_year (ten sam, którego dotyczy candidates.bin).
+      // Start with the first metrics_by_year year (the one covered by candidates.bin).
       const year = byYear?.years[0] ?? null
       const candidates = candidatesForYear(baseCandidates, byYear, year)
       const availableLayers = {} as Record<RasterKey, boolean>

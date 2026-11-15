@@ -203,34 +203,24 @@ Notes:
 - Save raw Horizons responses in the repository (`data/raw/horizons_<year>.csv`, a separate file for each year), so `ephem.bin` can be reproduced without network access.
 
 ### 3.4 `metrics_by_year.bin`
-<<<<<<< HEAD
 - `float32`, layout `[n_points, n_years, n_columns]` (each row is a point, containing successive years, each containing successive columns).
 - **Point order is identical to `candidates.bin`** (row `i` here = row `i` there, including `level = 1` points).
-- Years and columns come from `meta.json → metrics_by_year`: `years = [2028, …, 2037]`, `columns = [sun_pct, longest_night_h, earth_pct, longest_comm_gap_h]`.
+- Years and columns come from `meta.json → metrics_by_year`: `years = [2028, …, 2037]`, `columns = [sun_pct, longest_night_h, earth_pct, longest_comm_gap_h, power_track_wm2, power_fixed_wm2, power_fixed_az_deg]`.
 - `sun_pct`, `earth_pct`: definitions from 2.3, averaged over that year's steps.
 - `longest_night_h`, `longest_comm_gap_h`: **the longest run overlapping that year, calculated over the entire 10-year series (a night crossing a year boundary counts in full)**, thus counting in both overlapping years. Reason: lunar seasons (eclipse year of 346.6 days) shift relative to the calendar, so cutting at January 1 would split long nights into two shorter ones. Cap the value at the year's duration (8760 h, or 8784 h in leap years 2028, 2032, 2036); a value equal to the year's duration means darkness/no communication throughout the year.
 - `candidates.bin` retains the original definition from 2.3: only 2028, with runs clipped at year boundaries. Thus `sun_pct` and `earth_pct` for 2028 equal those in `candidates.bin`, while `longest_*` for 2028 may be **larger** here.
-- Size: `n_points · 10 · 4 · 4 B` (~6.5 MB for ~40,000 points).
-=======
-- `float32`, układ `[n_points, n_years, n_columns]` (wiersz = punkt, w nim kolejne lata, w każdym roku kolejne kolumny).
-- **Kolejność punktów identyczna jak w `candidates.bin`** (wiersz `i` tu = wiersz `i` tam, w tym punkty `level = 1`).
-- Lata i kolumny z `meta.json → metrics_by_year`: `years = [2028, …, 2037]`, `columns = [sun_pct, longest_night_h, earth_pct, longest_comm_gap_h, power_track_wm2, power_fixed_wm2, power_fixed_az_deg]`.
-- `sun_pct`, `earth_pct`: definicje jak w 2.3, średnia po krokach danego roku.
-- `longest_night_h`, `longest_comm_gap_h`: **najdłuższy ciąg nakładający się na dany rok, liczony na całym 10-letnim szeregu (noc na przełomie lat liczy się w całości)**, czyli w obu latach, na które zachodzi. Powód: pory roku na Księżycu (rok zaćmieniowy 346,6 dnia) przesuwają się względem kalendarza, więc cięcie na 1 stycznia dzieliłoby długie noce na dwie krótsze. Wartość ograniczona do długości roku (8760 h, 8784 h w latach przestępnych 2028, 2032, 2036); równa długości roku = ciemno/brak łączności przez cały rok.
-- `candidates.bin` zachowuje pierwotną definicję z 2.3: tylko rok 2028, ciąg ucięty na granicach roku. Dlatego `sun_pct` i `earth_pct` dla 2028 są tu równe `candidates.bin`, a `longest_*` dla 2028 mogą być tu **większe** niż w `candidates.bin`.
-- **Moc z panelu** (`power_*`, W/m²). Dla każdego punktu i kroku godzinowego `k`:
-  - `f`, `el`, `az`: jak w 2.1 (kierunek Słońca ze środka Księżyca, `el`/`az` środka tarczy w ENU punktu, `f` = widoczny ułamek tarczy).
-  - `d` = liczba dni od 2000-01-03 00:00 UTC w chwili kroku (`t0 + k · 1 h`); `r = 1 − 0,0167 · cos(2π·d / 365,256)`; `S = 1361 / r²`.
-  - `w = S · f · cos(el)` (pionowy panel obracany za Słońcem).
-  - `power_track_wm2` = średnia `w` po krokach danego roku (noc liczy się jako 0).
-  - Histogram azymutów: 72 przedziały po 5°, przedział `b = floor(az / 5)`, czyli `[5b, 5b + 5)`, środek `5b + 2,5`; `hist[b] += w`.
-  - Panel nieruchomy: 72 kandydaty `A = 5k + 2,5` (`k = 0..71`, środki przedziałów); `fixed(A) = Σ_b hist[b] · max(0, cos(5b + 2,5 − A)) / liczba kroków roku`.
-  - `power_fixed_wm2` = max po `A`; `power_fixed_az_deg` = `A` dające to maksimum (przy remisie najmniejsze `A`).
-  - `power_fixed_az_deg = NaN, gdy power_fixed_wm2 = 0 (brak kierunku)`.
-  - Wszystkie sumy (`w`, `hist`, średnie) w `float64`, zapis jak reszta pliku w `float32`. Zawsze `power_fixed_wm2 ≤ power_track_wm2`.
-  - Liczone w tym samym przebiegu po 10-letnim szeregu co `longest_*`. `validation.json` ma te same trzy pola dla 2028 (sekcja 6).
-- Rozmiar: `n_points · 10 · 7 · 4 B` (~11,3 MB dla ~40 tys. punktów).
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
+- **Panel power** (`power_*`, W/m²). For every point and hourly step `k`:
+  - `f`, `el`, `az`: as in 2.1 (Sun direction from the Moon's center, disk-center `el`/`az` in the point's ENU frame, and `f` as the visible fraction of the disk).
+  - `d` = number of days since 2000-01-03 00:00 UTC at the step time (`t0 + k · 1 h`); `r = 1 − 0.0167 · cos(2π·d / 365.256)`; `S = 1361 / r²`.
+  - `w = S · f · cos(el)` for a vertical Sun-tracking panel.
+  - `power_track_wm2` = mean `w` over the year's steps, with night counted as 0.
+  - Azimuth histogram: 72 bins of 5°; bin `b = floor(az / 5)`, representing `[5b, 5b + 5)` with center `5b + 2.5`; `hist[b] += w`.
+  - Fixed panel: 72 candidates `A = 5k + 2.5` (`k = 0..71`, bin centers); `fixed(A) = Σ_b hist[b] · max(0, cos(5b + 2.5 − A)) / number of steps in the year`.
+  - `power_fixed_wm2` = maximum over `A`; `power_fixed_az_deg` = the maximizing `A` (smallest `A` on a tie).
+  - `power_fixed_az_deg = NaN` when `power_fixed_wm2 = 0` (no direction).
+  - All sums (`w`, `hist`, means) use `float64`; values are stored as `float32`, like the rest of the file. `power_fixed_wm2 ≤ power_track_wm2` always holds.
+  - Calculated in the same pass over the 10-year series as `longest_*`. `validation.json` contains the same three fields for 2028 (section 6).
+- Size: `n_points · 10 · 7 · 4 B` (~11.3 MB for ~40,000 points).
 
 ```python
 mby = np.fromfile('metrics_by_year.bin', '<f4').reshape(n_points, len(years), len(columns))
@@ -365,13 +355,9 @@ Full hourly series for 3–5 points of different types: a well-lit ridge, a crat
 ]
 ```
 
-<<<<<<< HEAD
-Series and values cover 2028 (`candidates_period`), i.e. 8784 steps. The frontend calculates the same values from the mask and first 8784 steps of `ephem.bin`, then checks agreement (target: `sun_pct` difference ≤ 1 percentage point). This is the only safeguard against the Python and JS visibility logic silently diverging.
-=======
-`power_*` jak w 3.4, identyczne z `metrics_by_year.bin` dla 2028 (wartości `float32`). `NaN` zapisany jako `null` (`JSON.parse` nie przyjmuje `NaN`).
+`power_*` follows 3.4 and is identical to `metrics_by_year.bin` for 2028 (`float32` values). `NaN` is stored as `null` because `JSON.parse` does not accept `NaN`.
 
-Szeregi i wartości dotyczą roku 2028 (`candidates_period`), czyli 8784 kroków. Front policzy to samo z maski i pierwszych 8784 kroków `ephem.bin` i sprawdzi zgodność (cel: różnica `sun_pct` ≤ 1 pkt proc.). To jedyne zabezpieczenie przed tym, że logika widoczności w Pythonie i w JS rozjedzie się po cichu.
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
+Series and values cover 2028 (`candidates_period`), i.e. 8784 steps. The frontend calculates the same values from the mask and first 8784 steps of `ephem.bin`, then checks agreement (target: `sun_pct` difference ≤ 1 percentage point). This is the only safeguard against the Python and JS visibility logic silently diverging.
 
 Engine sanity checks:
 - points on Shackleton's floor: `sun_pct ≈ 0`,
@@ -423,11 +409,6 @@ To confirm:
 
 ## 10. Change history
 
-<<<<<<< HEAD
 - **2026-11-14:** grid extended to 84°S (previously 85°S), fixed `layers.bounds_m` ±185000 m, PNG 4096 × 4096 with pixel-edge bounds and row/column orientation (5.2), 4 km threshold for `nearest_candidate_id` (5.3). Binary formats unchanged; `contract_version` remains 1.
 - **2026-11-15:** `ephem.bin` extended to 10 years, 2028–2037 (`n_steps = 87672`), new `metrics_by_year.bin` file (3.4), new metadata fields: `candidates_period`, `metrics_by_year`. `candidates.bin` and `validation.json` unchanged (year 2028). The frontend must calculate comparisons over steps `0..8783` (1.4). `contract_version` remains 1.
-=======
-- **2026-11-14:** siatka do 84°S (było 85°S), `layers.bounds_m` ±185000 m na stałe, PNG 4096 × 4096 z konwencją krawędzi pikseli i orientacji wiersza/kolumny (5.2), próg 4 km dla `nearest_candidate_id` (5.3). Formaty binarne bez zmian, `contract_version` pozostaje 1.
-- **2026-11-15:** `ephem.bin` na 10 lat 2028–2037 (`n_steps = 87672`), nowy plik `metrics_by_year.bin` (3.4), nowe pola w meta: `candidates_period`, `metrics_by_year`. `candidates.bin` i `validation.json` bez zmian (rok 2028). Front musi liczyć porównania na krokach `0..8783` (1.4). `contract_version` pozostaje 1.
-- **2026-11-15:** `metrics_by_year.bin` ma 7 kolumn (było 4): dochodzą `power_track_wm2`, `power_fixed_wm2`, `power_fixed_az_deg` (3.4), układ `[n_points, 10, 7]`, ~11,3 MB. `longest_*` ograniczone do długości roku. `validation.json`: te same trzy pola dla 2028, `NaN` jako `null` (6). `meta.metrics_by_year.columns` zaktualizowane. `contract_version` pozostaje 1.
->>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
+- **2026-11-15:** `metrics_by_year.bin` expanded from 4 to 7 columns with `power_track_wm2`, `power_fixed_wm2`, and `power_fixed_az_deg` (3.4), layout `[n_points, 10, 7]`, ~11.3 MB. `longest_*` values are capped at the year's duration. `validation.json` contains the same three fields for 2028, with `NaN` stored as `null` (6). `meta.metrics_by_year.columns` was updated. `contract_version` remains 1.

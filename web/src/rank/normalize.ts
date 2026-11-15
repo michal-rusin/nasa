@@ -1,7 +1,7 @@
 import { METRIC_KEYS, type Candidates, type MetricKey } from '../data/types'
 import { METRIC_META, type Direction } from './metrics'
 
-/** Percentyl p w [0, 1] z posortowanej rosnąco tablicy (interpolacja liniowa). Pusta → NaN. */
+/** Percentile p in [0, 1] from an ascending array (linear interpolation). Empty → NaN. */
 export function percentile(sorted: ArrayLike<number>, p: number): number {
   const n = sorted.length
   if (n === 0) return NaN
@@ -14,14 +14,14 @@ export function percentile(sorted: ArrayLike<number>, p: number): number {
 }
 
 /**
- * Normalizacja percentylowa (rankowa) metryki do 0..1: n_i = średni rank / (N - 1),
- * rank liczony po posortowanych wartościach liczbowych, remisy dostają średni rank.
- * Dla 'low' odwrócona (1 - n_i), żeby zawsze 1 = najlepiej. NaN → 0 (najgorzej).
- * Jedna wartość liczbowa (N = 1) → 1.
+ * Percentile (rank) normalization to 0..1: n_i = average rank / (N - 1),
+ * rank based on sorted numeric values, with average ranks for ties.
+ * Invert for 'low' (1 - n_i), so 1 always means best. NaN → 0 (worst).
+ * One numeric value (N = 1) → 1.
  */
 export function normalizeMetric(values: ArrayLike<number>, direction: Direction): Float32Array {
   const n = values.length
-  const out = new Float32Array(n) // NaN zostają 0
+  const out = new Float32Array(n) // NaN remains 0
   let m = 0
   for (let i = 0; i < n; i++) if (!Number.isNaN(values[i]!)) m++
   if (m === 0) return out
@@ -35,7 +35,7 @@ export function normalizeMetric(values: ArrayLike<number>, direction: Direction)
     const v = values[idx[start]!]!
     let end = start + 1
     while (end < m && values[idx[end]!]! === v) end++
-    let t = (start + end - 1) / 2 / denom // średni rank grupy remisów
+    let t = (start + end - 1) / 2 / denom // average rank of the tied group
     if (direction === 'low') t = 1 - t
     for (let k = start; k < end; k++) out[idx[k]!] = t
     start = end

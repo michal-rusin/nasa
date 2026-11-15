@@ -5,7 +5,7 @@ import { latLonToXY } from '../map/projection'
 import { useStore } from '../store'
 import { useAnalysis, type SlotKey } from './analysis'
 
-/** Rozmiar rysunku w px CSS; CSS może go zmniejszyć (np. w porównaniu dwóch miejsc). */
+/** Drawing size in CSS px; CSS may reduce it (e.g. when comparing two locations). */
 const SIZE = 88
 const DEG = Math.PI / 180
 
@@ -19,16 +19,16 @@ interface Props {
 
 type Vec = [number, number]
 
-/** Kierunek azymutu (0 = lokalna północ, rośnie przez wschód) jako wektor jednostkowy (y w dół). */
+/** Azimuth direction (0 = local north, increasing through east) as a unit vector (y down). */
 function dirOnMap(n: Vec, e: Vec, az: number): Vec {
   const ca = Math.cos(az * DEG), sa = Math.sin(az * DEG)
   return [n[0] * ca + e[0] * sa, n[1] * ca + e[1] * sa]
 }
 
 /**
- * Minimalistyczny kompas panoramy, zorientowany jak mapa bieguna: stożek = kierunek i szerokość
- * widoku, kropki na obwodzie = Słońce i Ziemia, kreska N = lokalna północ (na biegunie wskazuje
- * od bieguna). Klik/przeciągnięcie obraca widok.
+ * Minimal panorama compass oriented like the pole map: cone = view direction and width,
+ * of view, rim dots = Sun and Earth, N mark = local north (at the pole it points
+ * away from the pole). Click/drag rotates the view.
  */
 export function SkyMiniMap({ slot, latDeg, lonDeg, sunAz, earthAz }: Props) {
   const t = useT()
@@ -38,7 +38,7 @@ export function SkyMiniMap({ slot, latDeg, lonDeg, sunAz, earthAz }: Props) {
   const ref = useRef<HTMLCanvasElement>(null)
   const dragging = useRef(false)
 
-  // Lokalne wektory N i E w orientacji mapy bieguna.
+  // Local N and E vectors in pole-map orientation.
   const axes = useMemo(() => {
     if (!meta || !Number.isFinite(latDeg) || !Number.isFinite(lonDeg)) return null
     const proj = getProjString(meta)
@@ -67,7 +67,7 @@ export function SkyMiniMap({ slot, latDeg, lonDeg, sunAz, earthAz }: Props) {
     const r = c - 7
     const dir = (az: number) => dirOnMap(axes.n, axes.e, az)
 
-    // Stożek widoku.
+    // View cone.
     const half = Math.min(170, view.fov / 2)
     ctx.beginPath()
     ctx.moveTo(c, c)
@@ -83,7 +83,7 @@ export function SkyMiniMap({ slot, latDeg, lonDeg, sunAz, earthAz }: Props) {
     ctx.fillStyle = g
     ctx.fill()
 
-    // Obwód i krótkie kreski co 90° (N dłuższa i czerwona).
+    // Rim and short ticks every 90° (N is longer and red).
     ctx.beginPath()
     ctx.arc(c, c, r, 0, 2 * Math.PI)
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)'
@@ -110,7 +110,7 @@ export function SkyMiniMap({ slot, latDeg, lonDeg, sunAz, earthAz }: Props) {
     ctx.fillStyle = '#ff8a7a'
     ctx.fillText('N', c + nx * (r - 13), c + ny * (r - 13))
 
-    // Słońce i Ziemia na obwodzie.
+    // Sun and Earth on the rim.
     const dot = (az: number | null, fill: string) => {
       if (az === null) return
       const [dx, dy] = dir(az)
@@ -126,7 +126,7 @@ export function SkyMiniMap({ slot, latDeg, lonDeg, sunAz, earthAz }: Props) {
     dot(sunAz, '#ffc23a')
     dot(earthAz, '#4aa3ff')
 
-    // Punkt obserwatora.
+    // Observer position.
     ctx.beginPath()
     ctx.arc(c, c, 2.5, 0, 2 * Math.PI)
     ctx.fillStyle = slot === 'b' ? '#ffb35c' : '#ffffff'

@@ -3,10 +3,10 @@ import { useStore } from '../store'
 import { useActiveRange, useAnalysis, yearSpans, type Analysis } from './analysis'
 import { Timeline } from './Timeline'
 
-/** Doba synodyczna Księżyca: tyle obejmuje tor Słońca/Ziemi zaznaczony na osi czasu. */
+/** Synodic lunar day: duration of the Sun/Earth track highlighted on the timeline. */
 const LUNAR_DAY_S = 29.53 * 86400
 
-/** Oś Słońca/Ziemi jednego miejsca w wybranym roku, podpięta pod wspólny kursor czasu. */
+/** Sun/Earth timeline for one location in the selected year, using the shared time cursor. */
 export function PlaceTimeline({ data, tag }: { data: Analysis; tag?: string }) {
   const meta = useStore((s) => s.meta)
   const cursor = useAnalysis((s) => s.cursor)
@@ -16,7 +16,7 @@ export function PlaceTimeline({ data, tag }: { data: Analysis; tag?: string }) {
   const threshold = meta?.night_threshold ?? 0
   const view = useMemo(() => {
     const spans = yearSpans(data.series, { start, len }, threshold)
-    // Ciąg sięgający poza rok rysujemy przycięty do roku (oś liczona od początku roku).
+    // Clip runs extending beyond the year (timeline starts at the beginning of the year).
     const clip = (s: { start: number; len: number }) => {
       const a = Math.max(start, s.start), b = Math.min(start + len, s.start + s.len)
       return { start: a - start, len: Math.max(0, b - a) }

@@ -4,7 +4,7 @@ import { MODE_THEMES } from '../map/themes'
 import { COLOR_KEYS, useStore } from '../store'
 import { YearPicker } from './YearPicker'
 
-/** Pasek na dole mapy: rok i wersja rankingu (każda ma swoją skalę kolorów i swoje Top 10). */
+/** Bottom map bar: year and ranking mode (each has its own color scale and Top 10). */
 export function ModeSwitch() {
   const t = useT()
   const colorBy = useStore((s) => s.colorBy)

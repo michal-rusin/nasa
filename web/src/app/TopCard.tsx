@@ -10,7 +10,7 @@ import { fmtVal, METRIC_DIGITS } from './format'
 const KEY_METRICS: readonly MetricKey[] = ['sun_pct', 'longest_night_h', 'slope_deg']
 const MOBILE_QUERY = '(max-width: 720px)'
 
-/** Karta „Top 10”: zwijana; klik w pozycję centruje mapę i otwiera panel punktu. */
+/** Collapsible “Top 10” card; clicking an entry centers the map and opens the point panel. */
 export function TopCard() {
   const t = useT()
   const top = useStore((s) => s.top)
@@ -24,7 +24,7 @@ export function TopCard() {
   const setRankingShown = useStore((s) => s.setRankingShown)
   const passCount = useStore((s) => s.passCount)
   const filtered = useStore((s) => Object.keys(s.filters).length > 0)
-  // Na telefonie karta startuje zwinięta, żeby nie zasłaniać mapy.
+  // On phones the card starts collapsed to avoid covering the map.
   const [open, setOpen] = useState(() => typeof matchMedia !== 'function' || !matchMedia(MOBILE_QUERY).matches)
   if (!candidates) return null
   const na = t('na')
@@ -38,7 +38,7 @@ export function TopCard() {
           <h2 id="top-card-title">{t('top.title')} <span className="top-mode">{t(`modeFull.${colorBy}`)}{year !== null && ` · ${year}`}</span></h2>
           <span className="chev" aria-hidden="true">{open ? '▾' : '▸'}</span>
         </button>
-        {/* Zamyka ranking: mapa wraca do samej rzeźby terenu, wraca karta „Gdzie wylądować?”. */}
+        {/* Close ranking: restore the terrain-only map and the “Where to land?” card. */}
         <button type="button" className="icon-btn top-close" aria-label={t('top.close')} title={t('top.close')}
           onClick={() => setRankingShown(false)}>×</button>
       </div>

@@ -1,6 +1,6 @@
 import type { Site } from '../data/types'
 
-/** Wpisy testowe z mock-data.py mają „[MOCK]” w nazwie; w produkcie ich nie pokazujemy. */
+/** Test entries from mock-data.py contain “[MOCK]” in the name; hide them in the product. */
 export function isMockSite(s: Site): boolean {
   return s.name.includes('[MOCK]')
 }

@@ -5,18 +5,18 @@ const st = () => useStore.getState()
 
 beforeEach(() => st().setSelectedIndex(null))
 
-describe('wybór miejsc A/B', () => {
-  it('pierwszy punkt to A, bez porównania', () => {
+describe('selecting locations A/B', () => {
+  it('first point is A, without comparison', () => {
     st().pickPoint(5)
     expect([st().selectedIndex, st().compareIndex, st().picking]).toEqual([5, null, false])
   })
 
-  it('startCompare bez A nic nie robi', () => {
+  it('startCompare without A does nothing', () => {
     st().startCompare()
     expect(st().picking).toBe(false)
   })
 
-  it('w trybie wyboru kolejny punkt to B i tryb się kończy', () => {
+  it('in selection mode the next point becomes B and selection ends', () => {
     st().pickPoint(5)
     st().startCompare()
     expect(st().picking).toBe(true)
@@ -24,14 +24,14 @@ describe('wybór miejsc A/B', () => {
     expect([st().selectedIndex, st().compareIndex, st().picking]).toEqual([5, 9, false])
   })
 
-  it('ten sam punkt jako B jest ignorowany, ale tryb wyboru się kończy', () => {
+  it('ignores A as B but exits selection mode', () => {
     st().pickPoint(5)
     st().startCompare()
     st().pickPoint(5)
     expect([st().selectedIndex, st().compareIndex, st().picking]).toEqual([5, null, false])
   })
 
-  it('focusIndex (ranking, wyszukiwarka) działa jak pickPoint i prosi o wycentrowanie', () => {
+  it('focusIndex (ranking, search) acts like pickPoint and requests centering', () => {
     st().pickPoint(1)
     st().startCompare()
     st().focusIndex(7)
@@ -39,7 +39,7 @@ describe('wybór miejsc A/B', () => {
     expect(st().focusRequest?.index).toBe(7)
   })
 
-  it('zamknięcie A przesuwa B na miejsce A; zamknięcie B zostawia A', () => {
+  it('closing A moves B to A; closing B preserves A', () => {
     st().pickPoint(1)
     st().startCompare()
     st().pickPoint(2)
@@ -51,7 +51,7 @@ describe('wybór miejsc A/B', () => {
     expect([st().selectedIndex, st().compareIndex]).toEqual([2, null])
   })
 
-  it('setSelectedIndex(null) zamyka wszystko, cancelCompare tylko tryb wyboru', () => {
+  it('setSelectedIndex(null) closes everything; cancelCompare only exits selection mode', () => {
     st().pickPoint(1)
     st().startCompare()
     st().cancelCompare()

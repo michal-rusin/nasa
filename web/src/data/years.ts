@@ -1,9 +1,9 @@
-// Lata w danych (kontrakt 1.4 i 3.4): ephem.bin obejmuje kilka lat, candidates.bin i
-// validation.json tylko `candidates_period`, metrics_by_year.bin ma metryki osobno dla każdego roku.
+// Years in the data (contract 1.4 and 3.4): ephem.bin spans multiple years; candidates.bin and
+// validation.json cover only `candidates_period`; metrics_by_year.bin contains metrics for each year.
 
 import type { Candidates, Meta } from './types'
 
-/** Kolumny metrics_by_year.bin, które front umie podmienić w candidates (pierwsze 4 obowiązkowe). */
+/** metrics_by_year.bin columns supported as candidate overrides (the first four are required). */
 export const YEAR_COLUMNS = [
   'sun_pct', 'longest_night_h', 'earth_pct', 'longest_comm_gap_h',
   'power_track_wm2', 'power_fixed_wm2', 'power_fixed_az_deg',
@@ -13,11 +13,11 @@ const REQUIRED_YEAR_COLUMNS: readonly YearColumn[] = ['sun_pct', 'longest_night_
 
 export interface MetricsByYear {
   years: number[]
-  /** cols[kolumna][rok] = wartości dla wszystkich punktów (kolejność wierszy jak w candidates.bin). Brak kolumny w pliku = brak klucza. */
+  /** cols[column][year] = values for all points (same row order as candidates.bin). Missing columns have no key. */
   cols: Partial<Record<YearColumn, Float32Array[]>>
 }
 
-/** Fragment osi czasu: kroki [start, start + len). */
+/** Timeline segment: steps [start, start + len). */
 export interface StepRange {
   start: number
   len: number
@@ -25,31 +25,31 @@ export interface StepRange {
 
 type TimeMeta = Pick<Meta, 't0_utc' | 'step_s' | 'n_steps'>
 
-/** Krok, od którego zaczyna się 1 stycznia roku `year` (może wypaść poza oś). */
+/** Step at January 1 of `year` (may fall outside the timeline). */
 export function yearStartStep(t0Utc: string, stepS: number, year: number): number {
   return Math.round((Date.UTC(year, 0, 1) - Date.parse(t0Utc)) / (stepS * 1000))
 }
 
-/** Kroki roku `year`, przycięte do osi [0, n_steps). Pusty zakres, gdy rok jest poza osią. */
+/** Steps in `year`, clipped to [0, n_steps). Empty if the year is outside the timeline. */
 export function yearRange(meta: TimeMeta, year: number): StepRange {
   const a = Math.max(0, yearStartStep(meta.t0_utc, meta.step_s, year))
   const b = Math.min(meta.n_steps, yearStartStep(meta.t0_utc, meta.step_s, year + 1))
   return { start: Math.min(a, meta.n_steps), len: Math.max(0, b - a) }
 }
 
-/** Rok, w którym leży krok k (UTC). */
+/** Year containing step k (UTC). */
 export function yearOfStep(t0Utc: string, stepS: number, k: number): number {
   return new Date(Date.parse(t0Utc) + k * stepS * 1000).getUTCFullYear()
 }
 
-/** Długość roku kalendarzowego w godzinach (8760 albo 8784). */
+/** Calendar year length in hours (8760 or 8784). */
 export function yearHours(year: number): number {
   return (Date.UTC(year + 1, 0, 1) - Date.UTC(year, 0, 1)) / 3_600_000
 }
 
 /**
- * Kroki, których dotyczą candidates.bin i validation.json. Kontrakt 1.4: `candidates_period`
- * (np. "2028"); bez niego (starsze dane) cały plik efemeryd.
+ * Steps covered by candidates.bin and validation.json. Contract 1.4: `candidates_period`
+ * (e.g. "2028"); if absent in older data, use the full ephemeris file.
  */
 export function candidatesRange(meta: TimeMeta & Pick<Meta, 'candidates_period'>): StepRange {
   const y = Number(meta.candidates_period)
@@ -60,20 +60,20 @@ export function candidatesRange(meta: TimeMeta & Pick<Meta, 'candidates_period'>
   return { start: 0, len: meta.n_steps }
 }
 
-/** Rozpakowuje metrics_by_year.bin: float32 LE, układ [n_points, n_years, n_columns]. */
+/** Unpacks metrics_by_year.bin: float32 LE, layout [n_points, n_years, n_columns]. */
 export function parseMetricsByYear(buf: ArrayBuffer, meta: Pick<Meta, 'candidates' | 'metrics_by_year'>): MetricsByYear {
   const spec = meta.metrics_by_year
-  if (!spec) throw new Error('meta.json: brak metrics_by_year')
+  if (!spec) throw new Error('meta.json: missing metrics_by_year')
   const n = meta.candidates.count
   const ny = spec.years.length
   const nc = spec.columns.length
   const expected = n * ny * nc * 4
   if (buf.byteLength !== expected) {
-    throw new Error(`${spec.file}: rozmiar ${buf.byteLength} B, oczekiwano ${expected} B `
-      + `(${n} punktów × ${ny} lat × ${nc} kolumn × 4 B)`)
+    throw new Error(`${spec.file}: size ${buf.byteLength} B, expected ${expected} B `
+      + `(${n} points × ${ny} years × ${nc} columns × 4 B)`)
   }
   const missing = REQUIRED_YEAR_COLUMNS.filter((c) => !spec.columns.includes(c))
-  if (missing.length > 0) throw new Error(`${spec.file}: brakuje kolumn ${missing.join(', ')}`)
+  if (missing.length > 0) throw new Error(`${spec.file}: missing columns ${missing.join(', ')}`)
   const dv = new DataView(buf)
   const cols: Partial<Record<YearColumn, Float32Array[]>> = {}
   for (const name of YEAR_COLUMNS) {
@@ -88,7 +88,7 @@ export function parseMetricsByYear(buf: ArrayBuffer, meta: Pick<Meta, 'candidate
   return { years: [...spec.years], cols }
 }
 
-/** Kandydaci z metrykami wybranego roku (reszta kolumn bez zmian). Rok spoza pliku = bez zmian. */
+/** Candidates with metrics for the selected year (other columns unchanged). Years outside the file leave data unchanged. */
 export function candidatesForYear(base: Candidates, mby: MetricsByYear | null, year: number | null): Candidates {
   if (!mby || year === null) return base
   const y = mby.years.indexOf(year)
@@ -102,8 +102,8 @@ export function candidatesForYear(base: Candidates, mby: MetricsByYear | null, y
 }
 
 /**
- * Wieczny cień w danym roku: zero słońca albo noc trwająca cały rok
- * (punkt łapie odrobinę światła, ale nigdy nie wychodzi z nocy).
+ * Permanent shadow in a given year: no sunlight or a night lasting the entire year
+ * (the point receives a little light but never exits nighttime conditions).
  */
 export function isEternalShadow(sunPct: number | undefined, nightH: number | undefined, yearH: number): boolean {
   if (sunPct === 0) return true

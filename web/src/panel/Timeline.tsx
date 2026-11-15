@@ -19,7 +19,7 @@ interface Props {
   night: Span
   commGap: Span
   onCursor: (step: number) => void
-  /** Litera miejsca (A/B) przed nazwami wierszy, gdy osi jest kilka pod sobą. */
+  /** Location letter (A/B) before row names when multiple timelines are stacked. */
   tag?: string
 }
 
@@ -64,7 +64,7 @@ export function Timeline({ f, g, t0Utc, stepS, cursor, trackLen, night, commGap,
     ctx.fillText(sunLabel, 4, ySun + ROW.bar / 2)
     ctx.fillText(earthLabel, 4, yEarth + ROW.bar / 2)
 
-    // Miesiące.
+    // Months.
     ctx.textBaseline = 'top'
     ctx.font = '10px system-ui, sans-serif'
     for (const t of ticks) {
@@ -75,13 +75,13 @@ export function Timeline({ f, g, t0Utc, stepS, cursor, trackLen, night, commGap,
       ctx.fillText(t.label, x + 3, 0)
     }
 
-    // Najdłuższa noc / przerwa łączności.
+    // Longest night / communication gap.
     ctx.lineWidth = 1.5
     ctx.strokeStyle = '#ff5a5a'
     if (night.len > 0) ctx.strokeRect(X(night.start), ySun - 1, Math.max(2, X(night.start + night.len) - X(night.start)), ROW.bar + 2)
     if (commGap.len > 0) ctx.strokeRect(X(commGap.start), yEarth - 1, Math.max(2, X(commGap.start + commGap.len) - X(commGap.start)), ROW.bar + 2)
 
-    // Doba księżycowa wokół kursora (ten sam odcinek co tory w panoramie) + kursor.
+    // Lunar day around the cursor (same interval as panorama tracks) + cursor.
     const t0 = Math.max(0, cursor - Math.floor(trackLen / 2))
     const t1 = Math.min(n, t0 + trackLen)
     ctx.fillStyle = 'rgba(255,255,255,0.10)'

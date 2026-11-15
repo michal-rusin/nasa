@@ -146,7 +146,7 @@ export async function loadMetricsByYear(meta: Meta): Promise<MetricsByYear | nul
     return parseMetricsByYear(await res.arrayBuffer(), meta)
   } catch (e) {
     if (e instanceof MissingDataFileError) {
-      console.warn(`${e.message}; selektor roku będzie niedostępny.`)
+      console.warn(`${e.message}; the year selector will be unavailable.`)
       return null
     }
     throw e

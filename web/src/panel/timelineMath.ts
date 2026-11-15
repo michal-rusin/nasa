@@ -1,6 +1,6 @@
-// Czyste pomocniki osi czasu.
+// Pure timeline helpers.
 
-/** Średnia w kubełkach: n próbek ściśniętych do `width` kolumn (agregacja, nie próbkowanie). */
+/** Bucket means: compress n samples into `width` columns (aggregation, not sampling). */
 export function bucketMean(a: ArrayLike<number>, width: number): Float32Array {
   const n = a.length
   const out = new Float32Array(Math.max(0, width)).fill(NaN)
@@ -20,7 +20,7 @@ export interface Span {
   len: number
 }
 
-/** Najdłuższy ciąg indeksów spełniających warunek (pierwszy przy remisie); len = 0 gdy brak. */
+/** Longest run of indices satisfying the condition (first on ties); len = 0 if absent. */
 export function longestRunSpan(n: number, pred: (i: number) => boolean): Span {
   let best: Span = { start: 0, len: 0 }
   let start = -1
@@ -36,13 +36,13 @@ export function longestRunSpan(n: number, pred: (i: number) => boolean): Span {
 }
 
 /**
- * Najdłuższy ciąg spełniający warunek, który nakłada się na okno [from, to) (kontrakt 3.4:
- * noc na przełomie lat liczy się w całości). Zwraca cały ciąg, także jego część poza oknem.
+ * Longest matching run overlapping [from, to) (contract 3.4:
+ * nights crossing year boundaries count in full). Return the entire run, including parts outside the window.
  */
 export function longestRunOverlapping(n: number, pred: (i: number) => boolean, from: number, to: number): Span {
   let best: Span = { start: 0, len: 0 }
   if (to <= from) return best
-  // Cofamy się do początku ciągu, który trwa w chwili `from`.
+  // Go back to the start of the run active at `from`.
   let i = Math.max(0, Math.min(n, from))
   if (i < n && pred(i)) while (i > 0 && pred(i - 1)) i--
   let start = -1
@@ -64,12 +64,12 @@ export function longestRunOverlapping(n: number, pred: (i: number) => boolean, f
 const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 export interface MonthTick {
-  /** Ułamek osi 0..1. */
+  /** Timeline fraction 0..1. */
   pos: number
   label: string
 }
 
-/** Granice miesięcy (UTC) w okresie [t0, t0 + nSteps·stepS). */
+/** Month boundaries (UTC) within [t0, t0 + nSteps·stepS). */
 export function monthTicks(
   t0Utc: string, stepS: number, nSteps: number, names: readonly string[] = MONTHS_EN,
 ): MonthTick[] {
@@ -89,7 +89,7 @@ export function monthTicks(
   return ticks
 }
 
-/** Krok k osi czasu jako tekst UTC: „2028-01-01 05:00” (z godziną) albo „2028-01-01”. */
+/** Timeline step k as UTC text: “2028-01-01 05:00” (with time) or “2028-01-01”. */
 export function stepToUtc(t0Utc: string, stepS: number, k: number, withTime = true): string {
   const t = Date.parse(t0Utc) + k * stepS * 1000
   if (!Number.isFinite(t)) return `#${k}`

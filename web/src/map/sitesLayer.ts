@@ -18,7 +18,7 @@ export function categoryColor(category: string): string {
   return CATEGORY_COLORS[category] ?? FALLBACK_COLOR
 }
 
-/** Klucz właściwości Feature z indeksem miejsca w tablicy sites. */
+/** Feature property key holding the site index in the sites array. */
 export const SITE_INDEX_PROP = 'siteIndex'
 
 const styleCache = new Map<string, Style>()
@@ -39,7 +39,7 @@ function siteStyle(site: Site): Style {
         offsetY: -12,
         fill: new Fill({ color: 'rgba(255, 255, 255, 0.92)' }),
         stroke: new Stroke({ color: 'rgba(0, 0, 0, 0.85)', width: 3 }),
-        // Etykiety, które by na siebie nachodziły, OL pomija (przy przybliżeniu wracają).
+        // OL hides overlapping labels (they reappear when zooming in).
         overflow: false,
       }),
     })
@@ -49,8 +49,8 @@ function siteStyle(site: Site): Style {
 }
 
 /**
- * Jedna Feature na miejsce, tylko dla miejsc z pozycją (x_m, y_m).
- * Współrzędne biorę wprost z pliku: są już w metrach CRS rastrów.
+ * One Feature per site, only for sites with an (x_m, y_m) position.
+ * Coordinates come directly from the file: already in raster CRS meters.
  */
 export function createSitesLayer(sites: Site[]): VectorLayer<VectorSource> {
   const features: Feature[] = []

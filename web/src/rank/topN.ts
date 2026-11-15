@@ -5,13 +5,13 @@ export interface RankedPoint {
 
 export interface TopNOptions {
   n?: number
-  /** Promień NMS w km; <= 0 wyłącza NMS. */
+  /** NMS radius in km; <= 0 disables NMS. */
   radiusKm?: number
 }
 
 /**
- * Top N wśród punktów z mask=1, malejąco po score (remis: niższy indeks).
- * NMS: punkt pomijamy, jeśli w promieniu radiusKm jest już wybrany (hash-grid po x_m, y_m w metrach).
+ * Top N among points with mask=1, descending score (ties: lower index).
+ * NMS: skip points within radiusKm of a selected point (hash grid over x_m, y_m in meters).
  */
 export function topN(
   score: ArrayLike<number>,

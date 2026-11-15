@@ -1,7 +1,7 @@
 /**
- * Indeks punktu (cx[i], cy[i]) najbliższego do (x, y), nie dalej niż maxDistM.
- * Zwraca −1, gdy w promieniu nie ma żadnego punktu. Punkty z NaN są pomijane.
- * mask (opcjonalnie): rozważane są tylko punkty z mask[i] === 1.
+ * Index of the point (cx[i], cy[i]) nearest to (x, y), within maxDistM.
+ * Returns −1 if no point is within the radius. Points containing NaN are skipped.
+ * Optional mask: only points with mask[i] === 1 are considered.
  */
 export function nearestPoint(
   x: number,

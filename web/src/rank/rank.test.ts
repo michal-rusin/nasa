@@ -15,12 +15,12 @@ function cands(cols: Partial<Record<ColumnName, number[]>>, n: number): Candidat
 describe('normalize', () => {
   const vals = Array.from({ length: 101 }, (_, i) => i) // 0..100, p2=2, p98=98
 
-  it('percentyl z interpolacją', () => {
+  it('percentile with interpolation', () => {
     expect(percentile([0, 10], 0.5)).toBe(5)
     expect(percentile(Float64Array.from(vals), 0.02)).toBeCloseTo(2)
   })
 
-  it('rank / (N-1), bez nasycenia powyżej dawnego p98', () => {
+  it('rank / (N-1), without saturation above the former p98', () => {
     const t = normalizeMetric(vals, 'high')
     expect(t[0]).toBe(0)
     expect(t[50]).toBeCloseTo(0.5)
@@ -29,35 +29,35 @@ describe('normalize', () => {
     expect(t[98]).toBeLessThan(t[99]!)
   })
 
-  it('kolejność wejścia nie ma znaczenia (rank po wartościach)', () => {
+  it('input order is irrelevant (rank by value)', () => {
     const t = normalizeMetric([30, 10, 20], 'high')
     expect(Array.from(t)).toEqual([1, 0, 0.5])
   })
 
-  it('remisy → równe normy (średni rank)', () => {
+  it('ties → equal normalized values (average rank)', () => {
     const t = normalizeMetric([5, 1, 5, 9, 5], 'high')
     expect(t[0]).toBe(t[2])
     expect(t[2]).toBe(t[4])
-    expect(t[0]).toBeCloseTo(2 / 4) // ranki 1,2,3 → średnio 2
+    expect(t[0]).toBeCloseTo(2 / 4) // ranks 1,2,3 → average 2
     expect(t[1]).toBe(0)
     expect(t[3]).toBe(1)
   })
 
-  it('odwraca dla low (1 = najlepiej)', () => {
+  it('inverts for low (1 = best)', () => {
     const t = normalizeMetric(vals, 'low')
     expect(t[0]).toBe(1)
     expect(t[100]).toBe(0)
     expect(t[25]).toBeCloseTo(1 - 25 / 100, 5)
   })
 
-  it('NaN → 0 i nie wlicza się do N', () => {
+  it('NaN → 0 and does not count toward N', () => {
     const t = normalizeMetric([1, NaN, 3], 'high')
     expect(Array.from(t)).toEqual([0, 0, 1])
     expect(normalizeMetric([NaN, 7], 'low')[1]).toBe(1)
   })
 
-  it('topN rośnie ze score, bez zależności od indeksu przy różnych wartościach', () => {
-    // 100 punktów, górne wartości rosną z malejącym indeksem → dawniej wszystkie > p98 miały 1.0
+  it('topN follows score, independent of indices for distinct values', () => {
+    // 100 points, highest values rise as indices decrease → previously all values > p98 had 1.0
     const raw = Array.from({ length: 100 }, (_, i) => (i < 90 ? i : 1000 - i))
     const norm = normalizeMetric(raw, 'high')
     const x = raw.map((_, i) => i * 1e5)
@@ -73,12 +73,12 @@ describe('normalize', () => {
 describe('passMask', () => {
   const c = cands({ sun_pct: [10, 50, 90, NaN], slope_deg: [1, 5, 20, 1] }, 4)
 
-  it('pusty filtr → wszystko przechodzi (także NaN)', () => {
+  it('empty filter → everything passes (including NaN)', () => {
     expect(Array.from(passMask(c, {}))).toEqual([1, 1, 1, 1])
     expect(Array.from(passMask(c, { sun_pct: {} }))).toEqual([1, 1, 1, 1])
   })
 
-  it('min i max, granice włącznie, NaN odpada', () => {
+  it('min and max, inclusive bounds, NaN rejected', () => {
     expect(Array.from(passMask(c, { sun_pct: { min: 50 } }))).toEqual([0, 1, 1, 0])
     expect(Array.from(passMask(c, { slope_deg: { max: 5 } }))).toEqual([1, 1, 0, 1])
     expect(Array.from(passMask(c, { sun_pct: { min: 50 }, slope_deg: { max: 5 } }))).toEqual([0, 1, 0, 0])
@@ -98,13 +98,13 @@ describe('score', () => {
     power_fixed_wm2: Float32Array.from([0, 0]),
   } satisfies Record<MetricKey, Float32Array>
 
-  it('średnia ważona', () => {
+  it('weighted mean', () => {
     const s = computeScore(norms, { sun_pct: 3, earth_pct: 1 }, 2)
     expect(s[0]).toBeCloseTo(0.75)
     expect(s[1]).toBeCloseTo(0.25)
   })
 
-  it('wagi zerowe → same zera, ujemne ignorowane', () => {
+  it('zero weights → all zeros, negative weights ignored', () => {
     expect(Array.from(computeScore(norms, {}, 2))).toEqual([0, 0])
     const s = computeScore(norms, { sun_pct: 1, earth_pct: -5 }, 2)
     expect(s[0]).toBeCloseTo(1)
@@ -113,7 +113,7 @@ describe('score', () => {
 })
 
 describe('topN', () => {
-  it('NMS odrzuca sąsiada w promieniu', () => {
+  it('NMS rejects a neighbor within the radius', () => {
     const score = [0.9, 0.8, 0.7]
     const x = [0, 3000, 10000] // 3 km i 10 km od pierwszego
     const y = [0, 0, 0]
@@ -123,17 +123,17 @@ describe('topN', () => {
     expect(noNms.map((p) => p.index)).toEqual([0, 1, 2])
   })
 
-  it('NMS działa przez granicę komórek siatki', () => {
+  it('NMS works across grid cell boundaries', () => {
     const r = topN([1, 0.5], [1, 1], [4999, 5001], [0, 0], { radiusKm: 5 })
     expect(r.map((p) => p.index)).toEqual([0])
   })
 
-  it('remis → niższy indeks pierwszy', () => {
+  it('tie → lower index first', () => {
     const r = topN([0.5, 0.5, 0.5], [1, 1, 1], [0, 1e5, 2e5], [0, 0, 0])
     expect(r.map((p) => p.index)).toEqual([0, 1, 2])
   })
 
-  it('odfiltrowane nie wchodzą, limit n', () => {
+  it('filtered points excluded, limit n', () => {
     const score = [1, 0.9, 0.8, 0.7]
     const x = [0, 1e5, 2e5, 3e5]
     const y = [0, 0, 0, 0]
@@ -142,9 +142,9 @@ describe('topN', () => {
   })
 })
 
-describe('ranking end-to-end: wagi zmieniają top-10', () => {
-  // 30 punktów daleko od siebie (NMS nie przeszkadza): sun_pct rośnie z i, slope_deg też rośnie z i
-  // (czyli gorzej). Waga na sun → najlepsze najwyższe i; waga na slope → najlepsze najniższe i.
+describe('end-to-end ranking: weights change top-10', () => {
+  // 30 widely spaced points (NMS does not interfere): sun_pct and slope_deg both increase with i
+  // (worse slope). Weight on sun → highest i wins; weight on slope → lowest i wins.
   const N = 30
   const idx = Array.from({ length: N }, (_, i) => i)
   const c = cands({
@@ -158,18 +158,18 @@ describe('ranking end-to-end: wagi zmieniają top-10', () => {
   const rank = (w: Partial<Record<MetricKey, number>>) =>
     topN(computeScore(norms, w, N), all, c.col.x_m, c.col.y_m, { n: 10, radiusKm: 5 }).map((p) => p.index)
 
-  it('waga na nasłonecznienie vs na nachylenie odwraca kolejność', () => {
+  it('weighting sunlight versus slope reverses the order', () => {
     expect(rank({ sun_pct: 1 })).toEqual([29, 28, 27, 26, 25, 24, 23, 22, 21, 20])
     expect(rank({ slope_deg: 1 })).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
   })
 
-  it('same remisy (stała metryka) → tie-breaker: niższy indeks, stabilnie i powtarzalnie', () => {
+  it('all ties (constant metric) → lower-index tie-breaker, stable and reproducible', () => {
     const a = rank({ earth_pct: 1 })
     expect(a).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
     expect(rank({ earth_pct: 1 })).toEqual(a)
   })
 
-  it('przesunięcie wagi przesuwa top-10 monotonicznie', () => {
+  it('shifting weights moves top-10 monotonically', () => {
     const top = rank({ sun_pct: 3, slope_deg: 1 })
     expect(top[0]).toBe(29)
     expect(top).toEqual([...top].sort((x, y) => y - x))

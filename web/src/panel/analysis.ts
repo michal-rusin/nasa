@@ -1,5 +1,5 @@
-// Wspólny stan analizy dwóch miejsc (A i B): maska, szeregi roczne, wspólny kursor czasu
-// i osobny dla każdego miejsca kierunek patrzenia panoramy. Czytają go PlaceBox, SkyPanorama i Timeline.
+// Shared analysis state for locations A and B: mask, annual series, shared time cursor
+// and independent panorama view directions. Read by PlaceBox, SkyPanorama, and Timeline.
 
 import { useEffect } from 'react'
 import { create } from 'zustand'
@@ -9,13 +9,13 @@ import { computeSeries, type Series } from '../physics'
 import { useStore } from '../store'
 import { longestRunOverlapping, type Span } from './timelineMath'
 
-/** Szeregi liczone na całym ephem.bin (wszystkie lata); oś czasu pokazuje z nich wybrany rok. */
+/** Series computed across all of ephem.bin (all years); timeline displays the selected year. */
 export interface Analysis {
   mask: Int16Array
   series: Series
 }
 
-/** Kroki wybranego roku (store.year); bez lat w danych cała oś. */
+/** Steps for the selected year (store.year); entire timeline if data has no years. */
 export function activeRange(s: { meta: { t0_utc: string; step_s: number; n_steps: number } | null; year: number | null }): StepRange {
   if (!s.meta) return { start: 0, len: 0 }
   if (s.year === null) return { start: 0, len: s.meta.n_steps }
@@ -30,8 +30,8 @@ export function useActiveRange(): StepRange {
 }
 
 /**
- * Najdłuższa noc i przerwa łączności w roku, tak jak liczy je silnik (kontrakt 3.4):
- * ciąg zachodzący na rok liczy się w całości, długość ograniczona do długości roku.
+ * Longest night and communication gap in a year, matching the engine (contract 3.4):
+ * count an overlapping run in full, capped at the year duration.
  */
 export function yearSpans(series: Series, range: StepRange, nightThreshold: number): { night: Span; commGap: Span } {
   const n = series.f.length
@@ -45,14 +45,14 @@ export function yearSpans(series: Series, range: StepRange, nightThreshold: numb
 export type SlotKey = 'a' | 'b'
 
 export interface SlotState {
-  /** Indeks wiersza kandydata, którego dotyczy analiza. */
+  /** Row index of the candidate being analyzed. */
   index: number | null
   status: 'idle' | 'loading' | 'error' | 'ready'
   error: string | null
   data: Analysis | null
 }
 
-/** Kierunek patrzenia panoramy: az = środek widoku, el = elewacja środka, fov = szerokość poziomo. */
+/** Panorama direction: az = view center, el = center elevation, fov = horizontal width. */
 export interface SkyView {
   az: number
   el: number
@@ -69,17 +69,17 @@ interface AnalysisState {
   a: SlotState
   b: SlotState
   ephem: Float32Array | null
-  /** Krok czasu pokazywany we wszystkich panoramach. */
+  /** Time step displayed in all panoramas. */
   cursor: number
   playing: boolean
-  /** Kierunek patrzenia każdej panoramy osobno (porównanie: obracasz jedną, druga stoi). */
+  /** Independent panorama view directions (rotating one does not move the other). */
   views: Record<SlotKey, SkyView>
   setCursor: (k: number) => void
   setPlaying: (p: boolean) => void
   setView: (slot: SlotKey, v: Partial<SkyView>) => void
 }
 
-/** Na wąskim ekranie węższe pole widzenia, żeby Słońce i Ziemia nie były punktami. */
+/** Narrower field of view on small screens so the Sun and Earth remain larger than dots. */
 function initialView(): SkyView {
   return { az: 0, el: 6, fov: typeof window !== 'undefined' && window.innerWidth < 600 ? 65 : 100 }
 }
@@ -92,7 +92,7 @@ export const useAnalysis = create<AnalysisState>()((set) => ({
   playing: false,
   views: { a: initialView(), b: initialView() },
   setCursor: (k) => {
-    // Kursor zostaje w wybranym roku.
+    // Keep the cursor within the selected year.
     const r = activeRange(useStore.getState())
     set({ cursor: Math.min(r.start + Math.max(0, r.len - 1), Math.max(r.start, Math.round(k))) })
   },
@@ -110,7 +110,7 @@ function setSlot(slot: SlotKey, value: SlotState): void {
   useAnalysis.setState(slot === 'a' ? { a: value } : { b: value })
 }
 
-/** Ładuje maskę i efemerydy dla jednego miejsca i liczy szeregi. */
+/** Load the mask and ephemerides for one location and compute its series. */
 function useSlotLoader(slot: SlotKey, index: number | null): void {
   const meta = useStore((s) => s.meta)
   const c = useStore((s) => s.candidates)
@@ -134,7 +134,7 @@ function useSlotLoader(slot: SlotKey, index: number | null): void {
       const st = useAnalysis.getState()
       if (st.ephem !== ephem) useAnalysis.setState({ ephem })
       setSlot(slot, { index, status: 'ready', error: null, data: { mask, series } })
-      // Nowe miejsce: panorama startuje zwrócona ku Ziemi (a gdy jej nie ma, ku Słońcu).
+      // New location: start the panorama facing Earth (or the Sun if Earth is absent).
       const k = Math.min(n - 1, st.cursor)
       const az = series.earthEl[k]! > 0 || series.sunEl[k]! < -1 ? series.earthAz[k]! : series.sunAz[k]!
       useAnalysis.getState().setView(slot, { az, el: initialView().el })
@@ -146,7 +146,7 @@ function useSlotLoader(slot: SlotKey, index: number | null): void {
   }, [meta, c, index, slot])
 }
 
-/** Montować raz (w widoku bieguna): analiza miejsc A i B. */
+/** Mount once (in the pole view): analyze locations A and B. */
 export function useAnalysisLoader(): void {
   const a = useStore((s) => s.selectedIndex)
   const b = useStore((s) => s.compareIndex)
@@ -154,7 +154,7 @@ export function useAnalysisLoader(): void {
   useSlotLoader('b', b)
 }
 
-/** Odtwarzanie czasu: jedna pętla na całą stronę, kroków na klatkę ≈ 2,5 doby/s przy 60 fps; stop na końcu roku. */
+/** Time playback: one loop for the page, steps per frame ≈ 2.5 days/s at 60 fps; stop at year end. */
 export function usePlayback(stepsPerFrame = 1): void {
   const playing = useAnalysis((s) => s.playing)
   const { start, len } = useActiveRange()
@@ -173,7 +173,7 @@ export function usePlayback(stepsPerFrame = 1): void {
   }, [playing, start, len, stepsPerFrame])
 }
 
-// Zmiana roku: kursor przeskakuje na ten sam moment roku (ta sama data i godzina).
+// Year change: move the cursor to the same point in the year (same date and time).
 useStore.subscribe((s, prev) => {
   if (s.year === prev.year || !s.meta) return
   const before = activeRange(prev.meta ? prev : s)

@@ -1,6 +1,6 @@
 /// <reference types="node" />
-// Zgodność fizyki TS z validation.json i candidates.bin (kontrakt 6).
-// Dane czytane z dysku: web/public/data oraz web/public/data/sample (jeśli są).
+// Check TS physics against validation.json and candidates.bin (contract 6).
+// Read data from disk: web/public/data and web/public/data/sample (if present).
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -22,7 +22,7 @@ interface ValidationEntry {
   earth_g: number[]
   sun_pct: number
   earth_pct: number
-  /** Dostawa 7 (kontrakt 6): moc dla candidates_period; null = brak kierunku (brak słońca). */
+  /** Delivery 7 (contract 6): power for candidates_period; null = no direction (no sunlight). */
   power_track_wm2?: number
   power_fixed_wm2?: number
   power_fixed_az_deg?: number | null
@@ -39,7 +39,7 @@ function readJson(path: string): unknown {
 
 describe.skipIf(DATASETS.length === 0)('validation.json', () => {
   for (const dir of DATASETS) {
-    it(`zgodność agregatów: ${dir.slice(DATA_ROOT.length) || 'public/data'}`, () => {
+    it(`aggregate consistency: ${dir.slice(DATA_ROOT.length) || 'public/data'}`, () => {
       const meta = parseMeta(readJson(join(dir, 'meta.json')))
       const cand = parseCandidates(readBuf(join(dir, 'candidates.bin')), meta)
       const idToIndex = buildIdToIndex(cand)
@@ -47,8 +47,8 @@ describe.skipIf(DATASETS.length === 0)('validation.json', () => {
       const index = readJson(join(dir, 'masks', 'index.json')) as { records: Record<string, [string, number]> }
       const validation = readJson(join(dir, 'validation.json')) as ValidationEntry[]
       const stepH = meta.step_s / 3600
-      // candidates.bin i validation.json dotyczą tylko candidates_period (2028 = kroki 0..8783),
-      // a ephem.bin może obejmować więcej lat (kontrakt 1.4).
+      // candidates.bin and validation.json cover only candidates_period (2028 = steps 0..8783),
+      // whereas ephem.bin may span more years (contract 1.4).
       const period = candidatesRange(meta)
       const nSteps = period.len
       const sunTol = meta.mock === true ? 0.01 : 1

@@ -4,14 +4,14 @@ import { EMPTY_STARS, parseStarCatalog, type StarCatalog } from './sky'
 let promise: Promise<StarCatalog> | null = null
 
 /**
- * Katalog jasnych gwiazd (Hipparcos do 6 mag, ~5 tys.) z public/assets/stars.json.
- * Przy błędzie zwraca pusty katalog: panorama działa wtedy bez gwiazd.
+ * Bright star catalog (Hipparcos down to magnitude 6, ~5,000) from public/assets/stars.json.
+ * Returns an empty catalog on error: the panorama then works without stars.
  */
 export function loadStars(): Promise<StarCatalog> {
   if (!promise) {
     promise = fetch(`${import.meta.env.BASE_URL}assets/stars.json`)
       .then(async (res) => {
-        // Serwer dev Vite na brakujący plik odpowiada 200 + index.html.
+        // Vite dev server returns 200 + index.html for missing files.
         if (!res.ok || !(res.headers.get('content-type') ?? '').includes('json')) throw new Error('missing stars.json')
         return parseStarCatalog(await res.json())
       })

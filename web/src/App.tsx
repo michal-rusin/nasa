@@ -4,7 +4,7 @@ import { useT } from './i18n'
 import { Tour } from './tour/Tour'
 import { useTour } from './tour/store'
 
-// Osobne paczki: globus (three.js) i mapa (OpenLayers) nie obciążają się nawzajem.
+// Separate bundles: the globe (three.js) and map (OpenLayers) load independently.
 const Home = lazy(() => import('./views/Home'))
 const SouthPole = lazy(() => import('./views/SouthPole'))
 

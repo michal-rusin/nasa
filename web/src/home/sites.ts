@@ -1,8 +1,8 @@
-/** Miejsca lądowań Apollo. lat: N+, lon: E+ (stopnie). */
-// źródło: LROC, do weryfikacji przez zespół danych
+/** Apollo landing sites. lat: N+, lon: E+ (degrees). */
+// source: LROC, to be verified by the data team
 export interface ApolloSite {
   id: string
-  /** Nazwa własna misji, nie tłumaczymy. */
+  /** Mission proper name; do not translate. */
   name: string
   lat: number
   lon: number
@@ -18,5 +18,5 @@ export const APOLLO_SITES: readonly ApolloSite[] = [
   { id: 'apollo17', name: 'Apollo 17', lat: 20.191, lon: 30.772, year: 1972 },
 ]
 
-/** Granica wyróżnionego obszaru bieguna południowego (stopnie szerokości). */
+/** Boundary of the highlighted south pole region (degrees latitude). */
 export const SOUTH_POLE_REGION_LAT = -84

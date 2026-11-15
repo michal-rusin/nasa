@@ -5,7 +5,7 @@ import { useStore } from './store'
 export type Lang = 'en'
 export const LANGS: readonly Lang[] = ['en']
 =======
-// Teksty interfejsu (tylko angielski). Wszystkie napisy UI idą przez t()/useT().
+// Interface text (English only). All UI strings use t()/useT().
 >>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
 
 const en: Record<string, string> = {
@@ -258,7 +258,7 @@ export function translate(lang: Lang, key: string): string {
 =======
 export const dictionary: Record<string, string> = en
 
-/** Tekst dla klucza; brak klucza = sam klucz (widać go w UI, łatwo wyłapać). */
+/** Text for a key; missing keys are displayed verbatim to make them easy to spot. */
 export function t(key: string): string {
   return dictionary[key] ?? key
 >>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
@@ -277,7 +277,7 @@ export function t(key: string): string {
 
 /** Hook returning the translation function. */
 =======
-/** Hook zostawiony dla komponentów (jedno miejsce, gdyby wrócił drugi język). */
+/** Shared hook for components, providing a single entry point for any future languages. */
 >>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
 export function useT(): (key: string) => string {
   return t

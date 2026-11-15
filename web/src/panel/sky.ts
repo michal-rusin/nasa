@@ -1,5 +1,5 @@
-// Geometria nieba widzianego z punktu na Księżycu: Słońce, Ziemia (rozmiar, faza), gwiazdy.
-// Czyste funkcje, bez DOM. Wejście: te same efemerydy i maska co reszta aplikacji (physics/).
+// Sky geometry from a lunar location: Sun, Earth (size, phase), stars.
+// Pure functions without DOM. Input: the same ephemerides and mask as the rest of the app (physics/).
 
 import {
   azimuthDeg, dot, elevationDeg, enuBasis, EPHEM_COLS, observerRadiusKm,
@@ -10,17 +10,17 @@ const DEG = Math.PI / 180
 export const EARTH_RADIUS_KM = 6371
 const OBLIQUITY = 23.4393 * DEG
 
-/** Różnica kątów zawinięta do [−180, 180). */
+/** Angular difference wrapped to [−180, 180). */
 export function wrapDeg(d: number): number {
   return ((((d + 540) % 360) + 360) % 360) - 180
 }
 
-/** Data juliańska kroku k (t0 + k·stepS). */
+/** Julian date at step k (t0 + k·stepS). */
 export function julianDate(t0Utc: string, stepS: number, k: number): number {
   return (Date.parse(t0Utc) + k * stepS * 1000) / 86400000 + 2440587.5
 }
 
-/** Długość ekliptyczna Słońca [deg], przybliżenie niskiej precyzji (~0.01°). */
+/** Solar ecliptic longitude [deg], low-precision approximation (~0.01°). */
 export function sunEclipticLonDeg(jd: number): number {
   const n = jd - 2451545.0
   const L = 280.46 + 0.9856474 * n
@@ -28,11 +28,11 @@ export function sunEclipticLonDeg(jd: number): number {
   return (((L + 1.915 * Math.sin(g) + 0.02 * Math.sin(2 * g)) % 360) + 360) % 360
 }
 
-// --- Katalog gwiazd ---------------------------------------------------------
+// --- Star catalog ---------------------------------------------------------
 
 export interface StarCatalog {
   n: number
-  /** Jednostkowe wektory w układzie ekliptycznym (x, y, z na gwiazdę). */
+  /** Unit vectors in the ecliptic frame (x, y, z per star). */
   ecl: Float32Array
   mag: Float32Array
   bv: Float32Array
@@ -42,7 +42,7 @@ export const EMPTY_STARS: StarCatalog = {
   n: 0, ecl: new Float32Array(0), mag: new Float32Array(0), bv: new Float32Array(0),
 }
 
-/** RA/Dec (stopnie, J2000) → jednostkowy wektor ekliptyczny. */
+/** RA/Dec (degrees, J2000) → unit ecliptic vector. */
 export function equatorialToEcliptic(raDeg: number, decDeg: number): [number, number, number] {
   const ra = raDeg * DEG
   const dec = decDeg * DEG
@@ -52,7 +52,7 @@ export function equatorialToEcliptic(raDeg: number, decDeg: number): [number, nu
   return [x, y * Math.cos(OBLIQUITY) + z * Math.sin(OBLIQUITY), -y * Math.sin(OBLIQUITY) + z * Math.cos(OBLIQUITY)]
 }
 
-/** public/assets/stars.json: { d: [ra, dec, mag, bv, ...] } (stopnie, J2000). */
+/** public/assets/stars.json: { d: [ra, dec, mag, bv, ...] } (degrees, J2000). */
 export function parseStarCatalog(json: unknown): StarCatalog {
   const d = typeof json === 'object' && json !== null ? (json as { d?: unknown }).d : undefined
   if (!Array.isArray(d) || d.length % 4 !== 0) throw new Error('stars.json: expected array d with length 4·n')
@@ -78,15 +78,15 @@ export function parseStarCatalog(json: unknown): StarCatalog {
 }
 
 /**
- * Obrót gwiazd z układu ekliptycznego do MOON_ME: wokół osi Z o kąt Δ, taki że kierunek
- * Słońca w ekliptyce trafia na długość Słońca w MOON_ME (z efemeryd). Oś obrotu Księżyca
- * traktujemy jak biegun ekliptyki (różnica 1,5°), więc orientacja gwiazd ma błąd rzędu 1–2°.
+ * Rotate stars from the ecliptic frame to MOON_ME around Z by Δ, so the direction
+ * of the ecliptic Sun matches its MOON_ME longitude (from ephemerides). The lunar axis
+ * is treated as the ecliptic pole (1.5° difference), giving star orientations a 1–2° error.
  */
 export function starFrameDeltaDeg(sunLonMeDeg: number, sunEclLonDeg: number): number {
   return wrapDeg(sunLonMeDeg - sunEclLonDeg)
 }
 
-/** Kierunek gwiazdy i w bazie ENU punktu (jednostkowy), po obrocie o Δ (cd = cosΔ, sd = sinΔ). */
+/** Unit direction of star i in the local ENU basis after rotation by Δ (cd = cosΔ, sd = sinΔ). */
 export function starEnu(
   cat: StarCatalog, i: number, cd: number, sd: number, basis: EnuBasis, out: [number, number, number],
 ): void {
@@ -99,7 +99,7 @@ export function starEnu(
   out[2] = mx * U[0] + my * U[1] + z * U[2]
 }
 
-// --- Słońce i Ziemia --------------------------------------------------------
+// --- Sun and Earth --------------------------------------------------------
 
 export interface SkyPoint {
   latDeg: number
@@ -110,17 +110,17 @@ export interface SkyPoint {
 export interface SkyState {
   sunAz: number
   sunEl: number
-  /** Jednostkowy kierunek Słońca w ENU (E, N, U). */
+  /** Unit solar direction in ENU (E, N, U). */
   sunEnu: [number, number, number]
   earthAz: number
   earthEl: number
   earthDiamDeg: number
   earthDistKm: number
-  /** Kąt fazy Ziemi: 0° = pełnia, 90° = kwadra, 180° = nów. */
+  /** Earth phase angle: 0° = full, 90° = quarter, 180° = new. */
   earthPhaseDeg: number
-  /** Kąt na ekranie (rad, 0 = w prawo, zgodnie z ruchem wskazówek) od środka Ziemi ku jasnemu limbowi. */
+  /** Screen angle (rad, 0 = right, clockwise) from Earth center toward the bright limb. */
   earthLimbRad: number
-  /** Obrót gwiazd (patrz starFrameDeltaDeg). */
+  /** Star rotation (see starFrameDeltaDeg). */
   starDeltaDeg: number
 }
 
@@ -144,18 +144,18 @@ export function skyState(
   const sunAz = azimuthDeg(sE, sN)
   const sunEl = elevationDeg(sU, 1)
 
-  // Wektor obserwator → Ziemia: v = e − r·U; baza ENU jest ortonormalna, więc P·E = P·N = 0.
+  // Observer → Earth vector: v = e − r·U; orthonormal ENU basis means P·E = P·N = 0.
   const vE = dot(e, E), vN = dot(e, N), vU = dot(e, U) - r
   const vNorm = Math.hypot(vE, vN, vU) || 1
   const dE = vE / vNorm, dN = vN / vNorm, dU = vU / vNorm
   const earthAz = azimuthDeg(vE, vN)
   const earthEl = elevationDeg(vU, vNorm)
 
-  // Faza: kąt Słońce–Ziemia–obserwator (Słońce traktujemy jak źródło równoległe).
+  // Phase: Sun–Earth–observer angle (parallel rays assumed from the Sun).
   const cosPhase = Math.min(1, Math.max(-1, -(sE * dE + sN * dN + sU * dU)))
   const earthPhaseDeg = Math.acos(cosPhase) / DEG
 
-  // Kierunek jasnego limbu: rzut kierunku Słońca na płaszczyznę nieba w miejscu Ziemi.
+  // Bright limb direction: solar direction projected onto the sky plane at Earth.
   const sd = sE * dE + sN * dN + sU * dU
   const pE = sE - sd * dE, pN = sN - sd * dN, pU = sU - sd * dU
   const az = earthAz * DEG, el = earthEl * DEG
@@ -175,7 +175,7 @@ export function skyState(
   }
 }
 
-/** Oświetlona część tarczy Ziemi, 0..1. */
+/** Illuminated Earth disk fraction, 0..1. */
 export function earthLitFraction(phaseDeg: number): number {
   return (1 + Math.cos(phaseDeg * DEG)) / 2
 }

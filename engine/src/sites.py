@@ -18,7 +18,7 @@ BOUNDS_M = {
     "max_y": float(LAYER_HALF_M),
 }
 
-# Maksymalna odległość przypisania kandydata (<= 4 km -> wypełniamy, > 4 km -> null)
+# Maximum candidate association distance (<= 4 km -> populate, > 4 km -> null)
 MAX_NEAREST_KM = 4.0
 
 

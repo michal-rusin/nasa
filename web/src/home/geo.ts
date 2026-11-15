@@ -1,10 +1,10 @@
 /**
- * Geometria globusa w konwencji three.js (Y do góry) zgodna z domyślnym mapowaniem UV
- * `SphereGeometry` dla tekstury equirectangular wyśrodkowanej na południku 0:
- *   lon 0   -> +X (środek obrazu),
- *   lon 90E -> -Z (dla kamery na +X jest to prawa strona, czyli wschód po prawej),
- *   biegun N -> +Y, biegun S -> -Y.
- * Dzięki temu siatki nie trzeba obracać ani odbijać tekstury.
+ * Globe geometry using the three.js convention (Y up), matching the default UV mapping
+ * of `SphereGeometry` for an equirectangular texture centered on longitude 0:
+ *   lon 0   -> +X (image center),
+ *   lon 90E -> -Z (right side for a camera at +X, so east appears on the right),
+ *   north pole -> +Y, south pole -> -Y.
+ * This avoids rotating the mesh or mirroring the texture.
  */
 export interface Vec3 {
   x: number
@@ -14,7 +14,7 @@ export interface Vec3 {
 
 const DEG = Math.PI / 180
 
-/** lat: N dodatnia, lon: E dodatnia (stopnie). */
+/** lat: north-positive, lon: east-positive (degrees). */
 export function latLonToVec3(latDeg: number, lonDeg: number, radius = 1): Vec3 {
   const lat = latDeg * DEG
   const lon = lonDeg * DEG
@@ -26,7 +26,7 @@ export function latLonToVec3(latDeg: number, lonDeg: number, radius = 1): Vec3 {
   }
 }
 
-/** Odwrotność `latLonToVec3` (stopnie + odległość od środka). */
+/** Inverse of `latLonToVec3` (degrees + distance from center). */
 export function vec3ToLatLon(v: Vec3): { lat: number; lon: number; dist: number } {
   const dist = Math.hypot(v.x, v.y, v.z)
   if (dist === 0) return { lat: 0, lon: 0, dist: 0 }
@@ -38,9 +38,9 @@ export function vec3ToLatLon(v: Vec3): { lat: number; lon: number; dist: number 
 }
 
 /**
- * Czy punkt na powierzchni kuli (o środku w 0) jest po stronie widocznej z kamery:
- * normalna w punkcie (= sam punkt) musi patrzeć w stronę kamery, czyli n · (kamera − punkt) > 0.
- * To dokładny test horyzontu, nie tylko "półkuli".
+ * Whether a point on a sphere centered at 0 is visible from the camera:
+ * the surface normal (= the point itself) must face the camera: n · (camera − point) > 0.
+ * This is an exact horizon test, not just a hemisphere test.
  */
 export function isVisibleOnSphere(point: Vec3, camera: Vec3): boolean {
   return (

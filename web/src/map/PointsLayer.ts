@@ -4,34 +4,34 @@ import { NO_DATA_RGB, normalize, rampRgb, rgbCss, type Range, type RGB } from '.
 import { detectGrid } from './grid'
 import type { ModeTheme } from './themes'
 
-/** Liczba kubełków koloru (tryb punktowy): punkty jednego kubełka rysujemy jednym fill(). */
+/** Number of color buckets (point mode): points in one bucket share a single fill(). */
 const N_BINS = 64
 const NAN_BIN = N_BINS
-/** Punkty niespełniające filtrów: nie są rysowane wcale (znikają z mapy). */
+/** Points failing filters are not drawn (they disappear from the map). */
 const HIDDEN_BIN = N_BINS + 1
 const N_ALL_BINS = N_BINS + 2
 const DRAW_BINS = [NAN_BIN, ...Array.from({ length: N_BINS }, (_, b) => b)]
-/** Bok kwadratu punktu w trybie punktowym, gdy dane nie mają regularnej siatki. */
+/** Point square size in point mode when the data do not form a regular grid. */
 const SIZE_PX = 3
-/** Zagęszczenie `level = 1` ma oczko 250 m (kontrakt 3.1); tak duże kwadraty rysujemy na wierzchu pola. */
+/** Refinement `level = 1` uses 250 m cells (contract 3.1); draw squares of that size over the field. */
 const FINE_CELL_M = 250
 const SELECTED_RADIUS_PX = 6
 const HOVER_RADIUS_PX = 5
 const MONO = '"JetBrains Mono", ui-monospace, monospace'
-/** Maks. liczba plakietek z animacją (Top N ≤ tyle). */
+/** Maximum number of animated badges (Top N ≤ this value). */
 const MAX_BADGES = 32
-/** Odsłanianie pola rankingu: czas przejścia [ms]. */
+/** Ranking field reveal: transition duration [ms]. */
 const REVEAL_MS = 900
-/** Plakietki wskakują po kolei: opóźnienie startu i odstęp między kolejnymi [ms]. */
+/** Badges appear sequentially: initial delay and interval [ms]. */
 const BADGE_DELAY_MS = 380
 const BADGE_STAGGER_MS = 60
-/** Sprężyna plakietek (lekko niedotłumiona, jak w iOS): sztywność i tłumienie. */
+/** Badge spring (slightly underdamped, like iOS): stiffness and damping. */
 const SPRING_K = 420
 const SPRING_C = 26
-/** Powiększenie plakietki pod kursorem. */
+/** Scale increase for the hovered badge. */
 const BADGE_HOVER_SCALE = 1.45
 
-/** Promień plakietki Top N w px CSS przy danej rozdzielczości (do hit-testu w createMap). */
+/** Top N badge radius in CSS pixels at a given resolution (for hit testing in createMap). */
 export function badgeRadiusPx(rank: number, resolution: number): number {
   const base = resolution > 350 ? 11.5 : 10
   return rank === 0 ? base * 1.2 : base
@@ -47,16 +47,16 @@ function prefersReducedMotion(): boolean {
 export interface PointsStyle {
   values: ArrayLike<number>
   range: Range
-  /** true dla metryk „mniej = lepiej”: rampa odwrócona, jasny = dobry. */
+  /** true for lower-is-better metrics: reversed ramp, bright = good. */
   invert: boolean
-  /** 1 = spełnia filtry; null = wszystkie spełniają. */
+  /** 1 = passes filters; null = all pass. */
   mask: Uint8Array | null
-  /** Indeksy top-N w kolejności rankingu (numerowane pierścienie). */
+  /** Top-N indices in ranking order (numbered rings). */
   top: readonly number[]
-  /** Miejsce A (zaznaczone) i B (porównanie). */
+  /** Site A (selected) and B (comparison). */
   selectedIndex: number | null
   compareIndex: number | null
-  /** Skala kolorów i kolor plakietek wersji rankingu. */
+  /** Color scale and badge color for the ranking mode. */
   theme: ModeTheme
 }
 
@@ -64,24 +64,24 @@ export interface PointsLayerHandle {
   layer: Layer
   setStyle: (s: PointsStyle) => void
   setHover: (i: number | null) => void
-  /** Podświetlenie z listy Top 10 (działa jak najechanie na mapie). */
+  /** Highlight from the Top 10 list (same effect as hovering on the map). */
   setHighlight: (i: number | null) => void
-  /** Krycie samego pola/kwadratów (znaczniki i obrys zostają pełne). */
+  /** Opacity of the field/squares only (markers and outline remain opaque). */
   setOpacity: (v: number) => void
-  /** Pokazuje lub chowa kolory rankingu i plakietki (z animacją). */
+  /** Shows or hides ranking colors and badges with animation. */
   setRevealed: (on: boolean) => void
-  /** Czy ranking jest włączony. */
+  /** Whether ranking is enabled. */
   isRevealed: () => boolean
   dispose: () => void
 }
 
 /**
- * Własna warstwa canvas dla punktów kandydatów (bez obiektu Feature na punkt).
- * Punkty poziomu 0 (siatka 2 km) rysujemy jako gładkie pole wartości (jeden piksel obrazu
- * na punkt, skalowanie z wygładzaniem); zagęszczenia (poziom ≠ 0) jako drobne kwadraty na wierzchu.
- * Jeśli poziom 0 nie jest regularną siatką, wszystkie punkty idą jako kwadraty.
- * Na koniec: poświata krawędzi obszaru (okrąg o promieniu regionRadiusM wokół 0,0).
- * cx, cy: współrzędne w metrach CRS rastrów (x_m, y_m z candidates.bin).
+ * Custom canvas layer for candidate points (no Feature object per point).
+ * Level 0 points (2 km grid) are drawn as a smooth value field (one image pixel
+ * per point, smooth scaling); refinements (level ≠ 0) appear as small squares on top.
+ * If level 0 is not a regular grid, all points are drawn as squares.
+ * Finally: region edge glow (circle of radius regionRadiusM around 0,0).
+ * cx, cy: coordinates in raster CRS meters (x_m, y_m from candidates.bin).
  */
 export function createPointsLayer(
   cx: Float32Array,
@@ -102,7 +102,7 @@ export function createPointsLayer(
   for (let i = 0; i < n; i++) (!level || level[i] === 0 ? coarse : fine).push(i)
   const coarseIdx = Int32Array.from(coarse)
   const grid = detectGrid(Float32Array.from(coarse, (i) => cx[i]!), Float32Array.from(coarse, (i) => cy[i]!))
-  // Tryb punktowy obejmuje: zagęszczenia (gdy jest pole) albo wszystkie punkty (gdy pola nie ma).
+  // Point mode includes refinements when a field exists, or all points otherwise.
   const pointIdx = Int32Array.from(grid ? fine : Array.from({ length: n }, (_, i) => i))
   const field = grid ? document.createElement('canvas') : null
   const fctx = field?.getContext('2d') ?? null
@@ -111,7 +111,7 @@ export function createPointsLayer(
     field.height = grid.ny
   }
 
-  // Tryb punktowy: punkty posortowane po kubełku koloru (sortowanie przez zliczanie).
+  // Point mode: points sorted by color bucket (counting sort).
   const order = new Int32Array(pointIdx.length)
   const offsets = new Int32Array(N_ALL_BINS + 1)
   let binColors: string[] = []
@@ -125,7 +125,7 @@ export function createPointsLayer(
   let highlight: number | null = null
   let opacity = 1
 
-  // Animacje: odsłanianie pola (0..1) i sprężyny skali plakietek.
+  // Animations: field reveal (0..1) and badge scale springs.
   let revealed = false
   let reveal = 0
   let revealedAt = 0
@@ -155,14 +155,14 @@ export function createPointsLayer(
       }
       for (let r = 0; r < MAX_BADGES; r++) {
         if (!revealed) {
-          // Chowanie: szybkie, bez odbicia.
+          // Hide quickly without bounce.
           bScale[r] = Math.max(0, bScale[r]! - dt * 6)
           bVel[r] = 0
           if (bScale[r]! > 0) moving = true
           continue
         }
         const tg = badgeTarget(r, now)
-        if (tg === 0 && style && r < style.top.length) moving = true // czeka na swoją kolej
+        if (tg === 0 && style && r < style.top.length) moving = true // waiting for its turn
         const x = bScale[r]!, v = bVel[r]!
         const a = SPRING_K * (tg - x) - SPRING_C * v
         const nv = v + a * dt
@@ -201,7 +201,7 @@ export function createPointsLayer(
       const d = img.data
       for (let kk = 0; kk < coarseIdx.length; kk++) {
         const i = coarseIdx[kk]!
-        if (s.mask && s.mask[i] === 0) continue // alfa 0: odfiltrowany znika
+        if (s.mask && s.mask[i] === 0) continue // alpha 0: filtered point disappears
         const c = rgbOf(s, i)
         const o = (grid.row[kk]! * grid.nx + grid.col[kk]!) * 4
         d[o] = c[0]
@@ -244,14 +244,14 @@ export function createPointsLayer(
     ctx!.setTransform(1, 0, 0, 1, 0, 0)
     ctx!.clearRect(0, 0, w, h)
 
-    // Mapa → piksele CSS, potem × pixelRatio.
+    // Map → CSS pixels, then × pixelRatio.
     const t = fs.coordinateToPixelTransform
     const a = t[0]! * pr, b = t[1]! * pr, c = t[2]! * pr, d = t[3]! * pr, e = t[4]! * pr, f = t[5]! * pr
     const px = (x: number, y: number) => a * x + c * y + e
     const py = (x: number, y: number) => b * x + d * y + f
     const res = fs.viewState.resolution
 
-    // Poświata krawędzi obszaru: rysowana zawsze, także przy ukrytych punktach.
+    // Region edge glow: always drawn, even when points are hidden.
     const ox = px(0, 0), oy = py(0, 0)
     const rr = (regionRadiusM / res) * pr
     ctx!.save()
@@ -272,7 +272,7 @@ export function createPointsLayer(
     ctx!.save()
     ctx!.globalAlpha = opacity * ease
     if (ease < 1) {
-      // Kolory rozlewają się od bieguna ku krawędzi obszaru.
+      // Colors spread from the pole toward the region edge.
       ctx!.beginPath()
       ctx!.arc(ox, oy, rr * (0.06 + ease), 0, 2 * Math.PI)
       ctx!.clip()
@@ -288,7 +288,7 @@ export function createPointsLayer(
       ctx!.drawImage(field, x0, y0, x1 - x0, y1 - y0)
     }
     if (pointIdx.length > 0) {
-      // Przy polu: kwadraty zagęszczenia wielkości oczka 250 m (min. 2,2 px); bez pola: stałe 3 px.
+      // With a field: refinement squares match 250 m cells (min. 2.2 px); otherwise: fixed 3 px.
       const sz = (grid ? Math.min(10, Math.max(2.2, (FINE_CELL_M * 0.85) / res)) : SIZE_PX) * pr
       const hs = sz / 2
       for (const bin of DRAW_BINS) {
@@ -310,13 +310,13 @@ export function createPointsLayer(
     const ipx = (i: number) => px(cx[i]!, cy[i]!)
     const ipy = (i: number) => py(cx[i]!, cy[i]!)
 
-    // Top-N: białe plakietki z numerem (#1 złota, największa i na wierzchu). Przy oddaleniu
-    // powiększone, żeby na tle gęstego pola kolorów było je widać od razu.
+    // Top-N: white numbered badges (#1 gold, largest and on top). When zoomed out,
+    // enlarge them to stand out against the dense color field.
     if (s.top.length > 0) {
       ctx!.textAlign = 'center'
       ctx!.textBaseline = 'middle'
       const hotI = hot()
-      // Od ostatniego do #1, a wskazana plakietka na samym wierzchu.
+      // Draw from last to #1, with the hovered badge on top.
       const order = Array.from({ length: Math.min(MAX_BADGES, s.top.length) }, (_, r) => r).reverse()
       const hr = order.findIndex((r) => s.top[r] === hotI)
       if (hr >= 0) order.push(order.splice(hr, 1)[0]!)
@@ -329,7 +329,7 @@ export function createPointsLayer(
         ctx!.translate(ipx(i), ipy(i))
         ctx!.scale(sc, sc)
         if (i === hotI) {
-          // Miękka aureola wokół wskazanej plakietki.
+          // Soft halo around the hovered badge.
           const g = ctx!.createRadialGradient(0, 0, r, 0, 0, r * 2.4)
           g.addColorStop(0, `${s.theme.accent}88`)
           g.addColorStop(1, `${s.theme.accent}00`)
@@ -338,7 +338,7 @@ export function createPointsLayer(
           ctx!.arc(0, 0, r * 2.4, 0, 2 * Math.PI)
           ctx!.fill()
         }
-        // Plakietka w kolorze wersji rankingu; #1 z białą obwódką.
+        // Badge uses the ranking mode color; #1 has a white border.
         ctx!.save()
         ctx!.shadowColor = 'rgba(0, 0, 0, 0.9)'
         ctx!.shadowBlur = 9 * pr
@@ -408,7 +408,7 @@ export function createPointsLayer(
     setStyle(s) {
       if (!style || style.values !== s.values || style.range !== s.range
         || style.invert !== s.invert || style.mask !== s.mask || style.theme !== s.theme) rebuild(s)
-      // Nowe Top 10 (inna wersja rankingu, wagi, filtry): plakietki wskakują od nowa.
+      // New Top 10 (changed ranking mode, weights, filters): replay badge entrance animations.
       const newTop = !!style && revealed && (style.top.length !== s.top.length || style.top.some((v, i) => v !== s.top[i]))
       style = s
       if (newTop) {

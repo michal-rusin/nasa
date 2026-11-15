@@ -1,4 +1,4 @@
-/** Wynik parsowania pola „lat, lon”. */
+/** Parsed “lat, lon” input. */
 export type LatLonParse =
   | { ok: true; lat: number; lon: number }
   | { ok: false; reason: 'format' | 'range' }
@@ -7,8 +7,8 @@ const NUM = String.raw`([+-]?\d+(?:\.\d+)?)\s*°?\s*`
 const RE = new RegExp(String.raw`^\s*${NUM}([NSns])?\s*(?:[,;]\s*|\s+)${NUM}([EWew])?\s*$`)
 
 /**
- * Parsuje „lat, lon” w stopniach: „-89.5, 129”, „-89.5 129”, „89.5S 129E”, „-89.5°; -45”.
- * lat ∈ [−90, 90]; lon ∈ [−180, 360], normalizowana do (−180, 180]. Litera S/W odwraca znak.
+ * Parse “lat, lon” in degrees: „-89.5, 129”, „-89.5 129”, „89.5S 129E”, „-89.5°; -45”.
+ * lat ∈ [−90, 90]; lon ∈ [−180, 360], normalized to (−180, 180]. S/W reverses the sign.
  */
 export function parseLatLon(input: string): LatLonParse {
   const m = RE.exec(input)

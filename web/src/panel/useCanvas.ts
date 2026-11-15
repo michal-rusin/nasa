@@ -3,9 +3,9 @@ import { useEffect, useRef, useState } from 'react'
 export type DrawFn = (ctx: CanvasRenderingContext2D, w: number, h: number) => void
 
 /**
- * Canvas w rozmiarze rodzica (CSS px), ostry na HiDPI. Rysuje w requestAnimationFrame
- * tylko gdy zmieni się `draw` (czyli dane) albo rozmiar / devicePixelRatio; najwyżej raz na
- * klatkę i zawsze najnowszym `draw` (bez anulowania, które przy odtwarzaniu głodziło rysowanie).
+ * Canvas matching its parent size (CSS px), sharp on HiDPI. Draws in requestAnimationFrame
+ * only when `draw` (data) or size / devicePixelRatio changes; at most once per
+ * frame using the latest `draw` (no cancellation, which previously starved rendering during playback).
  */
 export function useCanvas(draw: DrawFn, height: number) {
   const ref = useRef<HTMLCanvasElement>(null)

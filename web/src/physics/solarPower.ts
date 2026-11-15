@@ -1,24 +1,24 @@
-// Moc promieniowania słonecznego padającego na panel (W/m², przed sprawnością ogniw) z szeregów
-// jednego punktu: P(t) = S0 · (1 AU / r)² · f(t) · max(0, n̂·ŝ).
-// Przy biegunie Słońce stoi kilka stopni nad horyzontem, więc liczą się panele pionowe:
-//   - obracany za Słońcem (oś pionowa): n̂·ŝ = cos(el),
-//   - nieruchomy, zwrócony na azymut A: n̂·ŝ = cos(el) · max(0, cos(az − A)), A najlepsze dla punktu.
-// Panel poziomy (sin el) daje przy biegunie ~2–7% mocy obracanego, więc go nie liczymy.
+// Solar irradiance incident on a panel (W/m², before cell efficiency), computed from time series
+// for one point: P(t) = S0 · (1 AU / r)² · f(t) · max(0, n̂·ŝ).
+// Near the pole the Sun is only a few degrees above the horizon, so we consider vertical panels:
+//   - tracking the Sun (vertical axis): n̂·ŝ = cos(el),
+//   - fixed, facing azimuth A: n̂·ŝ = cos(el) · max(0, cos(az − A)), A optimized for the point.
+// A horizontal panel (sin el) yields ~2–7% of tracking-panel power near the pole, so it is omitted.
 
-/** Stała słoneczna (TSI) w 1 AU, W/m². Na Księżycu bez poprawki na atmosferę. */
+/** Solar constant (TSI) at 1 AU, W/m². No atmospheric correction on the Moon. */
 export const SOLAR_CONSTANT_WM2 = 1361
 
 const DEG = Math.PI / 180
 const DAY_MS = 86_400_000
-/** Mimośród orbity Ziemi i średnia data peryhelium (~3 stycznia). */
+/** Earth orbital eccentricity and mean perihelion date (~January 3). */
 const ECC = 0.0167
 const YEAR_D = 365.256
-/** Binów azymutu przy szukaniu najlepszego kierunku nieruchomego panelu (co 5°). */
+/** Azimuth bins for finding the best fixed-panel orientation (every 5°). */
 const AZ_BINS = 72
 
 /**
- * (1 AU / r)² dla chwili t: odległość Ziemia–Słońce z orbity Keplera w przybliżeniu pierwszego
- * rzędu (±3,3% w ciągu roku). Księżyc jest o ±0,0026 AU od Ziemi, to pomijamy (±0,5%).
+ * (1 AU / r)² at time t: Earth–Sun distance from a first-order approximation
+ * of the Keplerian orbit (±3.3% annually). The Moon is ±0.0026 AU from Earth; this is ignored (±0.5%).
  */
 export function distanceFactor(tMs: number): number {
   const d = (tMs - Date.UTC(2000, 0, 3)) / DAY_MS
@@ -27,11 +27,11 @@ export function distanceFactor(tMs: number): number {
 }
 
 export interface SolarPower {
-  /** Średnia moc panelu pionowego obracanego za Słońcem, W/m². */
+  /** Mean power of a vertical Sun-tracking panel, W/m². */
   trackingWm2: number
-  /** Średnia moc najlepiej ustawionego nieruchomego panelu pionowego, W/m². */
+  /** Mean power of an optimally oriented fixed vertical panel, W/m². */
   fixedWm2: number
-  /** Azymut, na który patrzy ten nieruchomy panel (0 = N, 90 = E). */
+  /** Azimuth faced by the fixed panel (0 = N, 90 = E). */
   fixedAzDeg: number
 }
 
@@ -41,7 +41,7 @@ interface Input {
   sunAz: ArrayLike<number>
 }
 
-/** Średnie po krokach [start, start + len); t0Ms i stepS do poprawki na odległość od Słońca. */
+/** Averages over steps [start, start + len); t0Ms and stepS provide the Sun-distance correction. */
 export function solarPower(s: Input, start: number, len: number, t0Ms: number, stepS: number): SolarPower {
   const hist = new Float64Array(AZ_BINS)
   let track = 0
@@ -53,7 +53,7 @@ export function solarPower(s: Input, start: number, len: number, t0Ms: number, s
     const az = ((s.sunAz[k]! % 360) + 360) % 360
     hist[Math.floor(az / (360 / AZ_BINS)) % AZ_BINS]! += w
   }
-  // E(A) = Σ w · max(0, cos(az − A)) po binach azymutu (środki binów), A co 5°.
+  // E(A) = Σ w · max(0, cos(az − A)) over azimuth bins (bin centers), A in 5° increments.
   let best = 0
   let bestAz = 0
   for (let a = 0; a < AZ_BINS; a++) {

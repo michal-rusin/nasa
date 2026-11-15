@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { detectGrid } from './grid'
 
 describe('detectGrid', () => {
-  it('regularna siatka z dziurami: krok, wymiary, wiersz 0 = max y', () => {
+  it('regular grid with gaps: spacing, dimensions, row 0 = max y', () => {
     const x = [-1000, 1000, 3000, -1000, 3000]
     const y = [500, 500, 500, -1500, -3500]
     const g = detectGrid(x, y)
@@ -13,12 +13,12 @@ describe('detectGrid', () => {
     expect(Array.from(g!.row)).toEqual([0, 0, 0, 1, 2])
   })
 
-  it('punkty poza siatką lub różne kroki w osiach → null', () => {
+  it('off-grid points or unequal axis spacing → null', () => {
     expect(detectGrid([0, 10, 20, 35], [0, 0, 10, 10])).toBeNull()
     expect(detectGrid([0, 10, 20, 30], [0, 0, 50, 50])).toBeNull()
   })
 
-  it('NaN albo za mało punktów → null', () => {
+  it('NaN or too few points → null', () => {
     expect(detectGrid([0, 1, NaN, 3], [0, 0, 0, 0])).toBeNull()
     expect(detectGrid([0, 1], [0, 0])).toBeNull()
   })

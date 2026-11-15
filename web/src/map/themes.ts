@@ -1,19 +1,19 @@
-// Wersje rankingu: każda (wynik łączny albo pojedyncza metryka) ma własną skalę kolorów mapy
-// i kolor akcentu dla plakietek Top 10, listy i legendy. Czyste dane, bez DOM.
+// Each ranking mode (combined score or single metric) has its own map color scale
+// and accent color for Top 10 badges, list, and legend. Pure data, no DOM.
 
 import type { ColorKey } from '../store'
 import { RAMP_STOPS, type RGB } from './colors'
 
 export interface ModeTheme {
-  /** Punkty kontrolne skali: od najgorszego do najlepszego. */
+  /** Scale control points: worst to best. */
   ramp: readonly RGB[]
-  /** Kolor plakietek Top 10 i wyróżnień w UI. */
+  /** Color of Top 10 badges and UI highlights. */
   accent: string
-  /** Kolor tekstu na plakietce (kontrast z akcentem). */
+  /** Badge text color (contrasting with the accent). */
   onAccent: string
 }
 
-/** Skala od ciemnego, przygaszonego tła do koloru akcentu (najlepiej = najjaśniej). */
+/** Scale from a dark muted background to the accent color (best = brightest). */
 function towards(accent: RGB, light: RGB): readonly RGB[] {
   const dark: RGB = [26, 28, 36]
   const mid = (a: RGB, b: RGB, t: number): RGB => [

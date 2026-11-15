@@ -1,4 +1,4 @@
-/** Regularna siatka punktów w metrach CRS: kolumna/wiersz każdego punktu (wiersz 0 = max y). */
+/** Regular point grid in CRS meters: column/row of each point (row 0 = max y). */
 export interface Grid {
   x0: number
   yTop: number
@@ -9,11 +9,11 @@ export interface Grid {
   row: Int32Array
 }
 
-/** Maksymalny rozmiar obrazu pola (piksel na punkt siatki). */
+/** Maximum field image size (one pixel per grid point). */
 const MAX_CELLS = 2048 * 2048
 const SNAP_TOL = 0.02
 
-/** Najmniejszy dodatni odstęp między kolejnymi unikalnymi wartościami (po zaokrągleniu do mm). */
+/** Smallest positive gap between consecutive unique values (rounded to millimeters). */
 function minStep(values: ArrayLike<number>): number {
   const u = new Set<number>()
   for (let i = 0; i < values.length; i++) {
@@ -30,8 +30,8 @@ function minStep(values: ArrayLike<number>): number {
 }
 
 /**
- * Wykrywa, czy punkty (x, y) leżą na regularnej siatce o jednym kroku w obu osiach.
- * Zwraca null, gdy nie (wtedy warstwa rysuje punkty pojedynczo) albo gdy siatka byłaby za duża.
+ * Detects whether (x, y) points lie on a regular grid with equal spacing on both axes.
+ * Returns null otherwise (the layer then draws individual points), or if the grid would be too large.
  */
 export function detectGrid(x: ArrayLike<number>, y: ArrayLike<number>): Grid | null {
   const n = Math.min(x.length, y.length)

@@ -7,7 +7,7 @@ from pyproj import CRS
 from dem import DEM_FAR, DEM_NEAR, ROOT
 
 SLOPE_TIF = ROOT / "data/dem/LDSM_80S_20MPP_ADJ.TIF"
-PSR_TIF = ROOT / "data/dem/PSR_DIST_80S.TIF"  # docelową nazwę poda zespół danych
+PSR_TIF = ROOT / "data/dem/PSR_DIST_80S.TIF"  # the data team will provide the final name
 
 SLOPE_BASIS = "LDSM_80S_20MPP_ADJ"
 PSR_SOURCE = "PGDA product 90, LPSR_80S_20MPP_ADJ; distance via gdal_proximity.py -distunits GEO on an 80 m grid, metres -> km"
@@ -26,7 +26,7 @@ def verify_crs_match(reference_crs: CRS, raster_crs: CRS, label: str) -> None:
         raise ValueError(
             f"Niezgodny CRS dla rastra '{label}'! "
             f"Oczekiwano CRS z DEM 80m ({reference_crs.to_proj4()}), "
-            f"otrzymano ({raster_crs.to_proj4()})."
+            f"received ({raster_crs.to_proj4()})."
         )
 
 
@@ -73,7 +73,7 @@ def sample_raster(
     ys = np.asarray(y_m, dtype=np.float64)
 
     if not path.exists():
-        print(f"[WARN] Brak pliku rastra: {path} -> wypełniono NaN (kontrakt 3.1)")
+        print(f"[WARN] Missing raster file: {path} -> filled with NaN (contract 3.1)")
         return np.full(xs.shape[0], np.nan, dtype=np.float32)
 
     with rasterio.open(path) as ds:  # windowed reads, the raster never sits in memory
@@ -125,12 +125,12 @@ def sample_terrain_layers(
     valid_slope = slope_deg[~np.isnan(slope_deg)]
     if valid_slope.size > 0:
         assert np.all((valid_slope >= 0.0) & (valid_slope <= 90.0)), (
-            f"Nieprawidłowy zakres slope_deg: [{valid_slope.min()}, {valid_slope.max()}]"
+            f"Invalid slope_deg range: [{valid_slope.min()}, {valid_slope.max()}]"
         )
 
     valid_psr = dist_psr_km[~np.isnan(dist_psr_km)]
     if valid_psr.size > 0:
-        assert np.all(valid_psr >= 0.0), f"Ujemna odległość dist_psr_km: {valid_psr.min()}"
+        assert np.all(valid_psr >= 0.0), f"Negative dist_psr_km distance: {valid_psr.min()}"
 
     grid["slope_deg"] = slope_deg
     grid["dist_psr_km"] = dist_psr_km

@@ -1,6 +1,6 @@
-// Typy danych z docs/contracts.md (v1). Nazwy pól 1:1 z kontraktem.
+// Data types from docs/contracts.md (v1). Field names match the contract exactly.
 
-/** Kolumny candidates.bin (kontrakt 3.1). Kolejność w PLIKU bierzemy z meta, nie stąd. */
+/** candidates.bin columns (contract 3.1). Read FILE order from metadata, not here. */
 export const COLUMN_NAMES = [
   'id', 'lat', 'lon', 'x_m', 'y_m', 'elev_m', 'level',
   'sun_pct', 'longest_night_h', 'earth_pct', 'longest_comm_gap_h',
@@ -9,13 +9,13 @@ export const COLUMN_NAMES = [
 export type ColumnName = (typeof COLUMN_NAMES)[number]
 
 /**
- * Kolumny, które istnieją tylko w metrics_by_year.bin (kontrakt 3.4, Dostawa 7): moc z paneli.
- * W candidates są NaN, dopóki nie podmieni ich wybrany rok.
+ * Columns available only in metrics_by_year.bin (contract 3.4, Delivery 7): panel power.
+ * They are NaN in candidates until replaced with the selected year.
  */
 export const YEAR_ONLY_COLUMNS = ['power_track_wm2', 'power_fixed_wm2', 'power_fixed_az_deg'] as const
 export type YearOnlyColumn = (typeof YEAR_ONLY_COLUMNS)[number]
 
-/** Metryki, po których można kolorować, filtrować i rankować punkty. */
+/** Metrics available for coloring, filtering, and ranking points. */
 export const METRIC_KEYS = [
   'sun_pct', 'longest_night_h', 'earth_pct', 'longest_comm_gap_h', 'slope_deg', 'dist_psr_km',
   'power_track_wm2', 'power_fixed_wm2',
@@ -29,7 +29,7 @@ export interface BoundsM {
   max_y: number
 }
 
-/** meta.json (kontrakt 4). */
+/** meta.json (contract 4). */
 export interface Meta {
   contract_version: number
   generated_utc: string
@@ -51,9 +51,9 @@ export interface Meta {
   psr_source: string
   region: { lat_min: number; lat_max: number }
   candidates: { count: number; columns: string[] }
-  /** Rok, którego dotyczą candidates.bin i validation.json (np. "2028"); kontrakt 1.4. */
+  /** Year covered by candidates.bin and validation.json (e.g. "2028"); contract 1.4. */
   candidates_period?: string
-  /** metrics_by_year.bin (kontrakt 3.4); brak w starszych danych. */
+  /** metrics_by_year.bin (contract 3.4); absent in older data. */
   metrics_by_year?: {
     file: string
     years: number[]
@@ -62,7 +62,7 @@ export interface Meta {
     layout: string
   }
   raster_crs_wkt: string
-  /** Obowiązkowe wg kontraktu 1.3; starsze pliki mogą go nie mieć (patrz getProjString). */
+  /** Required by contract 1.3; older files may omit it (see getProjString). */
   raster_proj4?: string
   layers: {
     bounds_m: BoundsM
@@ -70,7 +70,7 @@ export interface Meta {
   }
 }
 
-/** sites.json (kontrakt 5.3). Brak pola liczbowego = null. */
+/** sites.json (contract 5.3). Missing numeric field = null. */
 export interface Site {
   id: string
   name: string
@@ -84,7 +84,7 @@ export interface Site {
   nearest_candidate_dist_km: number | null
 }
 
-/** candidates.bin rozpakowane do tablic na kolumnę (struct of arrays). */
+/** candidates.bin unpacked into column arrays (struct of arrays). */
 export interface Candidates {
   n: number
   col: Record<ColumnName | YearOnlyColumn, Float32Array>

@@ -4,7 +4,7 @@ import { MODE_THEMES } from './map/themes'
 import { normalizeAll } from './rank'
 import { COLOR_KEYS, useStore } from './store'
 
-/** Trzy punkty daleko od siebie: najlepszy w słońcu (0) jest najgorszy w nachyleniu i odwrotnie (2). */
+/** Three distant points: the best for sunlight (0) is the worst for slope, and vice versa (2). */
 function fixture(): Candidates {
   const f = (a: number[]) => Float32Array.from(a)
   const col: Record<string, Float32Array> = {
@@ -18,7 +18,7 @@ function fixture(): Candidates {
 }
 
 describe('wersje rankingu', () => {
-  it('Top 10 liczy się według wybranej wersji, nie zawsze według wyniku łącznego', () => {
+  it('Top 10 uses the selected ranking mode rather than always using the combined score', () => {
     const candidates = fixture()
     useStore.setState({ candidates, norms: normalizeAll(candidates), filters: {}, score: null, passMask: null })
     const st = () => useStore.getState()
@@ -28,7 +28,7 @@ describe('wersje rankingu', () => {
     expect(st().top[0]?.index).toBe(2)
   })
 
-  it('każda wersja ma własny akcent i skalę od ciemnego do jasnego', () => {
+  it('each mode has its own accent and dark-to-light scale', () => {
     expect(COLOR_KEYS).toEqual(['score', ...METRIC_KEYS])
     const accents = new Set(COLOR_KEYS.map((k) => MODE_THEMES[k].accent))
     expect(accents.size).toBe(COLOR_KEYS.length)

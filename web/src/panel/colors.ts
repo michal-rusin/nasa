@@ -1,4 +1,4 @@
-/** Kolory wspólne dla osi czasu i panoramy nieba. */
+/** Shared colors for the timeline and sky panorama. */
 export const PANO_COLORS = {
   grid: '#262630',
   zero: '#6a6a78',
