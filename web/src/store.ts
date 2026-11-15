@@ -26,6 +26,7 @@ const DEFAULT_OVERLAY_OPACITY = 0.7
 const DEFAULT_POINTS_OPACITY = 0.72
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 const LANG_STORAGE_KEY = 'lunar-navigator.lang'
 
 function readStoredLang(): Lang {
@@ -40,6 +41,8 @@ function readStoredLang(): Lang {
 
 =======
 >>>>>>> dfed4845781ab7463b67f5bf6ff4317d84497b5d
+=======
+>>>>>>> ebd988437cabbdb109387620dcf14406595144d9
 export const TOP_N = 10
 export const DEFAULT_NMS_RADIUS_KM = 5
 
