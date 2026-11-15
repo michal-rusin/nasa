@@ -17,6 +17,9 @@ as in the example in contract section 4.
 
 Results are deterministic for the same --seed (including file bytes).
 Therefore generated_utc defaults to a CONSTANT (--generated-utc), not the clock.
+
+Written with AI assistance (Claude Code and other AI assistants);
+reviewed and tested by the team. NASA Space Apps Challenge 2026.
 """
 from __future__ import annotations
 

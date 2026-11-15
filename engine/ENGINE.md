@@ -5,6 +5,9 @@ conventions and binary formats are hard requirements. The engine runs
 offline once and writes data/out/v1/. The browser never calls Python
 or Horizons.
 
+Use of AI: the engine code and this document were written with AI assistance
+(Claude Code and other AI assistants) and reviewed by the team.
+
 Year 2028, 1 h steps, 8760 steps. Moon = sphere, R = 1737.4 km.
 
 ## Stack

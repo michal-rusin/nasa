@@ -1,3 +1,6 @@
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
+
 // Copies ../data/out/<DATA_VERSION|v1>/ to public/data/. No dependencies; works on every OS.
 // Usage: node scripts/sync-data.mjs [--optional]
 //   --optional: missing source = warning and exit 0 (for predev, using sample data).

@@ -1,4 +1,7 @@
-"""Pipeline entry point (to be written)."""
+"""Pipeline entry point (to be written).
+
+Written with AI assistance (Claude Code and other AI assistants);
+reviewed and tested by the team. NASA Space Apps Challenge 2026."""
 """Engine pipeline: grid -> masks -> metrics -> validation -> files.
 Run: python engine/tools/run.py [--n 100] [--fake-ephem]"""
 import sys, time, argparse, json

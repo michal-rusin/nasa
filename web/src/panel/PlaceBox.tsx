@@ -1,3 +1,6 @@
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
+
 import { useMemo } from 'react'
 import { fmtCoord } from '../app/coords'
 import { fmtVal, METRIC_DIGITS } from '../app/format'

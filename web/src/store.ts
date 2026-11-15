@@ -1,3 +1,6 @@
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
+
 import { create } from 'zustand'
 import { buildIdToIndex, loadCandidates, loadMeta, loadMetricsByYear, loadSites, probeImage } from './data/load'
 import { METRIC_KEYS, type Candidates, type Meta, type MetricKey, type Site } from './data/types'

@@ -1,6 +1,9 @@
 // Kroki samouczka. Każdy wskazuje element przez atrybut data-tour i (opcjonalnie) warunek zaliczenia
 // liczony ze stanu aplikacji: użytkownik wykonuje prawdziwą akcję, a krok sam się zamyka.
 // Teksty: klucze `tour.<id>.title`, `tour.<id>.body`, opcjonalnie `tour.<id>.after` w i18n.ts.
+//
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
 
 import { useAnalysis } from '../panel/analysis'
 import { useStore, type ColorKey } from '../store'

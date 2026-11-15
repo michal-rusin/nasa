@@ -4,6 +4,9 @@
 //   - tracking the Sun (vertical axis): n̂·ŝ = cos(el),
 //   - fixed, facing azimuth A: n̂·ŝ = cos(el) · max(0, cos(az − A)), A optimized for the point.
 // A horizontal panel (sin el) yields ~2–7% of tracking-panel power near the pole, so it is omitted.
+//
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
 
 /** Solar constant (TSI) at 1 AU, W/m². No atmospheric correction on the Moon. */
 export const SOLAR_CONSTANT_WM2 = 1361

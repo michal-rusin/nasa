@@ -1,4 +1,7 @@
-"""Horizon masks (owner: Jacob)."""
+"""Horizon masks (owner: Jacob).
+
+Written with AI assistance (Claude Code and other AI assistants);
+reviewed and tested by the team. NASA Space Apps Challenge 2026."""
 """Horizon masks (contract 3.2). Owner: Jacob."""
 import numpy as np
 from numba import njit, prange

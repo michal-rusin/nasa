@@ -1,4 +1,7 @@
 // Annual solar envelope in the panorama: min/max elevation per azimuth bin.
+//
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
 
 export interface Envelope {
   binDeg: number

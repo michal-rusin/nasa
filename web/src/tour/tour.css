@@ -1,4 +1,7 @@
-/* Samouczek i słowniczek. Tokeny z index.css; klasy własne, bo style bieguna ładują się dopiero z tym widokiem. */
+/* Samouczek i słowniczek. Tokeny z index.css; klasy własne, bo style bieguna ładują się dopiero z tym widokiem.
+
+   Written with AI assistance (Claude Code and other AI assistants);
+   reviewed and tested by the team. NASA Space Apps Challenge 2026. */
 
 .tour { position: fixed; inset: 0; z-index: 100; pointer-events: none; transition: opacity 0.3s var(--ease); }
 .tour.off { opacity: 0; }

@@ -7,6 +7,9 @@ Output (web/public/assets/):
   moon_4k.jpg   – color map, equirectangular 4096x2048, RGB, quality 85
   moon_disp.jpg – height map 2048x1024, grayscale, quality 90 (only if
                   the sources include a GLOBAL 2:1 equirectangular map; otherwise skipped)
+
+Written with AI assistance (Claude Code and other AI assistants);
+reviewed and tested by the team. NASA Space Apps Challenge 2026.
 """
 from __future__ import annotations
 

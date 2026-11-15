@@ -1,4 +1,7 @@
-"""FAKE ephemeris for testing only. Never write its output to data/out/."""
+"""FAKE ephemeris for testing only. Never write its output to data/out/.
+
+Written with AI assistance (Claude Code and other AI assistants);
+reviewed and tested by the team. NASA Space Apps Challenge 2026."""
 import numpy as np
 
 

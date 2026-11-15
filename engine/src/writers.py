@@ -1,4 +1,7 @@
-"""Writers for candidates.bin, mask tiles and meta.json (owner: friend)."""
+"""Writers for candidates.bin, mask tiles and meta.json (owner: friend).
+
+Written with AI assistance (Claude Code and other AI assistants);
+reviewed and tested by the team. NASA Space Apps Challenge 2026."""
 """Output files in Michał's exact format (logic mirrored from scripts/mock-data.py). Owner: Jacob."""
 import json
 from datetime import datetime, timezone

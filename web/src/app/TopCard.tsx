@@ -1,3 +1,6 @@
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
+
 import { useState, type CSSProperties } from 'react'
 import { MODE_THEMES } from '../map/themes'
 import type { MetricKey } from '../data/types'

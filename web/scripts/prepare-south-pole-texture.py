@@ -12,6 +12,9 @@ Wyjście:  web/public/assets/south_pole_2k.jpg
   (żeby pasowało do jasnej tekstury globusa), quality 88.
   Globus ogląda biegun z odległości ≥ 0,5 R, więc ~300 m/px w zupełności wystarcza,
   a plik ma ~1 MB zamiast 11 MB.
+
+Written with AI assistance (Claude Code and other AI assistants);
+reviewed and tested by the team. NASA Space Apps Challenge 2026.
 """
 from __future__ import annotations
 

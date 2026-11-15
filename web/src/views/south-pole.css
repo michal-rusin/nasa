@@ -1,4 +1,7 @@
-/* Widok bieguna: mapa (okrąg obszaru na tle gwiazd) + pływające panele. Tokeny w index.css. */
+/* Widok bieguna: mapa (okrąg obszaru na tle gwiazd) + pływające panele. Tokeny w index.css.
+
+   Written with AI assistance (Claude Code and other AI assistants);
+   reviewed and tested by the team. NASA Space Apps Challenge 2026. */
 
 /* Strona z przewijaniem: mapa na pierwszy ekran, pod nią boxy miejsc. */
 .sp-page { position: relative; flex: 1; min-width: 0; height: 100%; overflow-x: hidden; overflow-y: auto; overscroll-behavior-y: contain; scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.2) transparent; }

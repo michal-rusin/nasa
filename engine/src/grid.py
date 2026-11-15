@@ -1,4 +1,7 @@
-"""Candidate grid (contract 3.1, level 0). Owner: Jacob."""
+"""Candidate grid (contract 3.1, level 0). Owner: Jacob.
+
+Written with AI assistance (Claude Code and other AI assistants);
+reviewed and tested by the team. NASA Space Apps Challenge 2026."""
 import numpy as np
 from masks import height_at
 

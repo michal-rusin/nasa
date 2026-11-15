@@ -1,4 +1,7 @@
-"""Michał's frontend ranking, reimplemented to pick refinement parents. Owner: Jacob."""
+"""Michał's frontend ranking, reimplemented to pick refinement parents. Owner: Jacob.
+
+Written with AI assistance (Claude Code and other AI assistants);
+reviewed and tested by the team. NASA Space Apps Challenge 2026."""
 import numpy as np
 
 # (name, +1 more is better / -1 less is better, default weight) - same as the frontend

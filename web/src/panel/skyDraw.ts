@@ -1,6 +1,9 @@
 // Draw the sky panorama on a 2D canvas. Equirectangular projection in a fov × (fov·h/w) window:
 // x = center + Δaz·k, y = center − (el − el₀)·k, k = w/fov px per degree.
 // Black sky (no atmosphere), catalog stars, Sun 0.53°, phased Earth ≈1.9°, terrain from mask.
+//
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
 
 import { maskHeightDeg, type EnuBasis } from '../physics'
 import { earthLitFraction, starEnu, wrapDeg, type SkyState, type StarCatalog } from './sky'

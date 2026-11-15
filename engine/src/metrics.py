@@ -1,4 +1,7 @@
-"""Sun visibility f, Earth visibility g, and per-point metrics (owner: Jacob)."""
+"""Sun visibility f, Earth visibility g, and per-point metrics (owner: Jacob).
+
+Written with AI assistance (Claude Code and other AI assistants);
+reviewed and tested by the team. NASA Space Apps Challenge 2026."""
 """Sun fraction f, Earth visibility g, metrics (contract 2.1-2.3). Owner: Jacob."""
 from datetime import date
 import numpy as np

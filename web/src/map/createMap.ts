@@ -1,3 +1,6 @@
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
+
 import OlMap from 'ol/Map'
 import View from 'ol/View'
 import { defaults as defaultControls } from 'ol/control/defaults'

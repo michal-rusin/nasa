@@ -1,4 +1,7 @@
 // Horizon masks (contract 3.2): 720 × int16 LE, hundredths of a degree, azimuth k·0.5°.
+//
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
 
 export const MASK_SAMPLES = 720
 export const MASK_STEP_DEG = 0.5

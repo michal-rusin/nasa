@@ -1,3 +1,6 @@
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
+
 import { fill, useT } from '../i18n'
 import { rampCssGradient } from '../map/colors'
 import { MODE_THEMES } from '../map/themes'

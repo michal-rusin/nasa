@@ -1,4 +1,7 @@
 // Czysta geometria samouczka: przycięcie celu do okna i położenie karty obok niego.
+//
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
 
 export interface Rect { left: number; top: number; width: number; height: number }
 export interface Size { w: number; h: number }

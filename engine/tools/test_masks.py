@@ -1,4 +1,7 @@
-"""Mask sanity test + timing. Run: python engine/tools/test_masks.py"""
+"""Mask sanity test + timing. Run: python engine/tools/test_masks.py
+
+Written with AI assistance (Claude Code and other AI assistants);
+reviewed and tested by the team. NASA Space Apps Challenge 2026."""
 import sys, time
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))

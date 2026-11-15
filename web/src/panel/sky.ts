@@ -1,5 +1,8 @@
 // Sky geometry from a lunar location: Sun, Earth (size, phase), stars.
 // Pure functions without DOM. Input: the same ephemerides and mask as the rest of the app (physics/).
+//
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
 
 import {
   azimuthDeg, dot, elevationDeg, enuBasis, EPHEM_COLS, observerRadiusKm,

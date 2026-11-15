@@ -1,4 +1,7 @@
-"""Load DEMs, build the CRS transformer, sample heights (owner: Jacob)."""
+"""Load DEMs, build the CRS transformer, sample heights (owner: Jacob).
+
+Written with AI assistance (Claude Code and other AI assistants);
+reviewed and tested by the team. NASA Space Apps Challenge 2026."""
 """DEM loading, coordinate transforms, height sampling. Owner: Jacob."""
 from pathlib import Path
 import numpy as np

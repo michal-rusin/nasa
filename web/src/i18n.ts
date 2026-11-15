@@ -1,4 +1,7 @@
 // Interface text (English only). All UI strings use t()/useT().
+//
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
 
 const en: Record<string, string> = {
   'app.name': 'Lunar Navigator',

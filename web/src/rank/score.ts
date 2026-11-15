@@ -1,3 +1,6 @@
+// Written with AI assistance (Claude Code and other AI assistants);
+// reviewed and tested by the team. NASA Space Apps Challenge 2026.
+
 import { METRIC_KEYS, type MetricKey } from '../data/types'
 
 /** score[i] = Σ w_k · norm_k[i] / Σ w_k. Treat negative weights as 0; zero sum → all zeros. */

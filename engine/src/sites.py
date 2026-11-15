@@ -1,4 +1,7 @@
-"""Fill x_m, y_m, nearest_candidate_id, nearest_candidate_dist_km in sites.json (Task 12)."""
+"""Fill x_m, y_m, nearest_candidate_id, nearest_candidate_dist_km in sites.json (Task 12).
+
+Written with AI assistance (Claude Code and other AI assistants);
+reviewed and tested by the team. NASA Space Apps Challenge 2026."""
 import argparse
 import json
 from pathlib import Path
