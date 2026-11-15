@@ -22,6 +22,8 @@ import { nearestPoint } from './nearestPoint'
 import { badgeRadiusPx, createPointsLayer } from './PointsLayer'
 import { latitudeRadiusM } from './projection'
 import { createSitesLayer, SITE_INDEX_PROP } from './sitesLayer'
+import { MODE_THEMES } from './themes'
+import { candidatesRange, isEternalShadow, yearHours } from '../data/years'
 
 export const PROJ_CODE = 'MOON_SP'
 /** Najmocniejsze przybliżenie (m/px); basemapa ma ~90 m/px, DEM bliski 80 m/px. */
@@ -199,7 +201,7 @@ export function createMap(
 
   function applyStyle(s: AppState): void {
     const k = s.colorBy
-    const values = k === 'score' ? s.score : candidates.col[k]
+    const values = k === 'score' ? s.score : (s.candidates ?? candidates).col[k]
     const range = k === 'score' ? s.scoreRange : s.ranges?.[k]
     if (!values || !range) return
     points.setStyle({
@@ -210,6 +212,7 @@ export function createMap(
       top: s.top.map((p) => p.index),
       selectedIndex: s.selectedIndex,
       compareIndex: s.compareIndex,
+      theme: MODE_THEMES[k],
     })
   }
   function focus(i: number): void {
@@ -242,6 +245,7 @@ export function createMap(
 
   const unsubscribe = useStore.subscribe((s, prev) => {
     if (s.colorBy !== prev.colorBy || s.selectedIndex !== prev.selectedIndex || s.compareIndex !== prev.compareIndex || s.ranges !== prev.ranges
+      || s.candidates !== prev.candidates
       || s.passMask !== prev.passMask || s.top !== prev.top || s.score !== prev.score) {
       applyStyle(s)
     }
@@ -290,6 +294,10 @@ export function createMap(
     const rank = st.rankingShown ? st.top.findIndex((p) => p.index === i) : -1
     const coord = fmtCoord(candidates.col.lat[i], candidates.col.lon[i], 2, t('na'))
     const sc = score === undefined || Number.isNaN(score) ? t('na') : score.toFixed(3)
+    const curC = st.candidates ?? candidates
+    const yearH = st.year !== null ? yearHours(st.year) : (candidatesRange(meta).len * meta.step_s) / 3600
+    const shadow = isEternalShadow(curC.col.sun_pct[i], curC.col.longest_night_h[i], yearH)
+      ? ` · ${t('shadow.short')}` : ''
     tooltip.replaceChildren()
     tooltip.classList.toggle('rich', rank >= 0)
     if (rank >= 0) {
@@ -297,26 +305,28 @@ export function createMap(
       const head = document.createElement('div')
       head.className = 'tt-head'
       const r = document.createElement('span')
-      r.className = rank === 0 ? 'tt-rank gold' : 'tt-rank'
+      r.className = 'tt-rank'
+      r.style.color = MODE_THEMES[st.colorBy].accent
       r.textContent = `#${rank + 1}`
       const c = document.createElement('span')
       c.textContent = coord
       head.append(r, c)
       const body = document.createElement('div')
       body.className = 'tt-body'
-      const sun = candidates.col.sun_pct[i]
-      const night = candidates.col.longest_night_h[i]
+      const cur = st.candidates ?? candidates
+      const sun = cur.col.sun_pct[i]
+      const night = cur.col.longest_night_h[i]
       body.textContent = fill(t('tooltip.top'), {
         s: sc,
         sun: sun === undefined || Number.isNaN(sun) ? t('na') : sun.toFixed(0),
         night: night === undefined || Number.isNaN(night) ? t('na') : night.toFixed(0),
-      })
+      }) + shadow
       const hint = document.createElement('div')
       hint.className = 'tt-hint'
       hint.textContent = t('tooltip.open')
       tooltip.append(head, body, hint)
     } else {
-      tooltip.textContent = st.rankingShown ? fill(t('tooltip'), { c: coord, s: sc }) : coord
+      tooltip.textContent = (st.rankingShown ? fill(t('tooltip'), { c: coord, s: sc }) : coord) + shadow
     }
     tooltip.style.transform = `translate(${Math.round(pixel[0]!)}px, ${Math.round(pixel[1]!)}px)`
     tooltip.hidden = false

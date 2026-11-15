@@ -3,6 +3,7 @@ import { AdvancedDrawer } from '../app/AdvancedDrawer'
 import { Legend } from '../app/Legend'
 import { isMockSite } from '../app/sites'
 import { SearchBox } from '../app/SearchBox'
+import { ModeSwitch } from '../app/ModeSwitch'
 import { TopCard } from '../app/TopCard'
 import { useT } from '../i18n'
 import { MapView } from '../map/MapView'
@@ -73,7 +74,6 @@ function Explorer() {
   const compare = useStore((s) => s.compareIndex)
   const picking = useStore((s) => s.picking)
   const rankingShown = useStore((s) => s.rankingShown)
-  const setRankingShown = useStore((s) => s.setRankingShown)
   const sitesShown = useStore((s) => s.layers.sites)
   const hasSites = useStore((s) => s.sites.some((x) => x.x_m !== null && !isMockSite(x)))
   const setLayerVisible = useStore((s) => s.setLayerVisible)
@@ -101,7 +101,7 @@ function Explorer() {
     if (!page || !places) return
     // Po klatce: box jest już w układzie strony, więc znamy jego pozycję.
     const raf = requestAnimationFrame(() => {
-      page.scrollTo({ top: Math.max(0, places.offsetTop - 8), behavior: scrollBehavior() })
+      page.scrollTo({ top: places.offsetTop, behavior: scrollBehavior() })
     })
     return () => cancelAnimationFrame(raf)
   }, [selected, compare])
@@ -130,9 +130,6 @@ function Explorer() {
           </div>
           <div className="ui-right">
             {mock && <div className="mock-banner">{t('sp.mock')}</div>}
-            {rankingShown && (
-              <TogglePill on label={t('rank.pill')} onClick={() => setRankingShown(false)} />
-            )}
             {hasSites && (
               <TogglePill on={sitesShown} label={t('sites.pill')} onClick={() => setLayerVisible('sites', !sitesShown)} />
             )}
@@ -146,6 +143,7 @@ function Explorer() {
             </div>
           )}
           {rankingShown && <Legend />}
+          {rankingShown && <ModeSwitch />}
           <MapStats />
         </div>
         {advOpen && <AdvancedDrawer onClose={closeAdvanced} />}

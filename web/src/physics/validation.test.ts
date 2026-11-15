@@ -6,6 +6,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { buildIdToIndex, parseCandidates, parseMeta } from '../data/load'
+import { candidatesRange } from '../data/years'
 import { earthPct, longestCommGapH, longestNightH, sunPct } from './aggregates'
 import { maskFromBuffer } from './mask'
 import { computeSeries, ephemFromBuffer } from './series'
@@ -41,7 +42,10 @@ describe.skipIf(DATASETS.length === 0)('validation.json', () => {
       const index = readJson(join(dir, 'masks', 'index.json')) as { records: Record<string, [string, number]> }
       const validation = readJson(join(dir, 'validation.json')) as ValidationEntry[]
       const stepH = meta.step_s / 3600
-      const nSteps = meta.n_steps
+      // candidates.bin i validation.json dotyczą tylko candidates_period (2028 = kroki 0..8783),
+      // a ephem.bin może obejmować więcej lat (kontrakt 1.4).
+      const period = candidatesRange(meta)
+      const nSteps = period.len
       const sunTol = meta.mock === true ? 0.01 : 1
       const earthTol = Math.max(0.05, (2 / nSteps) * 100)
       const params = {
@@ -65,10 +69,11 @@ describe.skipIf(DATASETS.length === 0)('validation.json', () => {
           tiles.set(file, tile)
         }
         const mask = maskFromBuffer(tile, recNo)
-        const s = computeSeries(
+        const full = computeSeries(
           { latDeg: cand.col.lat[row]!, lonDeg: cand.col.lon[row]!, elevM: cand.col.elev_m[row]! },
-          mask, ephem, nSteps, params,
+          mask, ephem, period.start + nSteps, params,
         )
+        const s = { f: full.f.subarray(period.start), g: full.g.subarray(period.start) }
 
         const dSun = Math.abs(sunPct(s.f) - v.sun_pct)
         const dEarth = Math.abs(earthPct(s.g) - v.earth_pct)

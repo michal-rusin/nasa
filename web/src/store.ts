@@ -1,6 +1,7 @@
 import { create } from 'zustand'
-import { buildIdToIndex, loadCandidates, loadMeta, loadSites, probeImage } from './data/load'
+import { buildIdToIndex, loadCandidates, loadMeta, loadMetricsByYear, loadSites, probeImage } from './data/load'
 import { METRIC_KEYS, type Candidates, type Meta, type MetricKey, type Site } from './data/types'
+import { candidatesForYear, YEAR_COLUMNS, type MetricsByYear } from './data/years'
 import { computeRange, type Range } from './map/colors'
 import {
   computeScore, countPass, DEFAULT_WEIGHTS, normalizeAll, passMask as computePassMask, topN,
@@ -13,8 +14,9 @@ export type LayerKey = 'points' | 'sites' | 'basemap' | 'slope' | 'illumination'
 /** Warstwy rastrowe z meta.layers.files; pokazujemy tylko te, których pliki istnieją. */
 export type RasterKey = 'basemap' | 'slope' | 'illumination' | 'psr'
 export const RASTER_KEYS: readonly RasterKey[] = ['basemap', 'slope', 'illumination', 'psr']
-/** Kolorowanie punktów: wynik rankingu albo jedna z metryk. */
+/** Wersja rankingu (kolorowanie mapy i Top 10): wynik łączny albo jedna z metryk. */
 export type ColorKey = MetricKey | 'score'
+export const COLOR_KEYS: readonly ColorKey[] = ['score', ...METRIC_KEYS]
 
 const DEFAULT_LAYERS: Record<LayerKey, boolean> = {
   points: true, sites: false, basemap: true, slope: false, illumination: false, psr: false,
@@ -46,7 +48,15 @@ export interface AppState {
   lang: Lang
   setLang: (lang: Lang) => void
   meta: Meta | null
+  /** Kandydaci z metrykami wybranego roku (`year`); to czyta cały interfejs. */
   candidates: Candidates | null
+  /** candidates.bin bez podmian (rok `candidates_period`): walidacja i mapa (pozycje). */
+  baseCandidates: Candidates | null
+  /** metrics_by_year.bin; null = dane jednoroczne, bez selektora roku. */
+  byYear: MetricsByYear | null
+  /** Wybrany rok (ranking, mapa, oś czasu); null = dane bez lat. */
+  year: number | null
+  setYear: (year: number) => void
   sites: Site[]
   idToIndex: Map<number, number>
   /** min/max każdej metryki, liczone raz po wczytaniu. */
@@ -109,7 +119,7 @@ export interface AppState {
 }
 
 type RankInput = Pick<AppState,
-  'candidates' | 'norms' | 'filters' | 'weights' | 'nmsRadiusKm' | 'score' | 'scoreRange' | 'passMask'>
+  'candidates' | 'norms' | 'filters' | 'weights' | 'nmsRadiusKm' | 'score' | 'scoreRange' | 'passMask' | 'colorBy'>
 type RankOutput = Pick<AppState, 'score' | 'scoreRange' | 'passMask' | 'passCount' | 'top'>
 
 /** Przelicza tylko to, co zależy od zmienionych wejść. */
@@ -119,9 +129,23 @@ function recompute(s: RankInput, what: { score?: boolean; mask?: boolean }): Ran
   const fresh = what.score || !s.score
   const score = fresh ? computeScore(s.norms, s.weights, c.n) : s.score!
   const mask = what.mask || !s.passMask ? computePassMask(c, s.filters) : s.passMask
-  const top = topN(score, mask, c.col.x_m, c.col.y_m, { n: TOP_N, radiusKm: s.nmsRadiusKm })
+  // Top 10 według wybranej wersji: wynik łączny albo sama metryka (znormalizowana, 1 = najlepiej).
+  const rankBy = s.colorBy === 'score' ? score : s.norms[s.colorBy]
+  const top = topN(rankBy, mask, c.col.x_m, c.col.y_m, { n: TOP_N, radiusKm: s.nmsRadiusKm })
   const scoreRange = fresh || !s.scoreRange ? computeRange(score) : s.scoreRange
   return { score, scoreRange, passMask: mask, passCount: countPass(mask), top }
+}
+
+/** min/max metryk; roczne liczone po wszystkich latach, żeby kolory dało się porównać między latami. */
+function metricRanges(c: Candidates, mby: MetricsByYear | null): Record<MetricKey, Range> {
+  const ranges = {} as Record<MetricKey, Range>
+  for (const k of METRIC_KEYS) ranges[k] = computeRange(c.col[k])
+  if (mby) {
+    for (const k of YEAR_COLUMNS) {
+      ranges[k] = mby.cols[k].map(computeRange).reduce((a, b) => ({ min: Math.min(a.min, b.min), max: Math.max(a.max, b.max) }))
+    }
+  }
+  return ranges
 }
 
 /** Gdzie trafia wybrany punkt: w trybie wyboru do B (nigdy tożsamy z A), inaczej do A. */
@@ -144,6 +168,16 @@ export const useStore = create<AppState>()((set, get) => ({
   },
   meta: null,
   candidates: null,
+  baseCandidates: null,
+  byYear: null,
+  year: null,
+  setYear: (year) => {
+    const s = get()
+    if (!s.baseCandidates || !s.byYear || !s.byYear.years.includes(year) || year === s.year) return
+    const candidates = candidatesForYear(s.baseCandidates, s.byYear, year)
+    const norms = normalizeAll(candidates)
+    set({ year, candidates, norms, ...recompute({ ...s, candidates, norms }, { score: true, mask: true }) })
+  },
   sites: [],
   idToIndex: new Map(),
   ranges: null,
@@ -176,18 +210,20 @@ export const useStore = create<AppState>()((set, get) => ({
     try {
       const meta = await loadMeta()
       const files = meta.layers.files
-      const [candidates, sites, ...avail] = await Promise.all([
-        loadCandidates(meta), loadSites(), ...RASTER_KEYS.map((k) => probeImage(files[k])),
+      const [baseCandidates, byYear, sites, ...avail] = await Promise.all([
+        loadCandidates(meta), loadMetricsByYear(meta), loadSites(), ...RASTER_KEYS.map((k) => probeImage(files[k])),
       ])
+      // Start: pierwszy rok z metrics_by_year (ten sam, którego dotyczy candidates.bin).
+      const year = byYear?.years[0] ?? null
+      const candidates = candidatesForYear(baseCandidates, byYear, year)
       const availableLayers = {} as Record<RasterKey, boolean>
       RASTER_KEYS.forEach((k, i) => { availableLayers[k] = avail[i] === true })
-      const ranges = {} as Record<MetricKey, Range>
-      for (const k of METRIC_KEYS) ranges[k] = computeRange(candidates.col[k])
+      const ranges = metricRanges(candidates, byYear)
       const norms = normalizeAll(candidates)
       const rank = recompute({ ...get(), candidates, norms }, { score: true, mask: true })
       set({
-        status: 'ready', meta, candidates, sites, ranges, norms, availableLayers, ...rank,
-        idToIndex: buildIdToIndex(candidates), selectedIndex: null, compareIndex: null, picking: false,
+        status: 'ready', meta, candidates, baseCandidates, byYear, year, sites, ranges, norms, availableLayers, ...rank,
+        idToIndex: buildIdToIndex(baseCandidates), selectedIndex: null, compareIndex: null, picking: false,
       })
     } catch (e) {
       set({ status: 'error', error: e instanceof Error ? e.message : String(e) })
@@ -207,7 +243,7 @@ export const useStore = create<AppState>()((set, get) => ({
     const i = get().idToIndex.get(id)
     if (i !== undefined) get().pickPoint(i)
   },
-  setColorBy: (k) => set({ colorBy: k }),
+  setColorBy: (k) => set({ colorBy: k, ...recompute({ ...get(), colorBy: k }, {}) }),
   setLayerVisible: (k, visible) => set((s) => ({ layers: { ...s.layers, [k]: visible } })),
   setOverlayOpacity: (v) => set({ overlayOpacity: Math.min(1, Math.max(0, v)) }),
   setPointsOpacity: (v) => set({ pointsOpacity: Math.min(1, Math.max(0.1, v)) }),
@@ -217,11 +253,11 @@ export const useStore = create<AppState>()((set, get) => ({
     }
     set({
       ...reset,
-      colorBy: DEFAULT_COLOR_BY,
       layers: { ...DEFAULT_LAYERS },
       overlayOpacity: DEFAULT_OVERLAY_OPACITY,
       pointsOpacity: DEFAULT_POINTS_OPACITY,
-      ...recompute({ ...get(), ...reset }, { score: true, mask: true }),
+      colorBy: DEFAULT_COLOR_BY,
+      ...recompute({ ...get(), ...reset, colorBy: DEFAULT_COLOR_BY }, { score: true, mask: true }),
     })
   },
 

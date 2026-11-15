@@ -37,14 +37,14 @@ export function computeRange(values: ArrayLike<number>): Range {
   return min === Infinity ? { min: 0, max: 0 } : { min, max }
 }
 
-/** Interpolacja liniowa między punktami RAMP_STOPS (równo rozłożonymi), t w [0, 1] (przycinane). */
-export function rampRgb(t: number): RGB {
+/** Interpolacja liniowa między punktami skali (równo rozłożonymi), t w [0, 1] (przycinane). */
+export function rampRgb(t: number, stops: readonly RGB[] = RAMP_STOPS): RGB {
   const tc = Math.min(1, Math.max(0, t))
-  const nSeg = RAMP_STOPS.length - 1
+  const nSeg = stops.length - 1
   const seg = Math.min(nSeg - 1, Math.floor(tc * nSeg))
   const local = tc * nSeg - seg
-  const a = RAMP_STOPS[seg]!
-  const b = RAMP_STOPS[seg + 1]!
+  const a = stops[seg]!
+  const b = stops[seg + 1]!
   return [
     Math.round(a[0] + (b[0] - a[0]) * local),
     Math.round(a[1] + (b[1] - a[1]) * local),
@@ -70,7 +70,7 @@ export function valueToColor(value: number, min: number, max: number): string {
 }
 
 /** linear-gradient do legendy. */
-export function rampCssGradient(): string {
-  return `linear-gradient(to right, ${RAMP_STOPS.map((s, i) =>
-    `${rgbCss(s)} ${(i / (RAMP_STOPS.length - 1)) * 100}%`).join(', ')})`
+export function rampCssGradient(stops: readonly RGB[] = RAMP_STOPS): string {
+  return `linear-gradient(to right, ${stops.map((s, i) =>
+    `${rgbCss(s)} ${(i / (stops.length - 1)) * 100}%`).join(', ')})`
 }

@@ -2,14 +2,13 @@ import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { METRIC_KEYS, type MetricKey } from '../data/types'
 import { useT } from '../i18n'
 import { METRIC_META } from '../rank/metrics'
-import { RASTER_KEYS, useStore, type ColorKey, type LayerKey } from '../store'
+import { COLOR_KEYS, RASTER_KEYS, useStore, type LayerKey } from '../store'
 import { fmtVal, METRIC_DIGITS } from './format'
 import { isMockSite } from './sites'
 
 /** Opóźnienie zapisu suwaka do store: ranking i kolory liczą się po chwili bezruchu. */
 const COMMIT_DELAY_MS = 120
 const SLIDER_STEPS = 200
-const COLOR_KEYS: readonly ColorKey[] = ['score', ...METRIC_KEYS]
 
 /** Filtry w kolejności z briefu: nachylenie, sun_pct min, noc max, łączność, reszta. */
 const FILTER_DEFS: readonly { key: MetricKey; bound: 'min' | 'max' }[] = [

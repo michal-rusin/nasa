@@ -3,9 +3,10 @@ import { fmtCoord } from '../app/coords'
 import { fill, useT } from '../i18n'
 import { enuBasis } from '../physics'
 import { useStore } from '../store'
-import { useAnalysis, type SlotKey } from './analysis'
+import { useAnalysis, type SkyView, type SlotKey } from './analysis'
 import { earthLitFraction, skyState } from './sky'
-import { drawSky } from './skyDraw'
+import { SkyMiniMap } from './SkyMiniMap'
+import { drawSky, type SkyTrack } from './skyDraw'
 import { useStars } from './stars'
 
 interface Props {
@@ -14,6 +15,11 @@ interface Props {
 }
 
 const ZOOM_STEP = 1.25
+/** Tory na niebie: 2 doby wstecz i prawie pełna doba księżycowa naprzód. */
+const TRACK_BACK_H = 48
+const TRACK_AHEAD_H = 27 * 24
+const SUN_RGB = [255, 200, 90] as const
+const EARTH_RGB = [120, 175, 255] as const
 
 /** Panorama nieba z punktu: czarne niebo, gwiazdy, Słońce, Ziemia z fazą i sylwetka terenu. */
 export function SkyPanorama({ slot, index }: Props) {
@@ -24,13 +30,14 @@ export function SkyPanorama({ slot, index }: Props) {
   const data = useAnalysis((s) => s[slot].data)
   const ephem = useAnalysis((s) => s.ephem)
   const cursor = useAnalysis((s) => s.cursor)
-  const view = useAnalysis((s) => s.view)
-  const setView = useAnalysis((s) => s.setView)
+  const view = useAnalysis((s) => s.views[slot])
+  const setSlotView = useAnalysis((s) => s.setView)
   const stars = useStars()
   const wrapRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [size, setSize] = useState({ w: 0, h: 0, dpr: 1 })
   const drag = useRef<{ x: number; y: number } | null>(null)
+  const setView = (v: Partial<SkyView>) => setSlotView(slot, v)
 
   // Rozmiar canvasa = rozmiar kontenera (CSS ustala wysokość, np. 50vh).
   useEffect(() => {
@@ -54,11 +61,11 @@ export function SkyPanorama({ slot, index }: Props) {
     const onWheel = (e: WheelEvent) => {
       if (!e.ctrlKey && !e.metaKey) return
       e.preventDefault()
-      setView({ fov: useAnalysis.getState().view.fov * Math.exp(e.deltaY * 0.003) })
+      setSlotView(slot, { fov: useAnalysis.getState().views[slot].fov * Math.exp(e.deltaY * 0.003) })
     }
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => el.removeEventListener('wheel', onWheel)
-  }, [setView])
+  }, [setSlotView, slot])
 
   const point = useMemo(() => (c ? {
     latDeg: c.col.lat[index]!, lonDeg: c.col.lon[index]!, elevM: c.col.elev_m[index]!,
@@ -73,28 +80,49 @@ export function SkyPanorama({ slot, index }: Props) {
 
   const labels = useMemo(() => ({ sun: t('dock.sun'), earth: t('dock.earth') }), [t])
   const sunFraction = data?.series.f[k] ?? 0
+  const tracks = useMemo<SkyTrack[] | undefined>(() => {
+    if (!data || !meta) return undefined
+    const stepH = meta.step_s / 3600
+    const from = k - Math.round(TRACK_BACK_H / stepH)
+    const to = k + Math.round(TRACK_AHEAD_H / stepH)
+    const sr = data.series
+    return [
+      { az: sr.sunAz, el: sr.sunEl, from, to, now: k, stepH, rgb: SUN_RGB, tickDays: 1 },
+      { az: sr.earthAz, el: sr.earthEl, from, to, now: k, stepH, rgb: EARTH_RGB, tickDays: 7 },
+    ]
+  }, [data, meta, k])
 
+  // Rysowanie: najwyżej raz na klatkę, zawsze z najnowszym stanem. Zaplanowanej klatki nie
+  // anulujemy przy każdej zmianie: przy odtwarzaniu kursor zmienia się co klatkę i anulowanie
+  // zagłodziłoby rysowanie (obrót widoku pojawiał się dopiero po zatrzymaniu).
+  const frame = useRef({ size, data, sky, basis, meta, sunFraction, view, stars, labels, tracks })
+  const rafId = useRef(0)
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas || size.w <= 0 || size.h <= 0) return
-    const id = requestAnimationFrame(() => {
-      canvas.width = Math.round(size.w * size.dpr)
-      canvas.height = Math.round(size.h * size.dpr)
+    frame.current = { size, data, sky, basis, meta, sunFraction, view, stars, labels, tracks }
+    if (rafId.current) return
+    rafId.current = requestAnimationFrame(() => {
+      rafId.current = 0
+      const canvas = canvasRef.current
+      const f = frame.current
+      if (!canvas || f.size.w <= 0 || f.size.h <= 0) return
+      const cw = Math.round(f.size.w * f.size.dpr), ch = Math.round(f.size.h * f.size.dpr)
+      if (canvas.width !== cw) canvas.width = cw
+      if (canvas.height !== ch) canvas.height = ch
       const ctx = canvas.getContext('2d')
       if (!ctx) return
-      ctx.setTransform(size.dpr, 0, 0, size.dpr, 0, 0)
-      if (!data || !sky || !basis || !meta) {
+      ctx.setTransform(f.size.dpr, 0, 0, f.size.dpr, 0, 0)
+      if (!f.data || !f.sky || !f.basis || !f.meta) {
         ctx.fillStyle = '#02030a'
-        ctx.fillRect(0, 0, size.w, size.h)
+        ctx.fillRect(0, 0, f.size.w, f.size.h)
         return
       }
       drawSky(ctx, {
-        w: size.w, h: size.h, mask: data.mask, sky, sunFraction,
-        sunRadiusDeg: meta.sun_radius_deg, basis, view, stars, labels,
+        w: f.size.w, h: f.size.h, mask: f.data.mask, sky: f.sky, sunFraction: f.sunFraction,
+        sunRadiusDeg: f.meta.sun_radius_deg, basis: f.basis, view: f.view, stars: f.stars, labels: f.labels, tracks: f.tracks,
       })
     })
-    return () => cancelAnimationFrame(id)
-  }, [size, data, sky, basis, meta, sunFraction, view, stars, labels])
+  }, [size, data, sky, basis, meta, sunFraction, view, stars, labels, tracks])
+  useEffect(() => () => { cancelAnimationFrame(rafId.current); rafId.current = 0 }, [])
 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
     if ((e.target as HTMLElement).closest('button')) return
@@ -165,14 +193,19 @@ export function SkyPanorama({ slot, index }: Props) {
       )}
 
       <div className="sky-tools">
-        <button type="button" className="sky-btn" onClick={() => sky && setView({ az: sky.sunAz })}>{t('sky.centerSun')}</button>
-        <button type="button" className="sky-btn" onClick={() => sky && setView({ az: sky.earthAz })}>{t('sky.centerEarth')}</button>
         <span className="sky-zoom">
           <button type="button" className="sky-btn icon" aria-label={t('sky.zoomOut')} onClick={() => zoom(ZOOM_STEP)}>−</button>
           <button type="button" className="sky-btn icon" aria-label={t('sky.zoomIn')} onClick={() => zoom(1 / ZOOM_STEP)}>+</button>
         </span>
       </div>
-      <p className="sky-hint" aria-hidden="true">{t('sky.hint')}</p>
+      {point && (
+        <SkyMiniMap slot={slot} latDeg={point.latDeg} lonDeg={point.lonDeg}
+          sunAz={sky ? sky.sunAz : null} earthAz={sky ? sky.earthAz : null} />
+      )}
+      <div className="sky-hint" aria-hidden="true">
+        <p className="sky-key"><span className="key-line sun" />{t('sky.trackSun')} <span className="key-line earth" />{t('sky.trackEarth')}</p>
+        <p>{t('sky.hint')}</p>
+      </div>
     </div>
   )
 }

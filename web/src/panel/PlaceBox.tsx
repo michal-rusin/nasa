@@ -1,8 +1,9 @@
-import { useId, useMemo } from 'react'
+import { useMemo } from 'react'
 import { fmtCoord } from '../app/coords'
 import { fmtVal, METRIC_DIGITS } from '../app/format'
 import { isMockSite } from '../app/sites'
 import type { Candidates, Meta, MetricKey } from '../data/types'
+import { candidatesRange, isEternalShadow, yearHours, yearOfStep } from '../data/years'
 import { fill, useT } from '../i18n'
 import { earthPct, longestCommGapH, longestNightH, sunPct } from '../physics'
 import { METRIC_META } from '../rank/metrics'
@@ -10,22 +11,23 @@ import { useStore } from '../store'
 import { useAnalysis, type Analysis, type SlotKey } from './analysis'
 import { isBetter } from './compare'
 import { earthTransition, splitHours, sunTransition, type Transition } from './countdown'
+import { PlaceTimeline } from './PlaceTimeline'
 import { SkyPanorama } from './SkyPanorama'
-import { Timeline } from './Timeline'
-import { stepToUtc } from './timelineMath'
+import { TimeBar } from './TimeBar'
 
 const PANEL_METRICS: readonly MetricKey[] = [
   'sun_pct', 'longest_night_h', 'earth_pct', 'longest_comm_gap_h', 'dist_psr_km',
 ]
-/** Doba synodyczna Księżyca: tyle obejmuje tor Słońca/Ziemi zaznaczony na osi czasu. */
-const LUNAR_DAY_S = 29.53 * 86400
 
 interface Check { label: string; computed: number; file: number; unit: string; tol: number }
 
+/** Porównanie z candidates.bin: tylko na krokach jego roku (candidates_period), nie na całym ephem.bin. */
 function CheckTable({ meta, c, i, a }: { meta: Meta; c: Candidates; i: number; a: Analysis }) {
   const t = useT()
   const checks: Check[] = useMemo(() => {
-    const s = a.series, n = meta.n_steps, stepS = meta.step_s, stepH = stepS / 3600
+    const p = candidatesRange(meta)
+    const s = { f: a.series.f.subarray(p.start, p.start + p.len), g: a.series.g.subarray(p.start, p.start + p.len) }
+    const n = p.len, stepS = meta.step_s, stepH = stepS / 3600
     return [
       { label: 'sun_pct', unit: 'pp', tol: 1, computed: sunPct(s.f), file: c.col.sun_pct[i]! },
       {
@@ -80,6 +82,8 @@ export function PlaceBox({ slot, compare }: Props) {
   const t = useT()
   const meta = useStore((s) => s.meta)
   const c = useStore((s) => s.candidates)
+  const base = useStore((s) => s.baseCandidates)
+  const year = useStore((s) => s.year)
   const sites = useStore((s) => s.sites)
   const index = useStore((s) => (slot === 'a' ? s.selectedIndex : s.compareIndex))
   const other = useStore((s) => (slot === 'a' ? s.compareIndex : s.selectedIndex))
@@ -94,20 +98,19 @@ export function PlaceBox({ slot, compare }: Props) {
   const error = useAnalysis((s) => s[slot].error)
   const data = useAnalysis((s) => s[slot].data)
   const cursor = useAnalysis((s) => s.cursor)
-  const playing = useAnalysis((s) => s.playing)
-  const setCursor = useAnalysis((s) => s.setCursor)
-  const setPlaying = useAnalysis((s) => s.setPlaying)
-  const sliderId = useId()
 
   if (!meta || !c || index === null) return null
   const id = c.col.id[index]
   const na = t('na')
   const n = meta.n_steps
   const k = Math.min(Math.max(0, n - 1), cursor)
-  const now = stepToUtc(meta.t0_utc, meta.step_s, k)
   const site = sites.find((s) => s.nearest_candidate_id === id && !isMockSite(s))
   const coord = fmtCoord(c.col.lat[index], c.col.lon[index], 2, na)
   const stepH = meta.step_s / 3600
+  const period = candidatesRange(meta)
+  const shownYear = year ?? yearOfStep(meta.t0_utc, meta.step_s, period.start)
+  const yearH = year !== null ? yearHours(year) : period.len * stepH
+  const shadow = isEternalShadow(c.col.sun_pct[index], c.col.longest_night_h[index], yearH)
 
   const dur = (steps: number) => {
     const { d, h } = splitHours(steps * stepH)
@@ -144,6 +147,7 @@ export function PlaceBox({ slot, compare }: Props) {
             <p className="pb-sub">
               {site && <span className="pb-site">{site.name}</span>}
               {rank >= 0 && <span>{fill(t('panel.rank'), { r: rank + 1 })}</span>}
+              {shadow && <span className="pb-shadow" title={t('shadow.title')}>{fill(t('shadow.badge'), { y: shownYear })}</span>}
             </p>
           </div>
         </div>
@@ -164,35 +168,9 @@ export function PlaceBox({ slot, compare }: Props) {
 
       <SkyPanorama slot={slot} index={index} />
 
-      <div className="pb-time">
-        <button type="button" className="hd-play" aria-label={t(playing ? 'dock.pause' : 'dock.play')}
-          onClick={() => {
-            if (!playing && k >= n - 1) setCursor(0)
-            setPlaying(!playing)
-          }}>{playing ? '❚❚' : '▶'}</button>
-        <label htmlFor={sliderId} className="pb-time-label">
-          <span className="label">{t('panel.time')}</span>
-          <span className="pb-now">{now}</span>
-        </label>
-        <input id={sliderId} type="range" min={0} max={Math.max(0, n - 1)} step={1} value={k}
-          aria-valuetext={now}
-          onChange={(e) => { setPlaying(false); setCursor(Number(e.target.value)) }} />
-      </div>
-      <p className="pb-range">
-        {fill(t('panel.range'), {
-          from: stepToUtc(meta.t0_utc, meta.step_s, 0, false),
-          to: stepToUtc(meta.t0_utc, meta.step_s, n - 1, false),
-        })}
-      </p>
-
-      {status === 'ready' && data && (
-        <div className="pb-timeline">
-          <Timeline f={data.series.f} g={data.series.g} t0Utc={meta.t0_utc} stepS={meta.step_s} cursor={k}
-            trackLen={Math.max(1, Math.round(LUNAR_DAY_S / meta.step_s))}
-            night={data.night} commGap={data.commGap}
-            onCursor={(v) => { setPlaying(false); setCursor(v) }} />
-        </div>
-      )}
+      {/* W porównaniu czas i oś są we wspólnym pasku pod boxami (Places). */}
+      {!compare && <TimeBar />}
+      {!compare && status === 'ready' && data && <PlaceTimeline data={data} />}
       {status === 'error' && <p className="pp-error">{error}</p>}
 
       <div className="pb-grid">
@@ -232,8 +210,8 @@ export function PlaceBox({ slot, compare }: Props) {
         <p className="pb-credit">{t('sky.credit')}</p>
         {status === 'ready' && data && (
           <>
-            <h3 className="label">{t('panel.diag')}</h3>
-            <CheckTable meta={meta} c={c} i={index} a={data} />
+            <h3 className="label">{fill(t('panel.diag'), { y: yearOfStep(meta.t0_utc, meta.step_s, period.start) })}</h3>
+            <CheckTable meta={meta} c={base ?? c} i={index} a={data} />
           </>
         )}
       </details>

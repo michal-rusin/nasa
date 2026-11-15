@@ -8,6 +8,12 @@ import { useT } from '../i18n'
 const ASSETS = `${import.meta.env.BASE_URL}assets/`
 const COLOR_URL = `${ASSETS}moon_4k.jpg`
 const BUMP_URL = `${ASSETS}moon_disp.jpg`
+/** Mozaika LROC WAC bieguna płd. (rzut stereograficzny, 80–90°S); skrypt: scripts/prepare-south-pole-texture.py. */
+const SOUTH_POLE_URL = `${ASSETS}south_pole_2k.jpg`
+/** Krawędź mozaiki i pełna szerokość obrazu w metrach rzutu (6082 px × 100 m). */
+const SP_EDGE_LAT = -80
+const SP_SPAN_M = 6082 * 100
+const MOON_R_M = 1737400
 
 const FOV_DEG = 40
 const MIN_DISTANCE = 1.5
@@ -28,6 +34,28 @@ const easeInOutCubic = (k: number) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2
 const lerp = (a: number, b: number, k: number) => a + (b - a) * k
 
 /** Odległość kamery, przy której cała kula (r = 1) mieści się w kadrze z zapasem. */
+/** Przezroczystość czapy bieguna: pełna do 84°S, wygaszana ku krawędzi 80°S (kanał G = alpha). */
+function capFadeTexture(): THREE.Texture {
+  const size = 256
+  const cv = document.createElement('canvas')
+  cv.width = size
+  cv.height = size
+  const ctx = cv.getContext('2d')
+  if (ctx) {
+    ctx.fillStyle = '#000'
+    ctx.fillRect(0, 0, size, size)
+    const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2)
+    // Promień 0,6 obrazu ≈ 84°S (rzut stereograficzny): obszar badań w pełnej szczegółowości,
+    // pas 84–80°S płynnie przechodzi w zwykłą teksturę globusa.
+    g.addColorStop(0, '#fff')
+    g.addColorStop(0.6, '#fff')
+    g.addColorStop(0.985, '#000')
+    ctx.fillStyle = g
+    ctx.fillRect(0, 0, size, size)
+  }
+  return new THREE.CanvasTexture(cv)
+}
+
 function fitDistance(aspect: number): number {
   const halfV = (FOV_DEG / 2) * (Math.PI / 180)
   const halfH = Math.atan(Math.tan(halfV) * aspect)
@@ -125,6 +153,40 @@ export default function Home() {
       })
       .catch(() => { /* jw. */ })
 
+    // --- Czapa bieguna płd.: szczegółowa mozaika nałożona na globus ---------
+    // Osobna siatka tuż nad powierzchnią; UV liczone z tego samego rzutu biegunowego co obraz
+    // (lon 0 u góry, 90°E w prawo), krawędź miękko wygaszona, żeby nie było widać szwu.
+    const spCap = (90 + SP_EDGE_LAT) * (Math.PI / 180)
+    const spGeo = track(new THREE.SphereGeometry(1.0006, 256, 32, 0, Math.PI * 2, Math.PI - spCap, spCap))
+    {
+      const pos = spGeo.getAttribute('position')
+      const uv = spGeo.getAttribute('uv')
+      for (let i = 0; i < pos.count; i++) {
+        const ll = vec3ToLatLon({ x: pos.getX(i), y: pos.getY(i), z: pos.getZ(i) })
+        const rho = 2 * MOON_R_M * Math.tan(((90 + ll.lat) / 2) * (Math.PI / 180))
+        const lon = ll.lon * (Math.PI / 180)
+        uv.setXY(i, 0.5 + (rho * Math.sin(lon)) / SP_SPAN_M, 0.5 + (rho * Math.cos(lon)) / SP_SPAN_M)
+      }
+      uv.needsUpdate = true
+    }
+    const spMaterial = track(new THREE.MeshStandardMaterial({
+      roughness: 1, metalness: 0, transparent: true, opacity: 0, depthWrite: false,
+      alphaMap: track(capFadeTexture()),
+    }))
+    const spMesh = new THREE.Mesh(spGeo, spMaterial)
+    spMesh.visible = false
+    scene.add(spMesh)
+    loader.load(SOUTH_POLE_URL, (tex) => {
+      if (disposed) return tex.dispose()
+      track(tex)
+      tex.colorSpace = THREE.SRGBColorSpace
+      tex.anisotropy = renderer.capabilities.getMaxAnisotropy()
+      spMaterial.map = tex
+      spMaterial.opacity = 1
+      spMaterial.needsUpdate = true
+      spMesh.visible = true
+    }, undefined, () => { /* bez mozaiki zostaje zwykła tekstura globusa */ })
+
     // --- Światło: z boku względem kamery, żeby terminator był zawsze w kadrze --
     scene.add(new THREE.AmbientLight(0xffffff, 0.07))
     const sun = new THREE.DirectionalLight(0xffffff, 3.2)
@@ -134,7 +196,7 @@ export default function Home() {
     const capAngle = (90 + SOUTH_POLE_REGION_LAT) * (Math.PI / 180)
     const capFill = new THREE.Mesh(
       track(new THREE.SphereGeometry(1.003, 64, 6, 0, Math.PI * 2, Math.PI - capAngle, capAngle)),
-      track(new THREE.MeshBasicMaterial({ color: 0x6fd3ff, transparent: true, opacity: 0.16, depthWrite: false })),
+      track(new THREE.MeshBasicMaterial({ color: 0x6fd3ff, transparent: true, opacity: 0.06, depthWrite: false })),
     )
     scene.add(capFill)
     const ringPts: THREE.Vector3[] = []
