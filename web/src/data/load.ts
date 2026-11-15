@@ -1,4 +1,4 @@
-import { COLUMN_NAMES, type Candidates, type ColumnName, type Meta, type Site } from './types'
+import { COLUMN_NAMES, YEAR_ONLY_COLUMNS, type Candidates, type ColumnName, type Meta, type Site, type YearOnlyColumn } from './types'
 import { parseMetricsByYear, type MetricsByYear } from './years'
 
 export const DATA_BASE = import.meta.env.BASE_URL + 'data/'
@@ -83,7 +83,9 @@ export function parseCandidates(buf: ArrayBuffer, meta: Pick<Meta, 'candidates'>
       + `(${n} punktów × ${nc} kolumn × 4 B)`)
   }
   const dv = new DataView(buf)
-  const col = {} as Record<ColumnName, Float32Array>
+  const col = {} as Record<ColumnName | YearOnlyColumn, Float32Array>
+  // Kolumny tylko z metrics_by_year: na razie brak danych (NaN), podmienia je wybrany rok.
+  for (const name of YEAR_ONLY_COLUMNS) col[name] = new Float32Array(n).fill(NaN)
   for (const name of COLUMN_NAMES) {
     const c = columns.indexOf(name)
     const arr = new Float32Array(n)

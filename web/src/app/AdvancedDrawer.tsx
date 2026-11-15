@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
-import { METRIC_KEYS, type MetricKey } from '../data/types'
+import type { MetricKey } from '../data/types'
 import { useT } from '../i18n'
 import { METRIC_META } from '../rank/metrics'
 import { COLOR_KEYS, RASTER_KEYS, useStore, type LayerKey } from '../store'
@@ -18,6 +18,8 @@ const FILTER_DEFS: readonly { key: MetricKey; bound: 'min' | 'max' }[] = [
   { key: 'longest_comm_gap_h', bound: 'max' },
   { key: 'earth_pct', bound: 'min' },
   { key: 'dist_psr_km', bound: 'max' },
+  { key: 'power_track_wm2', bound: 'min' },
+  { key: 'power_fixed_wm2', bound: 'min' },
 ]
 
 interface RangeProps {
@@ -97,6 +99,7 @@ export function AdvancedDrawer({ onClose }: { onClose: () => void }) {
   const colorBy = useStore((s) => s.colorBy)
   const setColorBy = useStore((s) => s.setColorBy)
   const weights = useStore((s) => s.weights)
+  const metricKeys = useStore((s) => s.metricKeys)
   const setWeight = useStore((s) => s.setWeight)
   const radius = useStore((s) => s.nmsRadiusKm)
   const setNmsRadius = useStore((s) => s.setNmsRadius)
@@ -130,14 +133,15 @@ export function AdvancedDrawer({ onClose }: { onClose: () => void }) {
               const k = COLOR_KEYS.find((c) => c === e.target.value)
               if (k) setColorBy(k)
             }}>
-              {COLOR_KEYS.map((k) => <option key={k} value={k}>{t(`metric.${k}`)}</option>)}
+              {COLOR_KEYS.filter((k) => k === 'score' || metricKeys.includes(k))
+                .map((k) => <option key={k} value={k}>{t(`metric.${k}`)}</option>)}
             </select>
           </section>
 
           <section>
             <h3 className="adv-h">{t('adv.weights')}</h3>
             <p className="adv-hint">{t('adv.weightsHint')}</p>
-            {METRIC_KEYS.map((k) => (
+            {metricKeys.map((k) => (
               <DebouncedRange key={k} label={t(`metric.${k}`)} value={weights[k]} min={0} max={5} step={1}
                 display={(v) => String(v)} onCommit={(v) => setWeight(k, v)} />
             ))}
@@ -147,7 +151,8 @@ export function AdvancedDrawer({ onClose }: { onClose: () => void }) {
 
           <section>
             <h3 className="adv-h">{t('adv.filters')}</h3>
-            {FILTER_DEFS.map((d) => <FilterRange key={d.key} k={d.key} bound={d.bound} />)}
+            {FILTER_DEFS.filter((d) => metricKeys.includes(d.key))
+              .map((d) => <FilterRange key={d.key} k={d.key} bound={d.bound} />)}
           </section>
 
           <section>

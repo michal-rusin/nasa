@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { COLUMN_NAMES, type Candidates, type ColumnName, type MetricKey } from '../data/types'
+import { COLUMN_NAMES, YEAR_ONLY_COLUMNS, type Candidates, type ColumnName, type MetricKey } from '../data/types'
 import { passMask } from './filters'
 import { normalizeAll, normalizeMetric, percentile } from './normalize'
 import { computeScore } from './score'
 import { topN } from './topN'
 
 function cands(cols: Partial<Record<ColumnName, number[]>>, n: number): Candidates {
-  const col = {} as Record<ColumnName, Float32Array>
+  const col = {} as Candidates['col']
   for (const c of COLUMN_NAMES) col[c] = Float32Array.from(cols[c] ?? new Array<number>(n).fill(0))
+  for (const c of YEAR_ONLY_COLUMNS) col[c] = new Float32Array(n).fill(NaN)
   return { n, col }
 }
 
@@ -93,6 +94,8 @@ describe('score', () => {
     longest_comm_gap_h: Float32Array.from([0, 0]),
     slope_deg: Float32Array.from([0, 0]),
     dist_psr_km: Float32Array.from([0, 0]),
+    power_track_wm2: Float32Array.from([0, 0]),
+    power_fixed_wm2: Float32Array.from([0, 0]),
   } satisfies Record<MetricKey, Float32Array>
 
   it('średnia ważona', () => {

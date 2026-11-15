@@ -256,7 +256,7 @@ export function createMap(
     if (s.rankingShown !== prev.rankingShown) points.setRevealed(s.rankingShown)
     if (s.hoverIndex !== prev.hoverIndex) points.setHighlight(s.hoverIndex)
     // Odfiltrowany punkt pod kursorem znika, więc chowamy też jego tooltip.
-    if (s.passMask !== prev.passMask || s.lang !== prev.lang) setHover(null)
+    if (s.passMask !== prev.passMask) setHover(null)
   })
 
   /** Indeks widocznego (spełniającego filtry) punktu w promieniu radiusPx od piksela. */

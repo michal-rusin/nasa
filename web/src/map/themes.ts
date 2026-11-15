@@ -32,4 +32,6 @@ export const MODE_THEMES: Record<ColorKey, ModeTheme> = {
   longest_comm_gap_h: { ramp: towards([52, 214, 196], [196, 250, 242]), accent: '#3fd6c6', onAccent: '#021412' },
   slope_deg: { ramp: towards([255, 138, 76], [255, 214, 186]), accent: '#ff8a4c', onAccent: '#1d0a00' },
   dist_psr_km: { ramp: towards([120, 220, 255], [220, 246, 255]), accent: '#8fe3ff', onAccent: '#02121a' },
+  power_track_wm2: { ramp: towards([190, 236, 70], [236, 252, 196]), accent: '#c3ec46', onAccent: '#121a02' },
+  power_fixed_wm2: { ramp: towards([255, 110, 180], [255, 214, 234]), accent: '#ff6fb4', onAccent: '#1d0410' },
 }

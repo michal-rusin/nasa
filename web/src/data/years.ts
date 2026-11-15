@@ -3,14 +3,18 @@
 
 import type { Candidates, Meta } from './types'
 
-/** Kolumny metrics_by_year.bin, które front umie podmienić w candidates. */
-export const YEAR_COLUMNS = ['sun_pct', 'longest_night_h', 'earth_pct', 'longest_comm_gap_h'] as const
+/** Kolumny metrics_by_year.bin, które front umie podmienić w candidates (pierwsze 4 obowiązkowe). */
+export const YEAR_COLUMNS = [
+  'sun_pct', 'longest_night_h', 'earth_pct', 'longest_comm_gap_h',
+  'power_track_wm2', 'power_fixed_wm2', 'power_fixed_az_deg',
+] as const
 export type YearColumn = (typeof YEAR_COLUMNS)[number]
+const REQUIRED_YEAR_COLUMNS: readonly YearColumn[] = ['sun_pct', 'longest_night_h', 'earth_pct', 'longest_comm_gap_h']
 
 export interface MetricsByYear {
   years: number[]
-  /** cols[kolumna][rok] = wartości dla wszystkich punktów (kolejność wierszy jak w candidates.bin). */
-  cols: Record<YearColumn, Float32Array[]>
+  /** cols[kolumna][rok] = wartości dla wszystkich punktów (kolejność wierszy jak w candidates.bin). Brak kolumny w pliku = brak klucza. */
+  cols: Partial<Record<YearColumn, Float32Array[]>>
 }
 
 /** Fragment osi czasu: kroki [start, start + len). */
@@ -68,12 +72,13 @@ export function parseMetricsByYear(buf: ArrayBuffer, meta: Pick<Meta, 'candidate
     throw new Error(`${spec.file}: rozmiar ${buf.byteLength} B, oczekiwano ${expected} B `
       + `(${n} punktów × ${ny} lat × ${nc} kolumn × 4 B)`)
   }
-  const missing = YEAR_COLUMNS.filter((c) => !spec.columns.includes(c))
+  const missing = REQUIRED_YEAR_COLUMNS.filter((c) => !spec.columns.includes(c))
   if (missing.length > 0) throw new Error(`${spec.file}: brakuje kolumn ${missing.join(', ')}`)
   const dv = new DataView(buf)
-  const cols = {} as Record<YearColumn, Float32Array[]>
+  const cols: Partial<Record<YearColumn, Float32Array[]>> = {}
   for (const name of YEAR_COLUMNS) {
     const c = spec.columns.indexOf(name)
+    if (c < 0) continue
     cols[name] = spec.years.map((_, y) => {
       const arr = new Float32Array(n)
       for (let r = 0; r < n; r++) arr[r] = dv.getFloat32(((r * ny + y) * nc + c) * 4, true)
@@ -89,7 +94,10 @@ export function candidatesForYear(base: Candidates, mby: MetricsByYear | null, y
   const y = mby.years.indexOf(year)
   if (y < 0) return base
   const col = { ...base.col }
-  for (const k of YEAR_COLUMNS) col[k] = mby.cols[k][y]!
+  for (const k of YEAR_COLUMNS) {
+    const v = mby.cols[k]?.[y]
+    if (v) col[k] = v
+  }
   return { n: base.n, col }
 }
 

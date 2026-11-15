@@ -3,12 +3,12 @@ import { fmtCoord } from '../app/coords'
 import { fmtVal, METRIC_DIGITS } from '../app/format'
 import { isMockSite } from '../app/sites'
 import type { Candidates, Meta, MetricKey } from '../data/types'
-import { candidatesRange, isEternalShadow, yearHours, yearOfStep } from '../data/years'
+import { candidatesForYear, candidatesRange, isEternalShadow, yearHours, yearOfStep } from '../data/years'
 import { fill, useT } from '../i18n'
-import { earthPct, longestCommGapH, longestNightH, sunPct } from '../physics'
+import { earthPct, longestCommGapH, longestNightH, solarPower, sunPct, type SolarPower } from '../physics'
 import { METRIC_META } from '../rank/metrics'
 import { useStore } from '../store'
-import { useAnalysis, type Analysis, type SlotKey } from './analysis'
+import { useActiveRange, useAnalysis, type Analysis, type SlotKey } from './analysis'
 import { isBetter } from './compare'
 import { earthTransition, splitHours, sunTransition, type Transition } from './countdown'
 import { PlaceTimeline } from './PlaceTimeline'
@@ -22,7 +22,9 @@ const PANEL_METRICS: readonly MetricKey[] = [
 interface Check { label: string; computed: number; file: number; unit: string; tol: number }
 
 /** Porównanie z candidates.bin: tylko na krokach jego roku (candidates_period), nie na całym ephem.bin. */
-function CheckTable({ meta, c, i, a }: { meta: Meta; c: Candidates; i: number; a: Analysis }) {
+function CheckTable({ meta, c, cPeriod, i, a }: {
+  meta: Meta; c: Candidates; cPeriod: Candidates; i: number; a: Analysis
+}) {
   const t = useT()
   const checks: Check[] = useMemo(() => {
     const p = candidatesRange(meta)
@@ -42,8 +44,22 @@ function CheckTable({ meta, c, i, a }: { meta: Meta; c: Candidates; i: number; a
         label: 'longest_comm_gap_h', unit: 'h', tol: stepH,
         computed: longestCommGapH(s.g, stepS), file: c.col.longest_comm_gap_h[i]!,
       },
+      // Moc (kontrakt 3.4): z metrics_by_year dla roku candidates.bin; brak kolumn = wiersze pominięte.
+      ...(() => {
+        const file = cPeriod.col
+        if (!Number.isFinite(file.power_track_wm2[i]!)) return []
+        const pw = solarPower(a.series, p.start, p.len, Date.parse(meta.t0_utc), stepS)
+        return [
+          { label: 'power_track_wm2', unit: 'W/m²', tol: 1, computed: pw.trackingWm2, file: file.power_track_wm2[i]! },
+          { label: 'power_fixed_wm2', unit: 'W/m²', tol: 2, computed: pw.fixedWm2, file: file.power_fixed_wm2[i]! },
+          {
+            label: 'power_fixed_az_deg', unit: '°', tol: 0,
+            computed: pw.fixedWm2 > 0 ? pw.fixedAzDeg : NaN, file: file.power_fixed_az_deg[i]!,
+          },
+        ]
+      })(),
     ]
-  }, [a, meta, c, i])
+  }, [a, meta, c, cPeriod, i])
   const na = t('na')
   return (
     <table className="kv pp-check">
@@ -71,6 +87,13 @@ function CheckTable({ meta, c, i, a }: { meta: Meta; c: Candidates; i: number; a
   )
 }
 
+/** Średnia moc z paneli w wybranym roku (null, dopóki szeregi się liczą). */
+function usePower(a: Analysis | null, meta: Meta | null): SolarPower | null {
+  const { start, len } = useActiveRange()
+  return useMemo(() => (a && meta && len > 0
+    ? solarPower(a.series, start, len, Date.parse(meta.t0_utc), meta.step_s) : null), [a, meta, start, len])
+}
+
 interface Props {
   slot: SlotKey
   /** Tryb porównania: dwa boxy obok siebie, niższa panorama, odznaki A/B. */
@@ -84,6 +107,7 @@ export function PlaceBox({ slot, compare }: Props) {
   const c = useStore((s) => s.candidates)
   const base = useStore((s) => s.baseCandidates)
   const year = useStore((s) => s.year)
+  const byYear = useStore((s) => s.byYear)
   const sites = useStore((s) => s.sites)
   const index = useStore((s) => (slot === 'a' ? s.selectedIndex : s.compareIndex))
   const other = useStore((s) => (slot === 'a' ? s.compareIndex : s.selectedIndex))
@@ -98,6 +122,9 @@ export function PlaceBox({ slot, compare }: Props) {
   const error = useAnalysis((s) => s[slot].error)
   const data = useAnalysis((s) => s[slot].data)
   const cursor = useAnalysis((s) => s.cursor)
+  const otherData = useAnalysis((s) => s[slot === 'a' ? 'b' : 'a'].data)
+  const power = usePower(data, meta)
+  const otherPower = usePower(other === null ? null : otherData, meta)
 
   if (!meta || !c || index === null) return null
   const id = c.col.id[index]
@@ -197,6 +224,35 @@ export function PlaceBox({ slot, compare }: Props) {
               </div>
             )
           })}
+          {/* Moc z paneli pionowych w wybranym roku: z metrics_by_year (to samo co filtr i ranking),
+              a przy starszych danych liczona tu z szeregów (physics/solarPower). */}
+          {([
+            ['power_track_wm2', 'trackingWm2'],
+            ['power_fixed_wm2', 'fixedWm2'],
+          ] as const).map(([col, key]) => {
+            const fromFile = (j: number | null) => (j === null ? undefined : c.col[col][j])
+            const pick = (j: number | null, pw: SolarPower | null) => {
+              const f = fromFile(j)
+              return f !== undefined && Number.isFinite(f) ? f : pw?.[key]
+            }
+            const v = pick(index, power)
+            const ov = other === null ? undefined : pick(other, otherPower)
+            const better = v !== undefined && ov !== undefined && v > ov + 0.5
+            const fileAz = c.col.power_fixed_az_deg[index]
+            const az = Number.isFinite(c.col.power_fixed_wm2[index]!) ? fileAz : power?.fixedWm2 ? power.fixedAzDeg : undefined
+            return (
+              <div key={col} className={better ? 'better' : ''} title={t('power.note')}>
+                <dt>{t(`metric.${col}`)}</dt>
+                <dd className={v === undefined ? 'muted' : ''}>
+                  {v === undefined ? '…' : `${Math.round(v)} W/m²`}
+                  {col === 'power_fixed_wm2' && v !== undefined && v > 0 && az !== undefined && Number.isFinite(az) && (
+                    <span className="muted">{fill(t('power.faces'), { az: az.toFixed(1).replace(/\.0$/, '') })}</span>
+                  )}
+                  {better && <span className="pb-better" role="img" aria-label={t('place.better')} />}
+                </dd>
+              </div>
+            )
+          })}
         </dl>
         <dl className="pb-count" aria-live="polite">
           <div><dt><span className="dot sun" aria-hidden="true" />{t('panel.sunset')}</dt><dd>{sunText ?? '…'}</dd></div>
@@ -211,7 +267,8 @@ export function PlaceBox({ slot, compare }: Props) {
         {status === 'ready' && data && (
           <>
             <h3 className="label">{fill(t('panel.diag'), { y: yearOfStep(meta.t0_utc, meta.step_s, period.start) })}</h3>
-            <CheckTable meta={meta} c={base ?? c} i={index} a={data} />
+            <CheckTable meta={meta} c={base ?? c} i={index} a={data}
+              cPeriod={candidatesForYear(base ?? c, byYear, yearOfStep(meta.t0_utc, meta.step_s, period.start))} />
           </>
         )}
       </details>

@@ -8,7 +8,6 @@ import {
   type Bound, type Filters, type Norms, type RankedPoint, type Weights,
 } from './rank'
 
-import type { Lang } from './i18n'
 
 export type LayerKey = 'points' | 'sites' | 'basemap' | 'slope' | 'illumination' | 'psr'
 /** Warstwy rastrowe z meta.layers.files; pokazujemy tylko te, których pliki istnieją. */
@@ -26,27 +25,12 @@ const DEFAULT_OVERLAY_OPACITY = 0.7
 /** Pole wartości półprzezroczyste: rzeźba terenu prześwituje. */
 const DEFAULT_POINTS_OPACITY = 0.72
 
-const LANG_STORAGE_KEY = 'lunar-navigator.lang'
-
-function readStoredLang(): Lang {
-  try {
-    const v = localStorage.getItem(LANG_STORAGE_KEY)
-    if (v === 'en' || v === 'pl') return v
-  } catch {
-    // brak localStorage (tryb prywatny, testy w node): zostaje domyślny
-  }
-  return 'en'
-}
-
 export const TOP_N = 10
 export const DEFAULT_NMS_RADIUS_KM = 5
 
 export interface AppState {
   status: 'loading' | 'ready' | 'error'
   error: string | null
-  /** Język interfejsu (i18n.ts). */
-  lang: Lang
-  setLang: (lang: Lang) => void
   meta: Meta | null
   /** Kandydaci z metrykami wybranego roku (`year`); to czyta cały interfejs. */
   candidates: Candidates | null
@@ -54,6 +38,8 @@ export interface AppState {
   baseCandidates: Candidates | null
   /** metrics_by_year.bin; null = dane jednoroczne, bez selektora roku. */
   byYear: MetricsByYear | null
+  /** Metryki z danymi (moc tylko z metrics_by_year z Dostawy 7+); reszta UI je pomija. */
+  metricKeys: readonly MetricKey[]
   /** Wybrany rok (ranking, mapa, oś czasu); null = dane bez lat. */
   year: number | null
   setYear: (year: number) => void
@@ -142,7 +128,10 @@ function metricRanges(c: Candidates, mby: MetricsByYear | null): Record<MetricKe
   for (const k of METRIC_KEYS) ranges[k] = computeRange(c.col[k])
   if (mby) {
     for (const k of YEAR_COLUMNS) {
-      ranges[k] = mby.cols[k].map(computeRange).reduce((a, b) => ({ min: Math.min(a.min, b.min), max: Math.max(a.max, b.max) }))
+      if (k === 'power_fixed_az_deg') continue
+      const cols = mby.cols[k]
+      if (!cols) continue
+      ranges[k] = cols.map(computeRange).reduce((a, b) => ({ min: Math.min(a.min, b.min), max: Math.max(a.max, b.max) }))
     }
   }
   return ranges
@@ -157,19 +146,11 @@ function pickInto(s: Pick<AppState, 'picking' | 'selectedIndex'>, i: number): Pa
 export const useStore = create<AppState>()((set, get) => ({
   status: 'loading',
   error: null,
-  lang: readStoredLang(),
-  setLang: (lang) => {
-    try {
-      localStorage.setItem(LANG_STORAGE_KEY, lang)
-    } catch {
-      // zapis opcjonalny
-    }
-    set({ lang })
-  },
   meta: null,
   candidates: null,
   baseCandidates: null,
   byYear: null,
+  metricKeys: METRIC_KEYS.filter((k) => !k.startsWith('power_')),
   year: null,
   setYear: (year) => {
     const s = get()
@@ -219,10 +200,11 @@ export const useStore = create<AppState>()((set, get) => ({
       const availableLayers = {} as Record<RasterKey, boolean>
       RASTER_KEYS.forEach((k, i) => { availableLayers[k] = avail[i] === true })
       const ranges = metricRanges(candidates, byYear)
+      const metricKeys = METRIC_KEYS.filter((k) => (k !== 'power_track_wm2' && k !== 'power_fixed_wm2') || byYear?.cols[k] !== undefined)
       const norms = normalizeAll(candidates)
       const rank = recompute({ ...get(), candidates, norms }, { score: true, mask: true })
       set({
-        status: 'ready', meta, candidates, baseCandidates, byYear, year, sites, ranges, norms, availableLayers, ...rank,
+        status: 'ready', meta, candidates, baseCandidates, byYear, metricKeys, year, sites, ranges, norms, availableLayers, ...rank,
         idToIndex: buildIdToIndex(baseCandidates), selectedIndex: null, compareIndex: null, picking: false,
       })
     } catch (e) {

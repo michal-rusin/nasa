@@ -1,6 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { LANGS, useT } from '../i18n'
-import { useStore } from '../store'
+import { useT } from '../i18n'
 
 const LOGO = `${import.meta.env.BASE_URL}assets/logo.svg`
 
@@ -12,8 +11,6 @@ const isSouthPole = () => window.location.hash === '#/south-pole'
 
 export function TopBar() {
   const t = useT()
-  const lang = useStore((s) => s.lang)
-  const setLang = useStore((s) => s.setLang)
   const onPole = useSyncExternalStore(subscribeHash, isSouthPole)
 
   return (
@@ -26,13 +23,6 @@ export function TopBar() {
         <a href="#/" aria-current={onPole ? undefined : 'page'}>{t('nav.moon')}</a>
         <a href="#/south-pole" aria-current={onPole ? 'page' : undefined}>{t('nav.southPole')}</a>
       </nav>
-      <div className="seg" role="group" aria-label={t('lang.switch')}>
-        {LANGS.map((l) => (
-          <button key={l} type="button" aria-pressed={lang === l} onClick={() => setLang(l)}>
-            {l.toUpperCase()}
-          </button>
-        ))}
-      </div>
     </header>
   )
 }

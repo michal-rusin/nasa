@@ -42,7 +42,7 @@ describe('oś czasu', () => {
   it('monthTicks z t0_utc', () => {
     const t = monthTicks('2028-01-01T00:00:00Z', 3600, 8784)
     expect(t.length).toBe(12)
-    expect(t[0]).toEqual({ pos: 0, label: 'sty' })
+    expect(t[0]).toEqual({ pos: 0, label: 'Jan' })
     expect(t[1]!.pos).toBeCloseTo((31 * 24) / 8784)
   })
 })

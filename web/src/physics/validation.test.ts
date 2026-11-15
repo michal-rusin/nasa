@@ -9,6 +9,7 @@ import { buildIdToIndex, parseCandidates, parseMeta } from '../data/load'
 import { candidatesRange } from '../data/years'
 import { earthPct, longestCommGapH, longestNightH, sunPct } from './aggregates'
 import { maskFromBuffer } from './mask'
+import { solarPower } from './solarPower'
 import { computeSeries, ephemFromBuffer } from './series'
 
 const DATA_ROOT = fileURLToPath(new URL('../../public/data/', import.meta.url))
@@ -21,6 +22,10 @@ interface ValidationEntry {
   earth_g: number[]
   sun_pct: number
   earth_pct: number
+  /** Dostawa 7 (kontrakt 6): moc dla candidates_period; null = brak kierunku (brak słońca). */
+  power_track_wm2?: number
+  power_fixed_wm2?: number
+  power_fixed_az_deg?: number | null
 }
 
 function readBuf(path: string): ArrayBuffer {
@@ -87,6 +92,16 @@ describe.skipIf(DATASETS.length === 0)('validation.json', () => {
         }
         console.log(`[validation] id=${v.id} Δsun=${dSun.toFixed(5)} pp Δearth=${dEarth.toFixed(5)} pp `
           + `Δnight=${dNight} h Δgap=${dGap} h max|Δf|=${maxDf.toExponential(2)} g≠=${gMismatch}`)
+
+        if (v.power_track_wm2 !== undefined && v.power_fixed_wm2 !== undefined) {
+          const pw = solarPower(full, period.start, nSteps, Date.parse(meta.t0_utc), meta.step_s)
+          console.log(`[validation] id=${v.id} power track ${pw.trackingWm2.toFixed(2)} vs ${v.power_track_wm2}, `
+            + `fixed ${pw.fixedWm2.toFixed(2)} vs ${v.power_fixed_wm2} @ ${pw.fixedAzDeg} vs ${String(v.power_fixed_az_deg)}`)
+          expect(Math.abs(pw.trackingWm2 - v.power_track_wm2), `power_track_wm2 id ${v.id}`).toBeLessThanOrEqual(1)
+          expect(Math.abs(pw.fixedWm2 - v.power_fixed_wm2), `power_fixed_wm2 id ${v.id}`).toBeLessThanOrEqual(2)
+          if (v.power_fixed_wm2 > 0) expect(pw.fixedAzDeg, `power_fixed_az_deg id ${v.id}`).toBe(v.power_fixed_az_deg)
+          else expect(v.power_fixed_az_deg ?? null).toBeNull()
+        }
 
         expect(dSun, `sun_pct id ${v.id}`).toBeLessThanOrEqual(sunTol)
         expect(dEarth, `earth_pct id ${v.id}`).toBeLessThanOrEqual(earthTol)

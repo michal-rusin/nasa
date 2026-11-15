@@ -9,11 +9,13 @@ export function ModeSwitch() {
   const t = useT()
   const colorBy = useStore((s) => s.colorBy)
   const setColorBy = useStore((s) => s.setColorBy)
+  const metricKeys = useStore((s) => s.metricKeys)
+  const keys = COLOR_KEYS.filter((k) => k === 'score' || metricKeys.includes(k))
   return (
     <div className="mode-switch">
       <YearPicker />
       <div className="mode-list" role="radiogroup" aria-label={t('mode.aria')}>
-      {COLOR_KEYS.map((k) => (
+      {keys.map((k) => (
         <button key={k} type="button" role="radio" aria-checked={k === colorBy}
           className={k === colorBy ? 'on' : ''}
           style={{ '--mode': MODE_THEMES[k].accent } as CSSProperties}

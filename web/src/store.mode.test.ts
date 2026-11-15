@@ -12,6 +12,7 @@ function fixture(): Candidates {
     lat: f([-89, -88, -87]), lon: f([0, 0, 0]), elev_m: f([0, 0, 0]), level: f([0, 0, 0]),
     sun_pct: f([90, 50, 10]), earth_pct: f([50, 50, 50]), longest_night_h: f([100, 200, 300]),
     longest_comm_gap_h: f([10, 10, 10]), slope_deg: f([20, 10, 1]), dist_psr_km: f([1, 2, 3]),
+    power_track_wm2: f([NaN, NaN, NaN]), power_fixed_wm2: f([NaN, NaN, NaN]), power_fixed_az_deg: f([NaN, NaN, NaN]),
   }
   return { n: 3, col } as unknown as Candidates
 }

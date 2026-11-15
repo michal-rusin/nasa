@@ -15,7 +15,6 @@ import './south-pole.css'
 /** Prawy dolny róg: skrót danych z meta.json (monospace, jak panel statystyk). */
 function MapStats() {
   const t = useT()
-  const lang = useStore((s) => s.lang)
   const meta = useStore((s) => s.meta)
   if (!meta) return null
   const y0 = new Date(Date.parse(meta.t0_utc)).getUTCFullYear()
@@ -26,7 +25,7 @@ function MapStats() {
       <dt>{t('stats.region')}</dt>
       <dd>{Math.abs(meta.region.lat_max)}°S–{Math.abs(meta.region.lat_min)}°S</dd>
       <dt>{t('stats.candidates')}</dt>
-      <dd>{meta.candidates.count.toLocaleString(lang === 'pl' ? 'pl-PL' : 'en-US')}</dd>
+      <dd>{meta.candidates.count.toLocaleString('en-US')}</dd>
       <dt>{t('stats.ephem')}</dt>
       <dd>{Number.isFinite(y0) ? (y0 === y1 ? y0 : `${y0}–${y1}`) : '?'}</dd>
       <dt>{t('stats.step')}</dt>
@@ -74,6 +73,7 @@ function Explorer() {
   const compare = useStore((s) => s.compareIndex)
   const picking = useStore((s) => s.picking)
   const rankingShown = useStore((s) => s.rankingShown)
+  const setRankingShown = useStore((s) => s.setRankingShown)
   const sitesShown = useStore((s) => s.layers.sites)
   const hasSites = useStore((s) => s.sites.some((x) => x.x_m !== null && !isMockSite(x)))
   const setLayerVisible = useStore((s) => s.setLayerVisible)
@@ -134,7 +134,7 @@ function Explorer() {
               <TogglePill on={sitesShown} label={t('sites.pill')} onClick={() => setLayerVisible('sites', !sitesShown)} />
             )}
             <button ref={advBtn} type="button" className="btn adv-btn" aria-haspopup="dialog"
-              aria-expanded={advOpen} onClick={() => setAdvOpen(true)}>{t('adv.open')}</button>
+              aria-expanded={advOpen} onClick={() => { setRankingShown(true); setAdvOpen(true) }}>{t('adv.open')}</button>
           </div>
           {picking && (
             <div className="pick-banner" role="status">

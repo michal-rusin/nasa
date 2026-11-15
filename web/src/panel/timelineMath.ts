@@ -61,7 +61,7 @@ export function longestRunOverlapping(n: number, pred: (i: number) => boolean, f
   return best
 }
 
-const MONTHS_PL = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru']
+const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 export interface MonthTick {
   /** Ułamek osi 0..1. */
@@ -71,7 +71,7 @@ export interface MonthTick {
 
 /** Granice miesięcy (UTC) w okresie [t0, t0 + nSteps·stepS). */
 export function monthTicks(
-  t0Utc: string, stepS: number, nSteps: number, names: readonly string[] = MONTHS_PL,
+  t0Utc: string, stepS: number, nSteps: number, names: readonly string[] = MONTHS_EN,
 ): MonthTick[] {
   const t0 = Date.parse(t0Utc)
   const span = nSteps * stepS * 1000
@@ -82,7 +82,7 @@ export function monthTicks(
   for (let guard = 0; guard < 1000; guard++) {
     const t = Date.UTC(y, m, 1)
     if (t >= t0 + span) break
-    if (t >= t0) ticks.push({ pos: (t - t0) / span, label: names[m] ?? MONTHS_PL[m]! })
+    if (t >= t0) ticks.push({ pos: (t - t0) / span, label: names[m] ?? MONTHS_EN[m]! })
     m++
     if (m === 12) { m = 0; y++ }
   }

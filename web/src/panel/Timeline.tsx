@@ -1,6 +1,5 @@
 import { useCallback, useMemo } from 'react'
 import { useT } from '../i18n'
-import { useStore } from '../store'
 import { PANO_COLORS } from './colors'
 import { bucketMean, monthTicks, type Span } from './timelineMath'
 import { useCanvas } from './useCanvas'
@@ -24,6 +23,9 @@ interface Props {
   tag?: string
 }
 
+const MONTHS = Array.from({ length: 12 }, (_, m) =>
+  new Date(Date.UTC(2000, m, 1)).toLocaleString('en', { month: 'short', timeZone: 'UTC' }))
+
 function mix(a: readonly number[], b: readonly number[], t: number): string {
   const c = a.map((v, i) => Math.round(v + (b[i]! - v) * t))
   return `rgb(${c[0]},${c[1]},${c[2]})`
@@ -35,12 +37,7 @@ const EARTH = [74, 163, 255] as const
 export function Timeline({ f, g, t0Utc, stepS, cursor, trackLen, night, commGap, onCursor, tag }: Props) {
   const n = f.length
   const t = useT()
-  const lang = useStore((s) => s.lang)
-  const months = useMemo(
-    () => Array.from({ length: 12 }, (_, m) => new Date(Date.UTC(2000, m, 1)).toLocaleString(lang, { month: 'short', timeZone: 'UTC' })),
-    [lang],
-  )
-  const ticks = useMemo(() => monthTicks(t0Utc, stepS, n, months), [t0Utc, stepS, n, months])
+  const ticks = useMemo(() => monthTicks(t0Utc, stepS, n, MONTHS), [t0Utc, stepS, n])
   const sunLabel = tag ? `${tag}  ${t('dock.sun')}` : t('dock.sun')
   const earthLabel = tag ? `${tag}  ${t('dock.earth')}` : t('dock.earth')
 

@@ -16,6 +16,8 @@ export const METRIC_META: Record<MetricKey, MetricMeta> = {
   longest_comm_gap_h: { label: 'Najdłuższa przerwa łączności', unit: 'h', direction: 'low' },
   slope_deg: { label: 'Nachylenie', unit: '°', direction: 'low' },
   dist_psr_km: { label: 'Odległość do PSR', unit: 'km', direction: 'low' },
+  power_track_wm2: { label: 'Moc, panel obracany', unit: 'W/m²', direction: 'high' },
+  power_fixed_wm2: { label: 'Moc, panel nieruchomy', unit: 'W/m²', direction: 'high' },
 }
 
 export type Weights = Record<MetricKey, number>
@@ -27,4 +29,7 @@ export const DEFAULT_WEIGHTS: Weights = {
   longest_comm_gap_h: 1,
   slope_deg: 2,
   dist_psr_km: 1,
+  // Moc to w praktyce sun_pct w W/m²; domyślnie poza wynikiem łącznym, żeby nie liczyć słońca dwa razy.
+  power_track_wm2: 0,
+  power_fixed_wm2: 0,
 }

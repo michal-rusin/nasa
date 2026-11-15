@@ -45,8 +45,10 @@ describe('metrics_by_year.bin', () => {
   it('kolumny z meta, nie z założonej kolejności; little-endian', () => {
     const m = parseMetricsByYear(buf, meta)
     expect(m.years).toEqual(years)
-    expect(m.cols.sun_pct[1]![0]).toBe(11)
-    expect(m.cols.longest_night_h[2]![1]).toBe(123)
+    expect(m.cols.sun_pct?.[1]![0]).toBe(11)
+    expect(m.cols.longest_night_h?.[2]![1]).toBe(123)
+    // Moc to kolumny opcjonalne (Dostawa 7): tu ich nie ma.
+    expect(m.cols.power_track_wm2).toBeUndefined()
     expect(() => parseMetricsByYear(buf.slice(4), meta)).toThrow(/rozmiar/)
   })
 
@@ -54,7 +56,7 @@ describe('metrics_by_year.bin', () => {
     const m = parseMetricsByYear(buf, meta)
     const base = { n: 2, col: { slope_deg: Float32Array.from([5, 6]), sun_pct: Float32Array.from([1, 2]) } } as unknown as Candidates
     const c = candidatesForYear(base, m, 2030)
-    for (const k of YEAR_COLUMNS) expect(c.col[k]).toBe(m.cols[k][2])
+    for (const k of YEAR_COLUMNS) if (m.cols[k]) expect(c.col[k]).toBe(m.cols[k]![2])
     expect(c.col.slope_deg).toBe(base.col.slope_deg)
     expect(candidatesForYear(base, m, 1999)).toBe(base)
     expect(candidatesForYear(base, null, 2030)).toBe(base)
