@@ -20,6 +20,8 @@ interface Props {
   night: Span
   commGap: Span
   onCursor: (step: number) => void
+  /** Litera miejsca (A/B) przed nazwami wierszy, gdy osi jest kilka pod sobą. */
+  tag?: string
 }
 
 function mix(a: readonly number[], b: readonly number[], t: number): string {
@@ -30,7 +32,7 @@ const DARK = [30, 30, 38] as const
 const SUN = [255, 194, 58] as const
 const EARTH = [74, 163, 255] as const
 
-export function Timeline({ f, g, t0Utc, stepS, cursor, trackLen, night, commGap, onCursor }: Props) {
+export function Timeline({ f, g, t0Utc, stepS, cursor, trackLen, night, commGap, onCursor, tag }: Props) {
   const n = f.length
   const t = useT()
   const lang = useStore((s) => s.lang)
@@ -39,8 +41,8 @@ export function Timeline({ f, g, t0Utc, stepS, cursor, trackLen, night, commGap,
     [lang],
   )
   const ticks = useMemo(() => monthTicks(t0Utc, stepS, n, months), [t0Utc, stepS, n, months])
-  const sunLabel = t('dock.sun')
-  const earthLabel = t('dock.earth')
+  const sunLabel = tag ? `${tag}  ${t('dock.sun')}` : t('dock.sun')
+  const earthLabel = tag ? `${tag}  ${t('dock.earth')}` : t('dock.earth')
 
   const draw = useCallback((ctx: CanvasRenderingContext2D, w: number) => {
     const pw = w - PAD_L - PAD_R

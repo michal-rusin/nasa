@@ -3,6 +3,7 @@ import { AdvancedDrawer } from '../app/AdvancedDrawer'
 import { Legend } from '../app/Legend'
 import { isMockSite } from '../app/sites'
 import { SearchBox } from '../app/SearchBox'
+import { ModeSwitch } from '../app/ModeSwitch'
 import { TopCard } from '../app/TopCard'
 import { useT } from '../i18n'
 import { MapView } from '../map/MapView'
@@ -101,7 +102,7 @@ function Explorer() {
     if (!page || !places) return
     // Po klatce: box jest już w układzie strony, więc znamy jego pozycję.
     const raf = requestAnimationFrame(() => {
-      page.scrollTo({ top: Math.max(0, places.offsetTop - 8), behavior: scrollBehavior() })
+      page.scrollTo({ top: places.offsetTop, behavior: scrollBehavior() })
     })
     return () => cancelAnimationFrame(raf)
   }, [selected, compare])
@@ -146,6 +147,7 @@ function Explorer() {
             </div>
           )}
           {rankingShown && <Legend />}
+          {rankingShown && <ModeSwitch />}
           <MapStats />
         </div>
         {advOpen && <AdvancedDrawer onClose={closeAdvanced} />}

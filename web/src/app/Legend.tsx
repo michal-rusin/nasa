@@ -1,5 +1,6 @@
 import { fill, useT } from '../i18n'
 import { rampCssGradient } from '../map/colors'
+import { MODE_THEMES } from '../map/themes'
 import { METRIC_META } from '../rank/metrics'
 import { useStore } from '../store'
 import { fmtVal, METRIC_DIGITS } from './format'
@@ -24,10 +25,10 @@ export function Legend() {
   return (
     <div className="legend" role="group" aria-label={title}>
       <div className="legend-title">{title}</div>
-      <div className="legend-bar" style={{ background: rampCssGradient() }} aria-hidden="true" />
+      <div className="legend-bar" style={{ background: rampCssGradient(MODE_THEMES[colorBy].ramp) }} aria-hidden="true" />
       <div className="legend-labels"><span>{left}</span><span>{right}</span></div>
       <div className="legend-note">
-        {low ? t('legend.lowBetter') : t('legend.highBetter')}
+        {isScore ? t('legend.highBetter') : t(low ? 'legend.lowBetterBright' : 'legend.highBetterBright')}
         {filtered && <><br />{fill(t('top.pass'), { n: passCount, total })}</>}
       </div>
     </div>

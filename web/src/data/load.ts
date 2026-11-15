@@ -1,4 +1,5 @@
 import { COLUMN_NAMES, type Candidates, type ColumnName, type Meta, type Site } from './types'
+import { parseMetricsByYear, type MetricsByYear } from './years'
 
 export const DATA_BASE = import.meta.env.BASE_URL + 'data/'
 
@@ -132,6 +133,22 @@ export async function loadMeta(): Promise<Meta> {
 export async function loadCandidates(meta: Meta): Promise<Candidates> {
   const res = await fetchOk('candidates.bin')
   return parseCandidates(await res.arrayBuffer(), meta)
+}
+
+/** metrics_by_year.bin (kontrakt 3.4); starsze dane bez tego pliku = null (jeden rok). */
+export async function loadMetricsByYear(meta: Meta): Promise<MetricsByYear | null> {
+  const spec = meta.metrics_by_year
+  if (!spec) return null
+  try {
+    const res = await fetchOk(spec.file)
+    return parseMetricsByYear(await res.arrayBuffer(), meta)
+  } catch (e) {
+    if (e instanceof MissingDataFileError) {
+      console.warn(`${e.message}; selektor roku będzie niedostępny.`)
+      return null
+    }
+    throw e
+  }
 }
 
 /**

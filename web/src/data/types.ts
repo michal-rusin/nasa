@@ -43,6 +43,16 @@ export interface Meta {
   psr_source: string
   region: { lat_min: number; lat_max: number }
   candidates: { count: number; columns: string[] }
+  /** Rok, którego dotyczą candidates.bin i validation.json (np. "2028"); kontrakt 1.4. */
+  candidates_period?: string
+  /** metrics_by_year.bin (kontrakt 3.4); brak w starszych danych. */
+  metrics_by_year?: {
+    file: string
+    years: number[]
+    columns: string[]
+    dtype: string
+    layout: string
+  }
   raster_crs_wkt: string
   /** Obowiązkowe wg kontraktu 1.3; starsze pliki mogą go nie mieć (patrz getProjString). */
   raster_proj4?: string

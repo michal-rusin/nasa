@@ -210,7 +210,57 @@
 .top-list button:hover .top-rank { color: var(--ink); }
 .top-list button[aria-current='true'] { background: rgba(156, 196, 255, 0.12); box-shadow: 0 0 0 1px rgba(156, 196, 255, 0.35) inset; }
 .top-rank { grid-row: span 2; align-self: center; font-family: var(--f-display); font-size: 22px; font-weight: 300; color: var(--ink-2); font-variant-numeric: tabular-nums; transition: color 0.2s; }
-.top-list li:first-child .top-rank { color: #ffd86b; }
+.top-card { --mode: var(--accent); }
+.top-list li:first-child .top-rank, .top-list button:hover .top-rank { color: var(--mode); }
+.top-mode { margin-left: 6px; color: var(--mode); font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.14em; transition: color 0.3s; }
+.top-list li .top-rank { transition: color 0.3s; }
+
+/* Wersje rankingu: pigułki na dole mapy, każda w swoim kolorze. */
+.mode-switch {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+  max-width: calc(100% - 560px);
+  padding: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-radius: 999px;
+  background: var(--panel);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--line-2);
+  animation: card-in 0.6s var(--ease-ios) 0.25s both;
+}
+.mode-switch { align-items: center; }
+.mode-list { display: flex; gap: 4px; flex: none; }
+.mode-switch .year-picker { flex: none; padding-right: 6px; margin-right: 2px; border-right: 1px solid var(--line-2); }
+.mode-list button {
+  --mode: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--ink-2);
+  font-family: var(--f-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.3s var(--ease-ios), color 0.2s, transform 0.35s var(--spring);
+}
+.mode-list button:hover { color: var(--ink); background: rgba(255, 255, 255, 0.06); }
+.mode-list button:active { transform: scale(0.95); transition-duration: 0.08s; }
+.mode-list button.on { color: #fff; background: color-mix(in srgb, var(--mode) 22%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--mode) 55%, transparent) inset; }
+.mode-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--mode); opacity: 0.6; transition: opacity 0.2s, box-shadow 0.3s; }
+.mode-list button.on .mode-dot { opacity: 1; box-shadow: 0 0 8px var(--mode); }
 .top-main { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .top-id { font-family: var(--f-mono); font-size: 13px; }
 .top-score { font-family: var(--f-mono); font-size: 11px; color: var(--ink-2); }
@@ -310,7 +360,7 @@
 .map .ol-zoom button:focus-visible { outline: 2px solid var(--accent); }
 
 /* Suwaki: cienki tor, okrągły uchwyt z poświatą. */
-.place-box input[type='range'], .drawer input[type='range'] {
+:is(.place-box, .shared-time) input[type='range'], .drawer input[type='range'] {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
@@ -319,9 +369,9 @@
   background: transparent;
   cursor: pointer;
 }
-.place-box input[type='range']::-webkit-slider-runnable-track, .drawer input[type='range']::-webkit-slider-runnable-track { height: 2px; border-radius: 2px; background: rgba(255, 255, 255, 0.18); }
-.place-box input[type='range']::-moz-range-track, .drawer input[type='range']::-moz-range-track { height: 2px; border-radius: 2px; background: rgba(255, 255, 255, 0.18); }
-.place-box input[type='range']::-webkit-slider-thumb, .drawer input[type='range']::-webkit-slider-thumb {
+:is(.place-box, .shared-time) input[type='range']::-webkit-slider-runnable-track, .drawer input[type='range']::-webkit-slider-runnable-track { height: 2px; border-radius: 2px; background: rgba(255, 255, 255, 0.18); }
+:is(.place-box, .shared-time) input[type='range']::-moz-range-track, .drawer input[type='range']::-moz-range-track { height: 2px; border-radius: 2px; background: rgba(255, 255, 255, 0.18); }
+:is(.place-box, .shared-time) input[type='range']::-webkit-slider-thumb, .drawer input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 14px;
   height: 14px;
@@ -330,7 +380,7 @@
   background: #fff;
   box-shadow: 0 0 0 4px rgba(156, 196, 255, 0.18), 0 0 12px var(--accent-glow);
 }
-.place-box input[type='range']::-moz-range-thumb, .drawer input[type='range']::-moz-range-thumb {
+:is(.place-box, .shared-time) input[type='range']::-moz-range-thumb, .drawer input[type='range']::-moz-range-thumb {
   width: 14px;
   height: 14px;
   border: 0;
@@ -388,6 +438,7 @@
   .rank-cta { position: absolute; left: 10px; right: 10px; bottom: 10px; padding: 16px 18px 14px; }
   .rank-cta p { margin-bottom: 12px; }
   .rank-cta .rank-hint { display: none; }
+  .mode-switch { left: 10px; right: 10px; bottom: auto; top: 128px; max-width: none; transform: none; }
   .adv-btn { min-height: 34px; padding: 0 14px; }
   .top-card { position: absolute; left: 0; right: 0; bottom: 0; max-height: 45%; border-radius: 18px 18px 0 0; border-width: 1px 0 0; }
   .legend { bottom: 64px; left: 10px; width: 190px; }
@@ -423,7 +474,24 @@
 .btn-glow:disabled { opacity: 0.5; cursor: default; }
 
 /* ===== Boxy miejsc pod mapą: szkło w stylu Apple ===== */
-.places { display: flex; align-items: stretch; gap: 16px; padding: 12px 16px 48px; min-height: calc(100dvh - 60px); box-sizing: border-box; }
+.places-wrap { min-height: calc(100dvh - 60px); padding-bottom: 32px; }
+.places { display: flex; align-items: stretch; gap: 16px; padding: 12px 16px 16px; box-sizing: border-box; }
+/* Porównanie: jeden pasek czasu w zwykłym układzie strony, pod kafelkami (bez przyklejania i przewijania). */
+.shared-time {
+  flex: none;
+  margin: 0 16px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.1) inset, 0 -10px 40px rgba(0, 0, 0, 0.45);
+  padding: 14px 22px 10px;
+  border-radius: 24px;
+  background: rgba(12, 15, 24, 0.82);
+  -webkit-backdrop-filter: blur(28px) saturate(1.4);
+  backdrop-filter: blur(28px) saturate(1.4);
+  animation: panel-in 0.7s var(--ease-ios) 0.12s both;
+}
+.shared-time .pb-time { margin-top: 0; }
+.shared-tl { display: grid; grid-template-columns: 1fr 1fr; gap: 0 28px; }
+.shared-tl .pb-timeline { margin-top: 8px; }
 .place-box {
   flex: 1 1 0;
   min-width: 0;
@@ -499,14 +567,64 @@
 }
 .sky-btn:hover { border-color: rgba(255, 255, 255, 0.35); background: rgba(30, 36, 52, 0.85); }
 .sky-btn.icon { width: 30px; padding: 0; font-size: 15px; letter-spacing: 0; }
-.sky-hint { position: absolute; right: 16px; bottom: 38px; margin: 0; color: var(--ink-3); font-family: var(--f-mono); font-size: 10.5px; pointer-events: none; text-shadow: 0 1px 4px #000; }
+.sky-hint { position: absolute; right: 16px; bottom: 38px; margin: 0; color: var(--ink-3); font-family: var(--f-mono); font-size: 10.5px; text-align: right; pointer-events: none; text-shadow: 0 1px 4px #000; }
+.sky-hint p { margin: 4px 0 0; }
+.sky-key { display: flex; align-items: center; justify-content: flex-end; gap: 6px; color: var(--ink-2); }
+.key-line { display: inline-block; width: 16px; height: 2px; border-radius: 2px; margin-left: 6px; }
+.key-line.sun { background: rgb(255, 200, 90); }
+.key-line.earth { background: rgb(120, 175, 255); }
+/* Kompas panoramy (lewy dół): sam obwód, stożek widoku, N, Słońce i Ziemia. */
+.sky-mini { position: absolute; left: 12px; bottom: 32px; width: 88px; height: 88px; border-radius: 50%; cursor: pointer; touch-action: none; background: rgba(6, 8, 14, 0.55); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.places.compare .sky-mini { width: 64px; height: 64px; bottom: 30px; left: 8px; }
+/* W porównaniu panoramy są wąskie: bez podpowiedzi, tylko legenda torów. */
+.places.compare .sky-hint p:last-child { display: none; }
+.places.compare .sky-hint { right: 10px; bottom: 32px; font-size: 9.5px; }
 
 /* Czas */
 .pb-time { display: grid; grid-template-columns: auto auto 1fr; align-items: center; gap: 4px 16px; margin-top: 16px; }
 .pb-time-label { display: flex; flex-direction: column; gap: 1px; }
 .pb-now { font-family: var(--f-mono); font-size: 16px; font-variant-numeric: tabular-nums; }
 .pb-time input[type='range'] { margin: 0; }
-.pb-range { margin: 6px 0 0; padding-left: 50px; color: var(--ink-3); font-size: 11.5px; }
+.pb-range { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin: 8px 0 0; padding-left: 50px; color: var(--ink-3); font-size: 11.5px; }
+.pb-range p { margin: 0; }
+.pb-range .year-picker { border: 1px solid var(--line-2); border-radius: 999px; }
+
+/* Wybór roku: ‹ 2028 › */
+.year-picker { display: inline-flex; align-items: center; gap: 0; font-family: var(--f-mono); }
+.year-picker button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink-2);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, transform 0.35s var(--spring);
+}
+.year-picker button:hover:not(:disabled) { color: var(--ink); background: rgba(255, 255, 255, 0.08); }
+.year-picker button:active:not(:disabled) { transform: scale(0.9); transition-duration: 0.08s; }
+.year-picker button:disabled { opacity: 0.25; cursor: default; }
+.year-picker select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  cursor: pointer;
+}
+.year-picker select:focus-visible { outline: 1px solid var(--accent); border-radius: 4px; }
+.year-picker option { background: #0b0d14; color: #fff; }
+.pb-shadow { color: #c6cfe0; }
+.pb-shadow::after { content: ''; display: inline-block; width: 7px; height: 7px; margin-left: 6px; border-radius: 50%; background: #1a1c24; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35) inset; vertical-align: 0; }
 .pb-timeline { margin-top: 12px; }
 
 /* Wskaźniki */
@@ -545,17 +663,22 @@
 .pp-error { color: #ffb4a8; font-size: 12px; }
 
 @media (max-width: 900px) {
-  .places, .places.compare { flex-direction: column; padding: 10px 10px 40px; }
+  .places, .places.compare { flex-direction: column; padding: 10px 10px 16px; }
+  .shared-time { margin: 0 10px; padding: 12px 14px 8px; }
+  .shared-tl { grid-template-columns: 1fr; }
   .place-box { padding: 18px 16px 20px; border-radius: 24px; }
   .pb-head h2, .place-box.compact .pb-head h2 { font-size: 22px; }
   .sky, .places.compare .sky { height: 50vh; }
   .pb-time { grid-template-columns: auto 1fr; }
   .pb-time input[type='range'] { grid-column: 1 / -1; }
   .pb-range { padding-left: 0; }
-  .sky-hint { display: none; }
+  .sky-hint p:last-child { display: none; }
+  .sky-hint { bottom: 34px; right: 10px; }
 }
 @media (max-width: 560px) {
   /* Przyciski na dole, nad kompasem, żeby nie zasłaniały odczytu Słońca i Ziemi. */
-  .sky-tools { top: auto; bottom: 40px; right: 10px; }
+  .sky-tools { top: 10px; bottom: auto; right: 10px; }
+  .sky-mini { width: 64px; height: 64px; }
+  .sky-key { flex-direction: column; align-items: flex-end; }
   .sky-readout { top: 10px; left: 12px; font-size: 10.5px; }
 }
