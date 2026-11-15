@@ -1,7 +1,7 @@
 """validation.json (contract section 6). Owner: Jacob."""
 import json
 import numpy as np
-from metrics import series_one, enu
+from metrics import series_one, enu, longest_by_year
 
 
 def pick_validation_points(metrics):
@@ -22,6 +22,11 @@ def build_validation(idx, ids, lat, lon, elev, masks, ephem, r_sun=0.2666, h_obs
     U, E, N, P = enu(np.asarray(lat, float)[idx], np.asarray(lon, float)[idx],
                      np.asarray(elev)[idx],  h_obs)
     e = np.asarray(ephem, np.float64)
+    # Power: same code path as metrics_by_year; ephem is the 2028 slice, so t0 = 2028-01-01.
+    # Cast to float32 so the values equal metrics_by_year.bin year 2028 exactly.
+    pw = longest_by_year(np.asarray(lat, float)[idx], np.asarray(lon, float)[idx],
+                         np.asarray(elev)[idx], masks[idx], ephem, [0], [len(e)],
+                         r_sun=r_sun, h_obs=h_obs)[:, 0, 2:].astype(np.float32)
     records = []
     for k, i in enumerate(idx):
         f, g = series_one(U[k], E[k], N[k], P[k], masks[i], e[:, :3], e[:, 3:], r_sun)
@@ -31,10 +36,13 @@ def build_validation(idx, ids, lat, lon, elev, masks, ephem, r_sun=0.2666, h_obs
             "earth_g": g.astype(int).tolist(),
             "sun_pct": round(100 * f.mean(), 2),    # from unrounded f, same as candidates.bin
             "earth_pct": round(100 * g.mean(), 2),
+            # NaN -> None (JSON null): JSON.parse rejects NaN
+            **{name: (None if np.isnan(v) else float(v)) for name, v in
+               zip(["power_track_wm2", "power_fixed_wm2", "power_fixed_az_deg"], pw[k])},
         })
     return records
 
 
 def write_validation(path, records):
     with open(path, "w") as fh:
-        json.dump(records, fh)
+        json.dump(records, fh, allow_nan=False)    # fail loudly instead of writing bare NaN
