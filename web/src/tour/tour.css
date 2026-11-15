@@ -1,0 +1,173 @@
+/* Samouczek i słowniczek. Tokeny z index.css; klasy własne, bo style bieguna ładują się dopiero z tym widokiem. */
+
+.tour { position: fixed; inset: 0; z-index: 100; pointer-events: none; transition: opacity 0.3s var(--ease); }
+.tour.off { opacity: 0; }
+.tour.off .tour-card { pointer-events: none; }
+
+/* Blokada tła: przezroczyste pasy wokół podświetlenia łapią kliknięcia i kółko myszy. */
+.tour-block { position: fixed; pointer-events: auto; touch-action: none; }
+.tour-block.full { background: rgba(1, 2, 5, 0.46); }
+.tour.off .tour-block.full { background: none; }
+
+/* Podświetlenie: „dziura” w przyciemnieniu zrobiona cieniem; sama nie łapie kliknięć. */
+.tour-hole {
+  position: fixed;
+  border-radius: 18px;
+  box-shadow: 0 0 0 1px rgba(156, 196, 255, 0.55), 0 0 0 200vmax rgba(1, 2, 5, 0.46), 0 0 34px 2px rgba(110, 160, 255, 0.35) inset;
+}
+.tour-hole.wide { border-radius: 0; box-shadow: 0 0 0 200vmax rgba(1, 2, 5, 0.46); }
+.tour-hole.pulse:not(.wide) { animation: tour-ring 2.2s var(--ease) infinite; }
+@keyframes tour-ring {
+  50% { box-shadow: 0 0 0 1px rgba(190, 215, 255, 0.95), 0 0 0 200vmax rgba(1, 2, 5, 0.46), 0 0 44px 6px rgba(120, 170, 255, 0.5) inset; }
+}
+/* Płynny przejazd tylko przy zmianie kroku; przy przewijaniu podświetlenie trzyma się celu bez opóźnienia. */
+.tour.moving .tour-hole { transition: left 0.5s var(--ease-ios), top 0.5s var(--ease-ios), width 0.5s var(--ease-ios), height 0.5s var(--ease-ios); }
+/* Karta: jeden płynny przejazd na krok (położenie zmienia się dopiero, gdy cel stoi w miejscu). */
+.tour-card.glide { transition: left 0.55s var(--ease-ios), top 0.55s var(--ease-ios); }
+/* W trakcie samouczka stronę przewija tylko samouczek; miejsce na pasek przewijania zostaje, żeby układ nie drgnął. */
+.tour-on .sp-page { overflow-y: hidden; scrollbar-gutter: stable; }
+
+.tour-card {
+  position: fixed;
+  box-sizing: border-box;
+  width: min(372px, calc(100vw - 24px));
+  padding: 0 22px 18px;
+  overflow: hidden;
+  pointer-events: auto;
+  border-radius: var(--radius);
+  background: rgba(10, 13, 21, 0.9);
+  -webkit-backdrop-filter: blur(22px) saturate(1.2);
+  backdrop-filter: blur(22px) saturate(1.2);
+  border: 1px solid rgba(156, 196, 255, 0.3);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 24px 70px rgba(0, 0, 0, 0.6), 0 0 40px rgba(110, 160, 255, 0.14);
+  color: var(--ink);
+  animation: tour-in 0.5s var(--ease-ios) both;
+}
+@keyframes tour-in { from { opacity: 0; transform: translateY(10px) scale(0.98); } }
+
+.tour-progress { height: 2px; margin: 0 -22px; background: rgba(255, 255, 255, 0.07); }
+.tour-progress span {
+  display: block;
+  height: 100%;
+  transform-origin: left;
+  transform: scaleX(var(--p, 0));
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent-glow);
+  transition: transform 0.5s var(--ease-ios);
+}
+.tour-head { display: flex; align-items: center; justify-content: space-between; margin: 12px -8px 2px 0; }
+.tour-count { color: var(--ink-2); font-family: var(--f-mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; }
+.tour-x { width: 30px; height: 30px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--ink-2); font-size: 20px; line-height: 1; cursor: pointer; }
+.tour-x:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
+.tour-card h2 { margin: 0 0 8px; font-family: var(--f-display); font-size: 19px; font-weight: 300; letter-spacing: 0.05em; line-height: 1.25; }
+.tour-card p { margin: 0; color: #c9cfda; font-size: 13.5px; line-height: 1.6; }
+
+/* Polecenie do wykonania: wyraźnie odróżnione od opisu. */
+.tour-card .tour-todo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(156, 196, 255, 0.1);
+  border: 1px solid rgba(156, 196, 255, 0.28);
+  color: #eaf2ff;
+  font-size: 13.5px;
+  line-height: 1.4;
+}
+.tour-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent-glow); animation: tour-dot 1.6s ease-in-out infinite; }
+@keyframes tour-dot { 50% { transform: scale(1.5); opacity: 0.55; } }
+
+.tour-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 16px; }
+.tour-btn {
+  min-height: 34px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.35s var(--spring);
+}
+.tour-btn:hover { background: rgba(255, 255, 255, 0.12); border-color: rgba(255, 255, 255, 0.28); }
+.tour-btn:active { transform: scale(0.96); transition-duration: 0.08s; }
+.tour-btn.primary { padding: 0 22px; border-color: rgba(156, 196, 255, 0.55); background: linear-gradient(180deg, rgba(60, 95, 160, 0.55), rgba(25, 40, 75, 0.65)); box-shadow: 0 0 22px var(--accent-glow); }
+.tour-btn.primary:hover { border-color: rgba(190, 215, 255, 0.9); }
+.tour-btn.quiet { padding: 0 6px; border-color: transparent; background: none; color: var(--ink-2); font-size: 12.5px; }
+.tour-btn.quiet:hover { color: var(--ink); background: none; border-color: transparent; text-decoration: underline; }
+
+/* Zaproszenie na globusie i przycisk „?” w górnym pasku. */
+.tour-invite {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0 0;
+  padding: 7px 16px 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: rgba(255, 255, 255, 0.04);
+  color: #dfe6f2;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, transform 0.35s var(--spring);
+}
+.tour-invite:hover { background: rgba(156, 196, 255, 0.12); border-color: rgba(156, 196, 255, 0.5); }
+.tour-invite:active { transform: scale(0.97); transition-duration: 0.08s; }
+.tour-invite-row { display: flex; }
+
+.tour-help {
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 14px 0 6px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink-2);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+.tour-help:hover { color: var(--ink); background: rgba(156, 196, 255, 0.12); border-color: rgba(156, 196, 255, 0.5); }
+.tour-help-mark { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1px solid currentColor; font-family: var(--f-mono); font-size: 11px; line-height: 1; }
+
+/* Słowniczek */
+.term { text-decoration: underline dotted rgba(156, 196, 255, 0.7); text-underline-offset: 3px; cursor: help; }
+.term:hover, .term:focus-visible { color: var(--ink); text-decoration-color: var(--accent); }
+.term-pop {
+  position: fixed;
+  z-index: 110;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(12, 15, 23, 0.97);
+  border: 1px solid rgba(156, 196, 255, 0.3);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.6);
+  color: #dfe5ef;
+  font-family: var(--f-ui);
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0;
+  text-transform: none;
+  text-align: left;
+  pointer-events: none;
+  animation: view-fade-in 0.18s ease-out;
+}
+.term-pop.up { transform: translateY(-100%); }
+
+@media (max-width: 640px) {
+  .tour-help { padding: 0 6px; }
+  .tour-help-text { display: none; }
+}
+@media (max-width: 899px) {
+  .tour-invite { margin-top: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tour, .tour-card, .tour-progress span, .tour.moving .tour-hole, .tour-card.glide { transition: none; animation: none; }
+  .tour-hole.pulse:not(.wide), .tour-dot, .term-pop { animation: none; }
+}

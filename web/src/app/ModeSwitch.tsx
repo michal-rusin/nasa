@@ -12,7 +12,7 @@ export function ModeSwitch() {
   const metricKeys = useStore((s) => s.metricKeys)
   const keys = COLOR_KEYS.filter((k) => k === 'score' || metricKeys.includes(k))
   return (
-    <div className="mode-switch">
+    <div className="mode-switch" data-tour="modes">
       <YearPicker />
       <div className="mode-list" role="radiogroup" aria-label={t('mode.aria')}>
       {keys.map((k) => (

@@ -25,7 +25,7 @@ export function Places() {
   const compare = b !== null
   return (
     <div className={`places-wrap${compare ? ' compare' : ''}`}>
-      <section className={`places${compare ? ' compare' : ''}`} aria-label={t('place.region')}>
+      <section className={`places${compare ? ' compare' : ''}`} data-tour="places" aria-label={t('place.region')}>
         <PlaceBox slot="a" compare={compare} />
         {compare && <PlaceBox slot="b" compare />}
       </section>

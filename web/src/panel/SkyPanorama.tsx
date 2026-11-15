@@ -8,6 +8,7 @@ import { earthLitFraction, skyState } from './sky'
 import { SkyMiniMap } from './SkyMiniMap'
 import { drawSky, type SkyTrack } from './skyDraw'
 import { useStars } from './stars'
+import { tourSignal } from '../tour/store'
 
 interface Props {
   slot: SlotKey
@@ -37,6 +38,7 @@ export function SkyPanorama({ slot, index }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [size, setSize] = useState({ w: 0, h: 0, dpr: 1 })
   const drag = useRef<{ x: number; y: number } | null>(null)
+  const dragged = useRef(false)
   const setView = (v: Partial<SkyView>) => setSlotView(slot, v)
 
   // Rozmiar canvasa = rozmiar kontenera (CSS ustala wysokość, np. 50vh).
@@ -127,6 +129,7 @@ export function SkyPanorama({ slot, index }: Props) {
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
     if ((e.target as HTMLElement).closest('button')) return
     drag.current = { x: e.clientX, y: e.clientY }
+    dragged.current = false
     e.currentTarget.setPointerCapture(e.pointerId)
   }
   const onPointerMove = (e: PointerEvent<HTMLDivElement>) => {
@@ -135,8 +138,12 @@ export function SkyPanorama({ slot, index }: Props) {
     const kPx = size.w / view.fov
     setView({ az: view.az - (e.clientX - d.x) / kPx, el: view.el + (e.clientY - d.y) / kPx })
     drag.current = { x: e.clientX, y: e.clientY }
+    dragged.current = true
   }
-  const endDrag = () => { drag.current = null }
+  const endDrag = () => {
+    if (drag.current && dragged.current) tourSignal('sky')
+    drag.current = null
+  }
   const zoom = (f: number) => setView({ fov: view.fov * f })
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     const step = view.fov / 12
@@ -153,6 +160,7 @@ export function SkyPanorama({ slot, index }: Props) {
     if (act) {
       e.preventDefault()
       act()
+      tourSignal('sky')
     }
   }
 
@@ -169,6 +177,7 @@ export function SkyPanorama({ slot, index }: Props) {
     <div
       ref={wrapRef}
       className="sky"
+      data-tour={slot === 'a' ? 'sky' : undefined}
       tabIndex={0}
       role="group"
       aria-label={t('sky.aria')}

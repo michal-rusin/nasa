@@ -39,7 +39,7 @@ function RankingCta() {
   const t = useT()
   const setRankingShown = useStore((s) => s.setRankingShown)
   return (
-    <section className="rank-cta glass" aria-labelledby="rank-cta-title">
+    <section className="rank-cta glass" data-tour="rank-cta" aria-labelledby="rank-cta-title">
       <h2 id="rank-cta-title">{t('rank.title')}</h2>
       <p>{t('rank.lead')}</p>
       <button type="button" className="btn-glow" onClick={() => setRankingShown(true)}>
@@ -121,7 +121,7 @@ function Explorer() {
 
   return (
     <div className="sp-page starfield" ref={pageRef}>
-      <section className={`map-section${picking ? ' picking' : ''}${rankingShown ? ' ranked' : ''}`}>
+      <section data-tour="map" className={`map-section${picking ? ' picking' : ''}${rankingShown ? ' ranked' : ''}`}>
         <MapView />
         <div className="map-ui">
           <div className="ui-left">

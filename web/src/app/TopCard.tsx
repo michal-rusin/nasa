@@ -30,7 +30,7 @@ export function TopCard() {
   const na = t('na')
 
   return (
-    <section className={`top-card glass${open ? ' open' : ''}`} aria-labelledby="top-card-title"
+    <section className={`top-card glass${open ? ' open' : ''}`} data-tour="top" aria-labelledby="top-card-title"
       style={{ '--mode': MODE_THEMES[colorBy].accent } as CSSProperties}>
       <div className="top-headrow">
         <button type="button" className="top-head" aria-expanded={open} aria-controls="top-card-body"

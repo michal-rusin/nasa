@@ -1,5 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import { useT } from '../i18n'
+import { startTour } from '../tour/steps'
+import '../tour/tour.css'
 
 const LOGO = `${import.meta.env.BASE_URL}assets/logo.svg`
 
@@ -23,6 +25,10 @@ export function TopBar() {
         <a href="#/" aria-current={onPole ? undefined : 'page'}>{t('nav.moon')}</a>
         <a href="#/south-pole" aria-current={onPole ? 'page' : undefined}>{t('nav.southPole')}</a>
       </nav>
+      <button type="button" className="tour-help" data-tour="help" title={t('tour.helpTitle')} onClick={startTour}>
+        <span className="tour-help-mark" aria-hidden="true">?</span>
+        <span className="tour-help-text">{t('tour.help')}</span>
+      </button>
     </header>
   )
 }

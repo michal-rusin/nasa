@@ -4,6 +4,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { isVisibleOnSphere, latLonToVec3, vec3ToLatLon } from '../home/geo'
 import { APOLLO_SITES, SOUTH_POLE_REGION_LAT, type ApolloSite } from '../home/sites'
 import { useT } from '../i18n'
+import { startTour } from '../tour/steps'
+import { tourSignal, useTour } from '../tour/store'
 
 const ASSETS = `${import.meta.env.BASE_URL}assets/`
 const COLOR_URL = `${ASSETS}moon_4k.jpg`
@@ -80,6 +82,7 @@ export default function Home() {
   const [textureFailed, setTextureFailed] = useState(false)
   const [glFailed, setGlFailed] = useState(false)
   const [leaving, setLeaving] = useState(false)
+  const tourInvite = useTour((s) => !s.active && !s.seen)
 
   useEffect(() => {
     const host = hostRef.current
@@ -246,6 +249,7 @@ export default function Home() {
     const onControlEnd = () => {
       window.clearTimeout(resumeTimer)
       resumeTimer = window.setTimeout(() => { controls.autoRotate = true }, AUTOROTATE_RESUME_MS)
+      tourSignal('globe')
     }
     controls.addEventListener('start', onControlStart)
     controls.addEventListener('end', onControlEnd)
@@ -256,6 +260,7 @@ export default function Home() {
     let leaveTimer = 0
     const explore = () => {
       if (flight || flightDone) return
+      tourSignal('explore')
       window.clearTimeout(resumeTimer)
       controls.enabled = false
       controls.autoRotate = false
@@ -424,7 +429,7 @@ export default function Home() {
 
   return (
     <div className={`home${leaving ? ' leaving' : ''}`}>
-      <div className="globe-host" ref={hostRef} />
+      <div className="globe-host" data-tour="globe" ref={hostRef} />
 
       {!glFailed && (
         <div className="globe-overlay">
@@ -481,11 +486,18 @@ export default function Home() {
         </h1>
         <div className="hairline" aria-hidden="true" />
         <p className="home-lead">{t('home.lead')}</p>
-        <button type="button" className="btn-glow" onClick={() => exploreRef.current()}>
+        <button type="button" className="btn-glow" data-tour="cta" onClick={() => exploreRef.current()}>
           {t('home.cta')}
           <span aria-hidden="true">→</span>
         </button>
         <p className="home-hint">{t('home.hint')}</p>
+        {tourInvite && (
+          <div className="tour-invite-row">
+            <button type="button" className="tour-invite" onClick={startTour}>
+              <span className="tour-help-mark" aria-hidden="true">?</span>{t('tour.invite')}
+            </button>
+          </div>
+        )}
         <details className="home-missions">
           <summary>{t('home.missions')}</summary>
           <ul>

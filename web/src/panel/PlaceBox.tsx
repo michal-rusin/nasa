@@ -13,6 +13,7 @@ import { isBetter } from './compare'
 import { earthTransition, splitHours, sunTransition, type Transition } from './countdown'
 import { PlaceTimeline } from './PlaceTimeline'
 import { SkyPanorama } from './SkyPanorama'
+import { Term } from '../tour/Term'
 import { TimeBar } from './TimeBar'
 
 const PANEL_METRICS: readonly MetricKey[] = [
@@ -152,14 +153,14 @@ export function PlaceBox({ slot, compare }: Props) {
   const earthText = data
     ? describe(earthTransition(data.series.g, k), 'panel.earthDown', 'panel.earthDownNever') : null
 
-  const facts: { key: string; label: string; value: string; better: boolean }[] = [
+  const facts: { key: string; gloss: string; label: string; value: string; better: boolean }[] = [
     {
-      key: 'score', label: t('panel.score'), value: fmtVal(score, 3, na),
+      key: 'score', gloss: 'score', label: t('panel.score'), value: fmtVal(score, 3, na),
       better: score !== undefined && otherScore !== undefined && Number.isFinite(score) && score > otherScore,
     },
-    { key: 'elev', label: t('panel.elev'), value: `${fmtVal(c.col.elev_m[index], 0, na)} m`, better: false },
+    { key: 'elev', gloss: 'elev', label: t('panel.elev'), value: `${fmtVal(c.col.elev_m[index], 0, na)} m`, better: false },
     {
-      key: 'slope', label: t('panel.slope'), value: `${fmtVal(c.col.slope_deg[index], 1, na)}°`,
+      key: 'slope', gloss: 'slope_deg', label: t('panel.slope'), value: `${fmtVal(c.col.slope_deg[index], 1, na)}°`,
       better: other !== null && isBetter('slope_deg', c.col.slope_deg[index], c.col.slope_deg[other]),
     },
   ]
@@ -180,7 +181,7 @@ export function PlaceBox({ slot, compare }: Props) {
         </div>
         <div className="pb-actions">
           {slot === 'a' && !compare && (
-            <button type="button" className="btn-glow sm" onClick={startCompare} disabled={picking}>
+            <button type="button" className="btn-glow sm" data-tour="compare" onClick={startCompare} disabled={picking}>
               {t('place.compare')}
             </button>
           )}
@@ -200,11 +201,11 @@ export function PlaceBox({ slot, compare }: Props) {
       {!compare && status === 'ready' && data && <PlaceTimeline data={data} />}
       {status === 'error' && <p className="pp-error">{error}</p>}
 
-      <div className="pb-grid">
+      <div className="pb-grid" data-tour={slot === 'a' ? 'numbers' : undefined}>
         <dl className="pb-facts">
           {facts.map((f) => (
             <div key={f.key} className={f.better ? 'better' : ''}>
-              <dt>{f.label}</dt>
+              <dt><Term k={f.gloss}>{f.label}</Term></dt>
               <dd>{f.value}{f.better && <span className="pb-better" role="img" aria-label={t('place.better')} />}</dd>
             </div>
           ))}
@@ -216,7 +217,7 @@ export function PlaceBox({ slot, compare }: Props) {
             const better = other !== null && isBetter(m, v, c.col[m][other])
             return (
               <div key={m} className={better ? 'better' : ''}>
-                <dt>{t(`metric.${m}`)}</dt>
+                <dt><Term k={m}>{t(`metric.${m}`)}</Term></dt>
                 <dd className={ok ? '' : 'muted'}>
                   {ok ? `${fmtVal(v, METRIC_DIGITS[m], na)} ${METRIC_META[m].unit}` : na}
                   {better && <span className="pb-better" role="img" aria-label={t('place.better')} />}

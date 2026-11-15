@@ -3,6 +3,7 @@ import { rampCssGradient } from '../map/colors'
 import { MODE_THEMES } from '../map/themes'
 import { METRIC_META } from '../rank/metrics'
 import { useStore } from '../store'
+import { Term } from '../tour/Term'
 import { fmtVal, METRIC_DIGITS } from './format'
 
 /** Legenda kolorów punktów: nazwa, gradient i liczby na końcach (kolor nie jest jedynym nośnikiem). */
@@ -23,8 +24,8 @@ export function Legend() {
   const left = range ? fmtVal(low ? range.max : range.min, digits, na) + unit : na
   const right = range ? fmtVal(low ? range.min : range.max, digits, na) + unit : na
   return (
-    <div className="legend" role="group" aria-label={title}>
-      <div className="legend-title">{title}</div>
+    <div className="legend" data-tour="legend" role="group" aria-label={title}>
+      <div className="legend-title"><Term k={colorBy}>{title}</Term></div>
       <div className="legend-bar" style={{ background: rampCssGradient(MODE_THEMES[colorBy].ramp) }} aria-hidden="true" />
       <div className="legend-labels"><span>{left}</span><span>{right}</span></div>
       <div className="legend-note">

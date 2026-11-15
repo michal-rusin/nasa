@@ -23,7 +23,7 @@ export function TimeBar() {
 
   return (
     <>
-      <div className="pb-time">
+      <div className="pb-time" data-tour="time">
         <button type="button" className="hd-play" aria-label={t(playing ? 'dock.pause' : 'dock.play')}
           onClick={() => {
             if (!playing && k >= last) setCursor(start)

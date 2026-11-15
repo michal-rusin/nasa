@@ -219,19 +219,22 @@
 .top-mode { margin-left: 6px; color: var(--mode); font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.14em; transition: color 0.3s; }
 .top-list li .top-rank { transition: color 0.3s; }
 
-/* Wersje rankingu: pigułki na dole mapy, każda w swoim kolorze. */
+/* Wersje rankingu: pigułki na dole mapy, każda w swoim kolorze. Gdy nie mieszczą się w jednym
+   rzędzie (między legendą a statystykami), zawijają się do drugiego: żadna nie może zniknąć.
+   Środkowanie marginesami (nie left: 50%), bo inaczej szerokość ograniczałaby się do połowy mapy. */
 .mode-switch {
   position: absolute;
-  left: 50%;
+  left: 0;
+  right: 0;
   bottom: 18px;
-  transform: translateX(-50%);
+  width: fit-content;
+  margin-inline: auto;
   display: flex;
   gap: 4px;
   max-width: calc(100% - 560px);
+  box-sizing: border-box;
   padding: 4px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  border-radius: 999px;
+  border-radius: 24px;
   background: var(--panel);
   -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
@@ -239,23 +242,24 @@
   animation: card-in 0.6s var(--ease-ios) 0.25s both;
 }
 .mode-switch { align-items: center; }
-.mode-list { display: flex; gap: 4px; flex: none; }
+.mode-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; flex: 0 1 auto; min-width: 0; }
 .mode-switch .year-picker { flex: none; padding-right: 6px; margin-right: 2px; border-right: 1px solid var(--line-2); }
 .mode-list button {
   --mode: var(--accent);
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   flex: none;
   height: 32px;
-  padding: 0 14px;
+  padding: 0 11px;
   border: 0;
   border-radius: 999px;
   background: none;
   color: var(--ink-2);
   font-family: var(--f-mono);
   font-size: 10.5px;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
   text-transform: uppercase;
   cursor: pointer;
   transition: background 0.3s var(--ease-ios), color 0.2s, transform 0.35s var(--spring);
@@ -442,7 +446,9 @@
   .rank-cta { position: absolute; left: 10px; right: 10px; bottom: 10px; padding: 16px 18px 14px; }
   .rank-cta p { margin-bottom: 12px; }
   .rank-cta .rank-hint { display: none; }
-  .mode-switch { left: 10px; right: 10px; bottom: auto; top: 128px; max-width: none; transform: none; }
+  /* Telefon: jeden rząd przewijany w poziomie (dwa rzędy zasłaniałyby mapę). */
+  .mode-switch { left: 10px; right: 10px; bottom: auto; top: 128px; width: auto; max-width: none; margin: 0; overflow-x: auto; scrollbar-width: none; border-radius: 999px; }
+  .mode-list { flex-wrap: nowrap; flex: none; }
   .adv-btn { min-height: 34px; padding: 0 14px; }
   .top-card { position: absolute; left: 0; right: 0; bottom: 0; max-height: 45%; border-radius: 18px 18px 0 0; border-width: 1px 0 0; }
   .legend { bottom: 64px; left: 10px; width: 190px; }
