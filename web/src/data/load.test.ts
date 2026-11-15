@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { buildIdToIndex, getProjString, parseCandidates, parseSites } from './load'
 import { COLUMN_NAMES } from './types'
 
-/** Bufor float32 LE z wierszy (każdy wiersz w kolejności `columns`). */
+/** Float32 LE buffer from rows (each row ordered by `columns`). */
 function makeBuf(rows: number[][]): ArrayBuffer {
   const nc = rows[0]?.length ?? 0
   const buf = new ArrayBuffer(rows.length * nc * 4)
@@ -11,7 +11,7 @@ function makeBuf(rows: number[][]): ArrayBuffer {
   return buf
 }
 
-/** Wiersz, w którym wartość kolumny = id*100 + pozycja kolumny w COLUMN_NAMES. */
+/** Row with each column value = id*100 + the column position in COLUMN_NAMES. */
 function rowFor(id: number, columns: readonly string[]): number[] {
   return columns.map((c) => (c === 'id' ? id : id * 100 + (COLUMN_NAMES as readonly string[]).indexOf(c)))
 }
@@ -19,7 +19,7 @@ function rowFor(id: number, columns: readonly string[]): number[] {
 describe('parseCandidates', () => {
   const columns = [...COLUMN_NAMES]
 
-  it('rozpakowuje wiersze do kolumn', () => {
+  it('unpacks rows into columns', () => {
     const ids = [7, 3, 11]
     const c = parseCandidates(makeBuf(ids.map((id) => rowFor(id, columns))),
       { candidates: { count: 3, columns } })
@@ -29,7 +29,7 @@ describe('parseCandidates', () => {
     expect(c.col.dist_psr_km[2]).toBe(11 * 100 + COLUMN_NAMES.indexOf('dist_psr_km'))
   })
 
-  it('id nie musi równać się indeksowi: mapa id → indeks', () => {
+  it('IDs need not equal indices: ID → index map', () => {
     const c = parseCandidates(makeBuf([rowFor(7, columns), rowFor(3, columns)]),
       { candidates: { count: 2, columns } })
     const m = buildIdToIndex(c)
@@ -37,18 +37,18 @@ describe('parseCandidates', () => {
     expect(m.get(3)).toBe(1)
   })
 
-  it('zły rozmiar pliku rzuca błąd', () => {
+  it('throws for incorrect file size', () => {
     const buf = makeBuf([rowFor(1, columns)])
-    expect(() => parseCandidates(buf, { candidates: { count: 2, columns } })).toThrow(/rozmiar/)
+    expect(() => parseCandidates(buf, { candidates: { count: 2, columns } })).toThrow(/size/)
   })
 
-  it('brakująca kolumna rzuca błąd', () => {
+  it('throws for a missing column', () => {
     const cols = columns.filter((c) => c !== 'earth_pct')
     const buf = makeBuf([rowFor(1, cols)])
     expect(() => parseCandidates(buf, { candidates: { count: 1, columns: cols } })).toThrow(/earth_pct/)
   })
 
-  it('respektuje zmienioną kolejność kolumn w meta', () => {
+  it('respects reordered metadata columns', () => {
     const cols = [...columns].reverse()
     const c = parseCandidates(makeBuf([rowFor(5, cols)]), { candidates: { count: 1, columns: cols } })
     expect(c.col.id[0]).toBe(5)
@@ -60,21 +60,21 @@ describe('parseCandidates', () => {
 describe('getProjString', () => {
   const proj = '+proj=stere +lat_0=-90 +lat_ts=-90 +lon_0=0 +R=1737400 +units=m'
 
-  it('bierze raster_proj4', () => {
+  it('uses raster_proj4', () => {
     expect(getProjString({ raster_proj4: proj, raster_crs_wkt: 'PROJCS["x"]' })).toBe(proj)
   })
 
-  it('bez raster_proj4 bierze raster_crs_wkt, jeśli to ciąg PROJ', () => {
+  it('uses raster_crs_wkt containing PROJ syntax when raster_proj4 is absent', () => {
     expect(getProjString({ raster_crs_wkt: proj })).toBe(proj)
   })
 
-  it('bez raster_proj4 i z WKT rzuca błąd', () => {
-    expect(() => getProjString({ raster_crs_wkt: 'PROJCS["x"]' })).toThrow('brak raster_proj4 w meta.json')
+  it('throws for WKT without raster_proj4', () => {
+    expect(() => getProjString({ raster_crs_wkt: 'PROJCS["x"]' })).toThrow('missing raster_proj4 in meta.json')
   })
 })
 
 describe('parseSites', () => {
-  it('brak pola traktuje jak null', () => {
+  it('treats missing fields as null', () => {
     const [s] = parseSites([{ id: 'a', name: 'A', category: 'apollo', lat: -20, lon: 30 }])
     expect(s?.x_m).toBeNull()
     expect(s?.y_m).toBeNull()

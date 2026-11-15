@@ -5,13 +5,13 @@ import { DEFAULT_SUN_RADIUS_DEG, earthVisible, sunFraction } from './visibility'
 import { longestCommGapH, longestNightH, sunPct } from './aggregates'
 
 describe('ENU', () => {
-  it('biegun (lat -90, lon 0) bez NaN', () => {
+  it('pole (lat -90, lon 0) without NaN', () => {
     const b = enuBasis(-90, 0)
     for (const v of [b.U, b.E, b.N]) for (const c of v) expect(Number.isNaN(c)).toBe(false)
     expect(b.U[2]).toBeCloseTo(-1, 12)
   })
 
-  it('az = 0° wzdłuż N, 90° wzdłuż E; elewacja 90° wzdłuż U', () => {
+  it('az = 0° along N, 90° along E; elevation 90° along U', () => {
     const b = enuBasis(-87.3, 141.2)
     expect(azEl(b.N, b).azDeg).toBeCloseTo(0, 9)
     expect(azEl(b.E, b).azDeg).toBeCloseTo(90, 9)
@@ -20,7 +20,7 @@ describe('ENU', () => {
     expect(azEl(b.U, b).elDeg).toBeCloseTo(90, 9)
   })
 
-  it('U, E, N ortonormalne', () => {
+  it('U, E, N are orthonormal', () => {
     for (const [lat, lon] of [[-90, 0], [-85, -179.9], [-89.7, 37], [0, 0]] as const) {
       const { U, E, N } = enuBasis(lat, lon)
       expect(dot(U, U)).toBeCloseTo(1, 12)
@@ -41,24 +41,24 @@ describe('maskHeightDeg', () => {
   mask[11] = -150
   mask[719] = 100   // 1.00°
 
-  it('zawija 359.9° → 0°', () => {
-    // pozycja 719.8: 0.2·1.00 + 0.8·2.00
+  it('wraps 359.9° → 0°', () => {
+    // position 719.8: 0.2·1.00 + 0.8·2.00
     expect(maskHeightDeg(mask, 359.9)).toBeCloseTo(1.8, 9)
     expect(maskHeightDeg(mask, 360)).toBeCloseTo(2, 9)
     expect(maskHeightDeg(mask, -0.5)).toBeCloseTo(1, 9)
   })
 
-  it('interpoluje w połowie próbki', () => {
+  it('interpolates halfway between samples', () => {
     expect(maskHeightDeg(mask, 0.25)).toBeCloseTo(2.5, 9)
   })
 
-  it('obsługuje wartości ujemne', () => {
+  it('supports negative values', () => {
     expect(maskHeightDeg(mask, 5)).toBeCloseTo(-2.5, 9)
     expect(maskHeightDeg(mask, 5.25)).toBeCloseTo(-2.0, 9)
   })
 })
 
-describe('sunFraction i earthVisible', () => {
+describe('sunFraction and earthVisible', () => {
   const r = DEFAULT_SUN_RADIUS_DEG
   it('d = -1 → 0, d = 1 → 1, d = 0 → 0.5', () => {
     expect(sunFraction(-r, 0)).toBe(0)
@@ -68,18 +68,18 @@ describe('sunFraction i earthVisible', () => {
     expect(sunFraction(5, 0)).toBe(1)
   })
 
-  it('earthVisible: ściśle powyżej maski', () => {
+  it('earthVisible: strictly above the mask', () => {
     expect(earthVisible(1.0001, 1)).toBe(1)
     expect(earthVisible(1, 1)).toBe(0)
   })
 })
 
-describe('agregaty', () => {
-  it('ciągi bez zawijania na końcu okresu', () => {
+describe('aggregates', () => {
+  it('runs do not wrap at the period boundary', () => {
     const f = new Float32Array([0, 0, 1, 1, 0.005, 0, 0])
-    expect(longestNightH(f, 3600)).toBe(3)       // nie 4 (koniec + początek)
+    expect(longestNightH(f, 3600)).toBe(3)       // not 4 (end + start)
     const g = new Uint8Array([0, 1, 0, 0, 1, 0])
-    expect(longestCommGapH(g, 1800)).toBe(1)     // 2 kroki × 0.5 h
+    expect(longestCommGapH(g, 1800)).toBe(1)     // 2 steps × 0.5 h
     expect(sunPct([1, 0, 0.5, 0.5])).toBe(50)
   })
 })

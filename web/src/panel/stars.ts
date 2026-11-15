@@ -12,11 +12,11 @@ export function loadStars(): Promise<StarCatalog> {
     promise = fetch(`${import.meta.env.BASE_URL}assets/stars.json`)
       .then(async (res) => {
         // Serwer dev Vite na brakujący plik odpowiada 200 + index.html.
-        if (!res.ok || !(res.headers.get('content-type') ?? '').includes('json')) throw new Error('brak stars.json')
+        if (!res.ok || !(res.headers.get('content-type') ?? '').includes('json')) throw new Error('missing stars.json')
         return parseStarCatalog(await res.json())
       })
       .catch((e: unknown) => {
-        console.warn(`Gwiazdy niedostępne: ${e instanceof Error ? e.message : String(e)}`)
+        console.warn(`Stars unavailable: ${e instanceof Error ? e.message : String(e)}`)
         return EMPTY_STARS
       })
   }
