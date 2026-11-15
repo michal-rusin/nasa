@@ -374,9 +374,13 @@ export function createMap(
       if (site && site.nearest_candidate_id !== null) store.selectById(site.nearest_candidate_id)
       return
     }
-    // 2) Nearest visible grid point within 10 px. Clicking empty space closes nothing:
+    // 2) Nearest visible grid point (10 px, or any distance when zoomed in). Clicking empty space closes nothing:
     // site cards sit below the map and are closed with the X button or Esc.
-    const i = pick(evt.coordinate, CLICK_RADIUS_PX, evt.pixel)
+    // When zoomed in, grid points are far apart on screen, so a click anywhere snaps to the
+    // nearest visible point (unlimited distance). Fully zoomed out, the 10 px limit stays,
+    // so clicking the dark space around the circle does nothing.
+    let i = pick(evt.coordinate, CLICK_RADIUS_PX, evt.pixel)
+    if (i < 0 && !isZoomedOut()) i = pick(evt.coordinate, Infinity)
     if (i >= 0) {
       setHover(null)
       store.pickPoint(i)
